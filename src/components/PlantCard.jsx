@@ -1,5 +1,5 @@
 import React from 'react';
-import { ACTIVITY, Zap, Users, FileText, BarChart2 } from 'lucide-react';
+import { Activity, Zap, Users, FileText, BarChart2 } from 'lucide-react';
 import './PlantCard.css';
 
 const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices }) => {
