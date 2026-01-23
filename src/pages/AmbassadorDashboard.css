@@ -1,0 +1,42 @@
+.ambassador-dashboard {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.leads-section h2 {
+    font-size: 1.25rem;
+    color: #003366;
+    /* Brand Navy */
+    margin-bottom: 1rem;
+}
+
+/* Spinner Reused from Subscriber css via global or redefine */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 102, 0, 0.1);
+    /* Light Orange */
+    border-left-color: #FF6600;
+    /* Brand Orange */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@media (max-width: 768px) {
+    .ambassador-dashboard {
+        padding: 1rem;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}

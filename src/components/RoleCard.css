@@ -1,0 +1,76 @@
+.role-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 320px;
+}
+
+.role-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  border-color: var(--card-accent-color);
+}
+
+.role-card-icon-wrapper {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.role-card:hover .role-card-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.role-card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #003366;
+  /* Brand Navy */
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  /* Assuming Inter or similar is available/default */
+}
+
+.role-card-description {
+  font-size: 0.95rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.role-card-button {
+  border: none;
+  padding: 0.8rem 2rem;
+  border-radius: 50px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  width: 100%;
+  margin-top: auto;
+}
+
+.role-card:hover .role-card-button {
+  opacity: 0.9;
+}

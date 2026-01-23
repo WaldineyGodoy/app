@@ -1,0 +1,121 @@
+.plant-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transition: transform 0.2s ease;
+}
+
+.plant-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.plant-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.plant-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #003366;
+    /* Navy */
+    font-weight: 700;
+}
+
+.plant-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.plant-status.green {
+    background: #e8f5e9;
+    color: #2ecc71;
+}
+
+.plant-status.yellow {
+    background: #fff9c4;
+    color: #f1c40f;
+}
+
+.plant-status.red {
+    background: #ffebee;
+    color: #e74c3c;
+}
+
+.plant-status.gray {
+    background: #f5f5f5;
+    color: #95a5a6;
+}
+
+.plant-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.plant-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+}
+
+.stat-value-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stat-value {
+    font-weight: 700;
+    color: #003366;
+    font-size: 1rem;
+}
+
+.stat-value.secondary {
+    color: #7f8c8d;
+}
+
+.plant-footer {
+    display: flex;
+    gap: 1rem;
+    margin-top: auto;
+}
+
+.plant-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    background: white;
+    color: #003366;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.plant-action-btn:hover {
+    background: #FF6600;
+    /* Orange */
+    color: white;
+    border-color: #FF6600;
+}

@@ -1,0 +1,60 @@
+.kpi-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.kpi-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 102, 0, 0.1);
+    /* Light Orange */
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kpi-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.kpi-title {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    margin-bottom: 0.25rem;
+}
+
+.kpi-value-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kpi-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #003366;
+    /* Navy */
+}
+
+.kpi-trend {
+    display: flex;
+    align-items: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f8f9fa;
+}

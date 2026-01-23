@@ -1,0 +1,77 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s;
+}
+
+.modal-content.performance-modal {
+    background: white;
+    width: 90%;
+    max-width: 800px;
+    border-radius: 20px;
+    padding: 2rem;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #95a5a6;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #e74c3c;
+}
+
+.performance-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.performance-header h2 {
+    margin: 0;
+    color: #003366;
+    /* Navy */
+    font-size: 1.5rem;
+}
+
+.performance-header p {
+    margin: 0;
+    color: #7f8c8d;
+}
+
+.icon-wrapper {
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 102, 0, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.placeholder-chart {
+    text-align: center;
+    color: #95a5a6;
+    padding: 2rem;
+    border: 2px dashed #e0e0e0;
+    border-radius: 12px;
+}

@@ -1,0 +1,131 @@
+.denied-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    /* Slightly lighter overlay */
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+    /* Higher than other modals if needed */
+    animation: fadeIn 0.2s ease-out;
+    padding: 1rem;
+}
+
+.denied-modal {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.denied-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #95a5a6;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.denied-close-btn:hover {
+    background: #f8f9fa;
+    color: #e74c3c;
+}
+
+.denied-icon-wrapper {
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 102, 0, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.denied-content {
+    margin-bottom: 2rem;
+}
+
+.denied-content h3 {
+    font-size: 1.25rem;
+    color: #003366;
+    /* Brand Navy */
+    margin: 0 0 0.75rem 0;
+    font-weight: 700;
+}
+
+.denied-content p {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.denied-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.register-btn {
+    background: #FF6600;
+    /* Brand Orange */
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+
+.register-btn:hover {
+    background: #e65c00;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+}
+
+.cancel-btn {
+    background: none;
+    border: none;
+    color: #95a5a6;
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

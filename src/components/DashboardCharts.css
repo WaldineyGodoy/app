@@ -1,0 +1,25 @@
+.chart-container {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 2rem;
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #003366;
+    /* Brand Navy */
+    margin-bottom: 1.5rem;
+    margin-top: 0;
+}
+
+.chart-wrapper {
+    width: 100%;
+    height: 300px;
+    /* Fixed height for container */
+}
