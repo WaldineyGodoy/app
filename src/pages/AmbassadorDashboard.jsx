@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../lib/supabase';
 import KPICard from '../components/KPICard';
 import LeadsTable from '../components/LeadsTable';
 import { Users, DollarSign, TrendingUp } from 'lucide-react';
@@ -9,11 +9,13 @@ const AmbassadorDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [originatorName, setOriginatorName] = useState('');
     const [leads, setLeads] = useState([]);
+    const [commissions, setCommissions] = useState([]); // [NEW] Shared state for commissions
     const [stats, setStats] = useState({
         totalLeads: 0,
         totalValue: 0,
-        revenue: 0 // Mocked
+        revenue: 0
     });
+
     const [error, setError] = useState(null);
 
     useEffect(() => {
@@ -56,33 +58,43 @@ const AmbassadorDashboard = () => {
 
             if (leadsError) throw leadsError;
 
-            // 4. Calculate Stats
+            // 4. Fetch Commissions
+            const { data: commissionsData, error: commError } = await supabase
+                .from('commissions')
+                .select('*')
+                .eq('originator_id', originator.id)
+                .order('reference_month', { ascending: false });
+
+            if (commError) {
+                console.warn("Commissions fetch warning:", commError);
+                // Non-critical, just empty
+            }
+
+            setCommissions(commissionsData || []);
+
+            // 5. Calculate Stats
             const totalLeads = leadsData.length;
 
             // Calculate Total Estimated Value (Monthly Bill)
-            // Logic: if estimated_bill_value exists (not in inspected schema?), derive from consumption.
-            // Schema had: consumo_kwh, tarifa_concessionaria.
-            // Value = consumo_kwh * tarifa_concessionaria (if available) OR consumo_kwh * 0.85 (avg)
-
             let totalValue = 0;
             const processedLeads = leadsData.map(lead => {
                 const consumption = lead.consumo_kwh || 0;
-                const tariff = lead.tarifa_concessionaria || 0.85; // Default fallback rate
+                const tariff = lead.tarifa_concessionaria || 0.85;
                 const estimatedValue = consumption * tariff;
-
                 totalValue += estimatedValue;
-
-                return {
-                    ...lead,
-                    estimated_bill_value: estimatedValue
-                };
+                return { ...lead, estimated_bill_value: estimatedValue };
             });
+
+            // Calculate Revenue (Total Paid Commissions or All Commissions?)
+            // Usually 'Revenue' for dashboard is what they earned (Pending + Paid or just Paid).
+            // Let's sum all commissions for now.
+            const totalRevenue = (commissionsData || []).reduce((acc, curr) => acc + (Number(curr.total_value) || 0), 0);
 
             setLeads(processedLeads);
             setStats({
                 totalLeads,
                 totalValue,
-                revenue: 0 // Mocked as 0 for now
+                revenue: totalRevenue
             });
 
         } catch (err) {
@@ -139,15 +151,15 @@ const AmbassadorDashboard = () => {
                             title="Total de Leads"
                             value={stats.totalLeads}
                             icon={Users}
-                            trend={12} // Mock trend
+                            trend={0}
                         />
                         <KPICard
-                            title="Valor Total Indicado (Mensal)"
+                            title="Valor Estimado Contas (Mensal)"
                             value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
                             icon={TrendingUp}
                         />
                         <KPICard
-                            title="Receita Recente (Último Mês)"
+                            title="Comissões Acumuladas"
                             value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.revenue)}
                             icon={DollarSign}
                             trend={0}
@@ -155,7 +167,7 @@ const AmbassadorDashboard = () => {
                     </div>
 
                     {/* Leads Table */}
-                    <section className="leads-section">
+                    <section className="leads-section" style={{ marginBottom: '2rem' }}>
                         <h2>Seus Indicados</h2>
                         <LeadsTable
                             leads={leads}
@@ -164,6 +176,53 @@ const AmbassadorDashboard = () => {
                             onDeleteLead={handleDeleteLead}
                             onToggleFavorite={handleToggleFavorite}
                         />
+                    </section>
+
+                    {/* Commissions Table */}
+                    <section className="commissions-section">
+                        <h2>Extrato de Comissões</h2>
+                        <div className="table-responsive" style={{ background: 'white', padding: '1rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left', color: '#666' }}>
+                                        <th style={{ padding: '1rem' }}>Mês Ref.</th>
+                                        <th style={{ padding: '1rem' }}>Qtd. Faturas</th>
+                                        <th style={{ padding: '1rem' }}>Valor</th>
+                                        <th style={{ padding: '1rem' }}>Status</th>
+                                        <th style={{ padding: '1rem' }}>Data Pagamento</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {commissions.length > 0 ? (
+                                        commissions.map(c => (
+                                            <tr key={c.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
+                                                <td style={{ padding: '1rem' }}>{new Date(c.reference_month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</td>
+                                                <td style={{ padding: '1rem' }}>{c.total_invoices}</td>
+                                                <td style={{ padding: '1rem', color: 'green', fontWeight: 'bold' }}>
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total_value)}
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>
+                                                    <span style={{
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '999px',
+                                                        fontSize: '0.85rem',
+                                                        backgroundColor: c.status === 'paid' ? '#dcfce7' : '#fef3c7',
+                                                        color: c.status === 'paid' ? '#166534' : '#92400e'
+                                                    }}>
+                                                        {c.status === 'paid' ? 'Pago' : 'Pendente'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ padding: '1rem' }}>{c.payment_date ? new Date(c.payment_date).toLocaleDateString() : '-'}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Nenhuma comissão registrada.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </section>
                 </div>
             )}

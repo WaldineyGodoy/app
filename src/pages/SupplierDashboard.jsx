@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../lib/supabase';
 import KPICard from '../components/KPICard';
 import PlantCard from '../components/PlantCard';
 import PlantInvoicesModal from '../components/PlantInvoicesModal';
@@ -7,7 +7,10 @@ import PlantAnalyticsModal from '../components/PlantAnalyticsModal';
 import { Factory, Zap, Users } from 'lucide-react';
 import './SupplierDashboard.css';
 
+import { useAuth } from '../contexts/AuthContext';
+
 const SupplierDashboard = () => {
+    const { user, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [supplierName, setSupplierName] = useState('');
     const [usinas, setUsinas] = useState([]);
@@ -26,41 +29,21 @@ const SupplierDashboard = () => {
     const [activeTab, setActiveTab] = useState('all');
 
     useEffect(() => {
-        fetchSupplierData();
-    }, []);
+        if (!authLoading && user) {
+            fetchSupplierData();
+        }
+    }, [user, authLoading]);
 
     const fetchSupplierData = async () => {
         setLoading(true);
         try {
-            // 1. Get Session
-            // Note: In real auth, use session. Here relying on previous debug flow logic or hardcoded for dev?
-            // Since role selection passes control without session param usually (unless location state),
-            // we will need to simulate fetching the *logged in* supplier.
-            // For MVP: Fetch the FIRST supplier if no session, or check session.
-
-            const { data: { session } } = await supabase.auth.getSession();
-            let email = session?.user?.email;
-
-            // FALLBACK FOR DEMO if no auth: Use a specific email or fetch first
-            // Since we added debug login, maybe we stored it? 
-            // Better: If no session, try to find a supplier to show context.
-            if (!email) {
-                // Try to find any supplier to render dash board (Demo Mode)
-                const { data: anySupp } = await supabase.from('suppliers').select('email').limit(1).single();
-                if (anySupp) email = anySupp.email;
-            }
-
-            if (!email) {
-                console.warn("No supplier email found.");
-                setLoading(false);
-                return;
-            }
+            if (!user?.email) return;
 
             // 2. Fetch Supplier
             const { data: supplier, error: suppError } = await supabase
                 .from('suppliers')
                 .select('id, name')
-                .eq('email', email)
+                .eq('email', user.email)
                 .single();
 
             if (suppError) throw suppError;

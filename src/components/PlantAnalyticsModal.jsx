@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle } from 'lucide-react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../lib/supabase';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell
@@ -31,72 +31,96 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
     const fetchAnalytics = async () => {
         setLoading(true);
         try {
-            // 1. Fetch History (Last 12 months)
-            // Mocking for visual demonstration if DB is empty, but trying real fetch first
-            // Real fetch logic:
-            // const { data: genHistory } = ...
-            // const { data: invHistory } = ...
+            // 1. Fetch Generation History (Last 12 months)
+            const today = new Date();
+            const lastYear = new Date();
+            lastYear.setFullYear(today.getFullYear() - 1);
 
-            // --- MOCK DATA GENERATION (To match the visual request perfectly) ---
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const mockChartData = months.map(m => ({
-                name: m,
-                Geracao: Math.floor(Math.random() * 400) + 300,
-                Consumo: Math.floor(Math.random() * 300) + 200,
-            }));
+            const { data: genHistory, error: genError } = await supabase
+                .from('generation_production')
+                .select('geracao_mensal_kwh, fechamento')
+                .eq('usina_id', usina.id)
+                .gte('fechamento', lastYear.toISOString())
+                .order('fechamento', { ascending: true });
 
-            // Use Last Month from mock for consistency
-            const lastMonth = mockChartData[mockChartData.length - 1];
-            const generationLastMonth = lastMonth.Geracao;
-            const consumptionLastMonth = lastMonth.Consumo;
+            if (genError) throw genError;
 
-            // 2. Fetch specific Usina details for financial calc
-            const { data: usinaDetails } = await supabase
-                .from('usinas')
-                .select('valor_investido, total_despesas') // Check exact schema cols
-                .eq('id', usina.id)
-                .single();
-
-            const invested = usinaDetails?.valor_investido || usina.valor_investido || 500000; // Fallback mock
-            const expenses = usinaDetails?.total_despesas || 1500; // Fallback mock
-
-            // 3. Count UCs & Franquia
-            const { data: ucs, error: ucsError } = await supabase
-                .from('consumer_units')
-                .select('franquia, status')
-                .eq('usina_id', usina.id);
-
-            const totalUCs = ucs?.length || 0;
+            // 2. Fetch Consumption History (Sum of UCs)
+            // Simplified: Fetch invoices for filtered UCs for the last 12 months
+            const { data: ucs } = await supabase.from('consumer_units').select('id, franquia').eq('usina_id', usina.id);
+            const ucIds = ucs?.map(u => u.id) || [];
             const totalFranquia = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
 
-            // 4. Calculate Revenue (Faturamento)
-            // Mocking revenue based on consumption (e.g. R$ 0.85/kWh)
-            const revenueLastMonth = consumptionLastMonth * 0.85;
+            let invHistory = [];
+            if (ucIds.length > 0) {
+                const { data: invoices } = await supabase
+                    .from('invoices')
+                    .select('consumo_kwh, valor_a_pagar, mes_referencia')
+                    .in('uc_id', ucIds)
+                    .gte('mes_referencia', `${lastYear.getFullYear()}-${lastYear.getMonth() + 1}-01`);
+                invHistory = invoices || [];
+            }
 
-            // 5. Vacancy (Difference)
+            // 3. Process Chart Data
+            // We need to merge Generation and Consumption by Month (YYYY-MM)
+            const processedData = [];
+            for (let i = 0; i < 12; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1);
+                const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
+                const monthName = d.toLocaleDateString('pt-BR', { month: 'short' });
+
+                // Find Competing Data
+                // Generation: 'fechamento' is date
+                const genItem = genHistory?.find(g => g.fechamento.startsWith(monthKey));
+                const generation = Number(genItem?.geracao_mensal_kwh) || 0;
+
+                // Consumption: 'mes_referencia' is date
+                const consItems = invHistory.filter(inv => inv.mes_referencia.startsWith(monthKey));
+                const consumption = consItems.reduce((acc, curr) => acc + (Number(curr.consumo_kwh) || 0), 0);
+                const revenue = consItems.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0);
+
+                processedData.push({
+                    name: monthName,
+                    monthKey: monthKey,
+                    Geracao: generation,
+                    Consumo: consumption,
+                    Revenue: revenue
+                });
+            }
+
+            setChartData(processedData);
+
+            // 4. Metrics Helper (Last Month)
+            const lastMonthData = processedData[processedData.length - 1]; // or the last one with data?
+            // Let's use the actual last month of array
+
+            const totalUCs = ucs?.length || 0;
+            const generationLastMonth = lastMonthData.Geracao;
+            const consumptionLastMonth = lastMonthData.Consumo;
+            const revenueLastMonth = lastMonthData.Revenue;
+
+            // 5. Vacancy
             const vacancyKwh = generationLastMonth - consumptionLastMonth;
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
 
-            // 6. Occupancy (Avg Gen vs Franquia) -> Here simplified to Last Gen vs Franquia for Occupancy
-            // "Ocupação: Geração Média vs Franquia" -> Let's show Franquia usage
-            // Occupied = Consumption (or Franquia Allocated?) -> User said "Franquia de consumo das UCs"
-            // Let's assume Occupancy is how much of the Generation is allocated to Franquias.
-            // Or usually: Occupancy = Total Franquia / Capacity.
-            // Let's use: Occupancy Data for Pie Chart.
+            // 6. Occupancy (Based on Franquia Allocation usually, but let's use actual consumption ratio)
             const occupancyRate = generationLastMonth > 0 ? (consumptionLastMonth / generationLastMonth) * 100 : 0;
 
             const pieData = [
                 { name: 'Ocupado', value: consumptionLastMonth, color: '#FF6600' },
                 { name: 'Vacância', value: Math.max(0, vacancyKwh), color: '#eee' }
             ];
+            setOccupancyData(pieData);
 
-            // 7. Profitability
+
+            // 7. Profitability & Financials
+            // Hardcoded expenses/investment logic as fallback if columns missing
+            const { data: usinaDetails } = await supabase.from('usinas').select('*').eq('id', usina.id).single();
+            const invested = usinaDetails?.valor_investido || usina.valor_investido || 500000;
+            const expenses = 500; // Mock fixed operational cost
+            // Balance = Revenue - Expenses
+            const balanceToReceive = revenueLastMonth - expenses;
             const profitability = invested > 0 ? (revenueLastMonth / invested) * 100 : 0;
-
-            // 8. Balance to Receive (Saldo)
-            // Faturamento - Despesas - Inadimplência
-            const delinquency = 0; // Mocked
-            const balanceToReceive = revenueLastMonth - expenses - delinquency;
 
             setMetrics({
                 totalUCs,
@@ -108,8 +132,6 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 profitability,
                 balanceToReceive
             });
-            setChartData(mockChartData);
-            setOccupancyData(pieData);
 
         } catch (err) {
             console.error("Error fetching analytics:", err);

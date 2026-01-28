@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../lib/supabase';
 import UCCard from '../components/UCCard';
 import { SavingsChart, ConsumptionChart } from '../components/DashboardCharts';
 import InvoicesModal from '../components/InvoicesModal';
