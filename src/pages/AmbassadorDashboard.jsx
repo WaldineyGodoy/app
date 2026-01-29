@@ -118,9 +118,18 @@ const AmbassadorDashboard = () => {
             const processedLeads = (leadsData || []).map(lead => {
                 const consumption = lead.consumo_kwh || 0;
                 const tariff = lead.tarifa_concessionaria || 0.85;
-                const estimatedValue = consumption * tariff;
-                totalValue += estimatedValue;
-                return { ...lead, estimated_bill_value: estimatedValue };
+                const discount = lead.calculated_discount || 0; // Use discount from DB or 0
+
+                // Formula: ((Consumption * Tariff) - Discount) * Commission%
+                // Commission is percentage 0-100, so divide by 100
+                const commissionVal = Number(commission) || 0;
+                const baseValue = (consumption * tariff) - discount;
+                const estimatedCommission = baseValue * (commissionVal / 100);
+
+                totalValue += estimatedCommission;
+
+                // We'll update estimated_bill_value to hold the COMMISSION value for the table
+                return { ...lead, estimated_bill_value: estimatedCommission };
             });
 
             const totalRevenue = (commissionsData || []).reduce((acc, curr) => acc + (Number(curr.total_value) || 0), 0);
@@ -204,7 +213,7 @@ const AmbassadorDashboard = () => {
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
                                     <span className="stat-trend" style={{ color: '#0ea5e9' }}>• Est.</span>
                                 </span>
-                                <span className="stat-label">Valor em Contas</span>
+                                <span className="stat-label">Comissões Estimadas</span>
                             </div>
                         </div>
                     </div>
