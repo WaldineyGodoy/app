@@ -72,7 +72,20 @@ const AmbassadorDashboard = () => {
             setOriginatorId(originator.id); // Set ID state
 
             // Store commission percentage (default 12 if null)
-            const commission = originator.split_commission || 12;
+            // Handle both number and object {start: X, recurrent: Y}
+            let commission = 12;
+            const rawCommission = originator.split_commission;
+
+            if (rawCommission) {
+                if (typeof rawCommission === 'object') {
+                    // Prefer recurrent, then start, then default
+                    commission = rawCommission.recurrent || rawCommission.start || 12;
+                } else {
+                    commission = rawCommission;
+                }
+            }
+
+            // ... (fetch leads/commissions) ...
 
             // 3. Fetch Leads
             const { data: leadsData, error: leadsError } = await supabase
