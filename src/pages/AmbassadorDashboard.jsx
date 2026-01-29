@@ -73,13 +73,15 @@ const AmbassadorDashboard = () => {
 
             // Store commission percentage (default 12 if null)
             // Handle both number and object {start: X, recurrent: Y}
-            let commission = 12;
+            // Store commission percentage
+            // Handle both number and object {start: X, recurrent: Y}
+            let commission = 0;
             const rawCommission = originator.split_commission;
 
             if (rawCommission) {
                 if (typeof rawCommission === 'object') {
-                    // Prefer recurrent, then start, then default
-                    commission = rawCommission.recurrent || rawCommission.start || 12;
+                    // Prefer recurrent, then start, then default 0
+                    commission = rawCommission.recurrent || rawCommission.start || 0;
                 } else {
                     commission = rawCommission;
                 }
