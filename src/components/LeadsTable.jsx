@@ -9,20 +9,26 @@ const LeadsTable = ({ leads, onAddLead, onEditLead, onDeleteLead, onToggleFavori
     // Tabs configuration
     const tabs = [
         { id: 'all', label: 'Todos' },
-        { id: 'novo', label: 'Novos' },
-        { id: 'em_analise', label: 'Em Análise' },
-        { id: 'pendente', label: 'Pendentes' }, // Valid status from your schema inspection? Assuming mapped later.
-        { id: 'ganho', label: 'Pagos/Ganhos' },
-        { id: 'perdido', label: 'Perdidos' },
+        { id: 'simulation', label: 'Simulação' },
+        { id: 'indicated', label: 'Indicado' },
+        { id: 'negotiation', label: 'Em negociação' },
+        { id: 'lost', label: 'Negocio Perdido' },
+        { id: 'active', label: 'Ativo' }, // Converted/Subscriber
+        { id: 'paid', label: 'Pago' },
     ];
 
     // Filter Logic
     const filteredLeads = leads.filter(lead => {
-        // Status Filter
+        const s = lead.status?.toLowerCase() || '';
+
+        // Status Filter Logic (Mapping UI tabs to DB statuses)
         const statusMatch = activeTab === 'all' ||
-            (lead.status && lead.status.toLowerCase().includes(activeTab)) ||
-            (activeTab === 'novo' && lead.status === 'New') || // Map variations if needed
-            (activeTab === 'ganho' && (lead.status === 'won' || lead.status === 'pago'));
+            (activeTab === 'simulation' && (s.includes('simul') || s.includes('new'))) ||
+            (activeTab === 'indicated' && (s.includes('indic') || s.includes('lead'))) ||
+            (activeTab === 'negotiation' && (s.includes('negoc') || s.includes('analy'))) ||
+            (activeTab === 'lost' && (s.includes('lost') || s.includes('perdido'))) ||
+            (activeTab === 'active' && (s.includes('active') || s.includes('ativo') || s.includes('won'))) ||
+            (activeTab === 'paid' && (s.includes('paid') || s.includes('pago')));
 
         // Search Filter
         const searchMatch = lead.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -36,10 +42,11 @@ const LeadsTable = ({ leads, onAddLead, onEditLead, onDeleteLead, onToggleFavori
     const getStatusBadge = (status) => {
         let colorClass = 'gray';
         const s = status?.toLowerCase() || '';
-        if (s.includes('won') || s.includes('ganho') || s.includes('pago')) colorClass = 'green';
+        if (s.includes('won') || s.includes('ativo') || s.includes('active')) colorClass = 'green';
+        else if (s.includes('pago') || s.includes('paid')) colorClass = 'emerald';
         else if (s.includes('lost') || s.includes('perdido')) colorClass = 'red';
-        else if (s.includes('analise') || s.includes('negotiation')) colorClass = 'blue';
-        else if (s.includes('new') || s.includes('novo')) colorClass = 'orange';
+        else if (s.includes('negocia') || s.includes('negotiation')) colorClass = 'blue';
+        else if (s.includes('simul') || s.includes('new')) colorClass = 'orange';
 
         return <span className={`lead-status ${colorClass}`}>{status || 'Novo'}</span>;
     };
@@ -86,8 +93,8 @@ const LeadsTable = ({ leads, onAddLead, onEditLead, onDeleteLead, onToggleFavori
                             <th>Nome</th>
                             <th>Email</th>
                             <th>Telefone</th>
-                            <th>Valor da Conta (Est.)</th>
-                            <th>Status</th>
+                            <th>Valor a Receber (Est.)</th>
+                            <th>Status. Lead</th>
                             <th align="right">Ações</th>
                         </tr>
                     </thead>
@@ -98,7 +105,7 @@ const LeadsTable = ({ leads, onAddLead, onEditLead, onDeleteLead, onToggleFavori
                                     <td>
                                         <div className="lead-name-cell">
                                             {/* Avatar Placeholder */}
-                                            <div className="avatar-circle">{lead.name.charAt(0)}</div>
+                                            <div className="avatar-circle">{lead.name ? lead.name.charAt(0) : '?'}</div>
                                             <span>{lead.name}</span>
                                         </div>
                                     </td>
@@ -123,7 +130,7 @@ const LeadsTable = ({ leads, onAddLead, onEditLead, onDeleteLead, onToggleFavori
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="6" className="empty-row">Nenhum lead encontrado.</td>
+                                <td colSpan="6" className="empty-row">Lead não encontrado.</td>
                             </tr>
                         )}
                     </tbody>

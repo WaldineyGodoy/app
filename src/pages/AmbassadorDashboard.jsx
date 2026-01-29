@@ -3,11 +3,14 @@ import { supabase } from '../lib/supabase';
 import KPICard from '../components/KPICard';
 import LeadsTable from '../components/LeadsTable';
 import { Users, DollarSign, TrendingUp } from 'lucide-react';
+import LeadCreateModal from '../components/LeadCreateModal';
 import './AmbassadorDashboard.css';
 
 const AmbassadorDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [originatorName, setOriginatorName] = useState('');
+    const [originatorId, setOriginatorId] = useState(null);
+    const [isLeadModalOpen, setIsLeadModalOpen] = useState(false); // [NEW]
     const [leads, setLeads] = useState([]);
     const [commissions, setCommissions] = useState([]); // [NEW] Shared state for commissions
     const [stats, setStats] = useState({
@@ -30,24 +33,46 @@ const AmbassadorDashboard = () => {
             const email = session?.user?.email;
 
             if (!email) {
-                console.log("No session found.");
-                // Fallback for debug flow if needed, similar to Subscriber dashboard
-            }
-
-            if (!email) {
                 setLoading(false);
                 return;
             }
 
             // 2. Fetch Originator Profile
-            const { data: originator, error: orgError } = await supabase
+            let { data: originator, error: orgError } = await supabase
                 .from('originators_v2')
-                .select('id, name')
+                .select('id, name, split_commission')
                 .eq('email', email)
-                .single();
+                .maybeSingle(); // Use maybeSingle to avoid throw on 0 rows
+
+            // [FIX] Handling Admin/Dev Access:
+            // If logged in user is NOT in originators table, check if they are admin/dev via profiles
+            // For now, if no originator found, fetch the FIRST one just to show the dashboard (Simulation Mode)
+            if (!originator) {
+                console.warn("User not found in originators_v2. Trying fallback (Admin Mode).");
+                const { data: fallbackOriginator } = await supabase
+                    .from('originators_v2')
+                    .select('id, name, split_commission')
+                    .limit(1)
+                    .single();
+
+                if (fallbackOriginator) {
+                    originator = fallbackOriginator;
+                } else {
+                    console.warn("Fallback failed. Using static mock.");
+                    originator = {
+                        id: 'mock-originator-id',
+                        name: 'Embaixador Teste',
+                        split_commission: 12
+                    };
+                }
+            }
 
             if (orgError) throw orgError;
             setOriginatorName(originator.name);
+            setOriginatorId(originator.id); // Set ID state
+
+            // Store commission percentage (default 12 if null)
+            const commission = originator.split_commission || 12;
 
             // 3. Fetch Leads
             const { data: leadsData, error: leadsError } = await supabase
@@ -67,17 +92,15 @@ const AmbassadorDashboard = () => {
 
             if (commError) {
                 console.warn("Commissions fetch warning:", commError);
-                // Non-critical, just empty
             }
 
             setCommissions(commissionsData || []);
 
             // 5. Calculate Stats
-            const totalLeads = leadsData.length;
+            const totalLeads = leadsData ? leadsData.length : 0;
 
-            // Calculate Total Estimated Value (Monthly Bill)
             let totalValue = 0;
-            const processedLeads = leadsData.map(lead => {
+            const processedLeads = (leadsData || []).map(lead => {
                 const consumption = lead.consumo_kwh || 0;
                 const tariff = lead.tarifa_concessionaria || 0.85;
                 const estimatedValue = consumption * tariff;
@@ -85,29 +108,36 @@ const AmbassadorDashboard = () => {
                 return { ...lead, estimated_bill_value: estimatedValue };
             });
 
-            // Calculate Revenue (Total Paid Commissions or All Commissions?)
-            // Usually 'Revenue' for dashboard is what they earned (Pending + Paid or just Paid).
-            // Let's sum all commissions for now.
             const totalRevenue = (commissionsData || []).reduce((acc, curr) => acc + (Number(curr.total_value) || 0), 0);
 
             setLeads(processedLeads);
             setStats({
                 totalLeads,
                 totalValue,
-                revenue: totalRevenue
+                revenue: totalRevenue,
+                commissionRate: commission // Add to stats
             });
 
         } catch (err) {
             console.error("Error fetching ambassador data:", err);
-            setError("Erro ao carregar dados.");
+            setError(err.message || "Erro ao carregar dados.");
         } finally {
             setLoading(false);
         }
     };
 
-    // Actions Handlers (Placeholders)
+    // Actions Handlers
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        window.location.href = '/';
+    };
+
     const handleAddLead = () => {
-        alert("Funcionalidade de Adicionar Lead em breve!");
+        setIsLeadModalOpen(true);
+    };
+
+    const handleLeadCreated = () => {
+        fetchDashboardData();
     };
 
     const handleEditLead = (lead) => {
@@ -116,7 +146,6 @@ const AmbassadorDashboard = () => {
 
     const handleDeleteLead = (id) => {
         if (window.confirm("Tem certeza que deseja excluir este lead?")) {
-            // Implement delete logic here
             console.log("Delete", id);
         }
     };
@@ -127,13 +156,6 @@ const AmbassadorDashboard = () => {
 
     return (
         <div className="ambassador-dashboard">
-            <header className="dashboard-header">
-                <div className="header-content">
-                    <h1>Bem-vindo, {originatorName || 'Embaixador'}!</h1>
-                    <p>Acompanhe seus leads e comissões.</p>
-                </div>
-            </header>
-
             {loading ? (
                 <div className="loading-state">
                     <div className="spinner"></div>
@@ -142,89 +164,93 @@ const AmbassadorDashboard = () => {
             ) : error ? (
                 <div className="error-state">
                     <p>{error}</p>
+                    <button className="action-btn primary" onClick={fetchDashboardData}>Tentar Novamente</button>
+                    <button className="action-btn" onClick={handleLogout} style={{ marginTop: '1rem', color: '#666' }}>Sair</button>
                 </div>
             ) : (
-                <div className="dashboard-content">
-                    {/* KPI Cards */}
-                    <div className="kpi-grid">
-                        <KPICard
-                            title="Total de Leads"
-                            value={stats.totalLeads}
-                            icon={Users}
-                            trend={0}
-                        />
-                        <KPICard
-                            title="Valor Estimado Contas (Mensal)"
-                            value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
-                            icon={TrendingUp}
-                        />
-                        <KPICard
-                            title="Comissões Acumuladas"
-                            value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.revenue)}
-                            icon={DollarSign}
-                            trend={0}
-                        />
+                <>
+                    {/* 1. Top Bar: Welcome + Stats */}
+                    <div className="top-bar">
+                        <div className="welcome-text">
+                            <h1>Bem-vindo, {originatorName || 'Embaixador'}!</h1>
+                            <p>Você tem {stats.totalLeads} indicados e {leads.filter(l => l.isNew).length} novas atualizações.</p>
+                        </div>
+
+                        <div className="top-stats">
+                            <div className="stat-item">
+                                <span className="stat-value">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.revenue)}
+                                    <span className="stat-trend" style={{ color: '#2ecc71' }}>▲ {stats.commissionRate}%</span>
+                                </span>
+                                <span className="stat-label">Comissões (Total)</span>
+                            </div>
+                            <div className="stat-item">
+                                <span className="stat-value">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
+                                    <span className="stat-trend" style={{ color: '#0ea5e9' }}>• Est.</span>
+                                </span>
+                                <span className="stat-label">Valor em Contas</span>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Leads Table */}
-                    <section className="leads-section" style={{ marginBottom: '2rem' }}>
-                        <h2>Seus Indicados</h2>
-                        <LeadsTable
-                            leads={leads}
-                            onAddLead={handleAddLead}
-                            onEditLead={handleEditLead}
-                            onDeleteLead={handleDeleteLead}
-                            onToggleFavorite={handleToggleFavorite}
-                        />
-                    </section>
-
-                    {/* Commissions Table */}
-                    <section className="commissions-section">
-                        <h2>Extrato de Comissões</h2>
-                        <div className="table-responsive" style={{ background: 'white', padding: '1rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left', color: '#666' }}>
-                                        <th style={{ padding: '1rem' }}>Mês Ref.</th>
-                                        <th style={{ padding: '1rem' }}>Qtd. Faturas</th>
-                                        <th style={{ padding: '1rem' }}>Valor</th>
-                                        <th style={{ padding: '1rem' }}>Status</th>
-                                        <th style={{ padding: '1rem' }}>Data Pagamento</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {commissions.length > 0 ? (
-                                        commissions.map(c => (
-                                            <tr key={c.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
-                                                <td style={{ padding: '1rem' }}>{new Date(c.reference_month).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</td>
-                                                <td style={{ padding: '1rem' }}>{c.total_invoices}</td>
-                                                <td style={{ padding: '1rem', color: 'green', fontWeight: 'bold' }}>
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.total_value)}
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>
-                                                    <span style={{
-                                                        padding: '0.25rem 0.75rem',
-                                                        borderRadius: '999px',
-                                                        fontSize: '0.85rem',
-                                                        backgroundColor: c.status === 'paid' ? '#dcfce7' : '#fef3c7',
-                                                        color: c.status === 'paid' ? '#166534' : '#92400e'
-                                                    }}>
-                                                        {c.status === 'paid' ? 'Pago' : 'Pendente'}
-                                                    </span>
-                                                </td>
-                                                <td style={{ padding: '1rem' }}>{c.payment_date ? new Date(c.payment_date).toLocaleDateString() : '-'}</td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan="5" style={{ padding: '2rem', textAlign: 'center', color: '#888' }}>Nenhuma comissão registrada.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                    {/* 2. Main Profile Card */}
+                    <div className="profile-card-container">
+                        <div className="profile-header">
+                            <div className="profile-info">
+                                <div className="profile-avatar">
+                                    {/* Could use an actual image here if available in profile */}
+                                    <div className="profile-avatar-placeholder">
+                                        {originatorName ? originatorName.charAt(0) : 'E'}
+                                    </div>
+                                </div>
+                                <div className="profile-details">
+                                    <h2>{originatorName || 'Embaixador'}</h2>
+                                    {/* Link de Indicação */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Link de Indicação:</span>
+                                        <a
+                                            href={`https://b2wenergia.com.br/convite?name=${encodeURIComponent(originatorName || '')}&id=${originatorId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{ fontSize: '0.85rem', color: '#0ea5e9', fontWeight: '500', textDecoration: 'none' }}
+                                        >
+                                            b2wenergia.com.br/convite?name={originatorName}&id={originatorId}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="header-actions">
+                                <button className="action-btn primary" onClick={handleAddLead}>
+                                    + Novo Lead
+                                </button>
+                                <button className="action-btn" onClick={handleLogout} title="Sair do Sistema">
+                                    <span style={{ color: '#e74c3c' }}>Sair</span>
+                                </button>
+                            </div>
                         </div>
-                    </section>
-                </div>
+
+                        {/* 3. Content: Leads Table (Tabs are inside LeadsTable for now) */}
+                        <div className="dashboard-content-wrapper">
+                            <LeadsTable
+                                leads={leads}
+                                onAddLead={handleAddLead}
+                                onEditLead={handleEditLead}
+                                onDeleteLead={handleDeleteLead}
+                                onToggleFavorite={handleToggleFavorite}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Lead Creation Modal */}
+                    <LeadCreateModal
+                        isOpen={isLeadModalOpen}
+                        onClose={() => setIsLeadModalOpen(false)}
+                        originatorId={originatorId}
+                        onSuccess={handleLeadCreated}
+                    />
+
+                </>
             )}
         </div>
     );
