@@ -4,12 +4,49 @@ import { fetchAddressByCep } from '../lib/api';
 import { useUI } from '../contexts/UIContext';
 import { useNavigate } from 'react-router-dom';
 
-export default function OriginatorSignup() {
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null, errorInfo: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        console.error("ErrorBoundary caught an error", error, errorInfo);
+        this.setState({ error, errorInfo });
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fee2e2', border: '1px solid red', borderRadius: '8px', margin: '2rem' }}>
+                    <h2>Algo deu errado.</h2>
+                    <details style={{ whiteSpace: 'pre-wrap' }}>
+                        {this.state.error && this.state.error.toString()}
+                        <br />
+                        {this.state.errorInfo && this.state.errorInfo.componentStack}
+                    </details>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+function OriginatorSignupContent() {
     const { showAlert } = useUI();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1); // 1: SignUp, 2: Profile, 3: Success
     const [userId, setUserId] = useState(null);
+
+    React.useEffect(() => {
+        console.log("DEBUG: OriginatorSignupContent Mounted v1.2 (App Repo)");
+    }, []);
 
     const [form, setForm] = useState({
         name: '',
@@ -443,5 +480,13 @@ export default function OriginatorSignup() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function OriginatorSignup() {
+    return (
+        <ErrorBoundary>
+            <OriginatorSignupContent />
+        </ErrorBoundary>
     );
 }
