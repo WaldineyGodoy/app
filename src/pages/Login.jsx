@@ -118,7 +118,31 @@ export default function Login() {
                     </div>
 
                     <div>
-                        <label style={styles.label}>Senha</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={styles.label}>Senha</label>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    if (!email) {
+                                        alert('Digite seu email para recuperar a senha.');
+                                        return;
+                                    }
+                                    setLoading(true);
+                                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                                        redirectTo: window.location.origin + '/dashboard?reset=true',
+                                    });
+                                    setLoading(false);
+                                    if (error) {
+                                        alert('Erro ao enviar email: ' + error.message);
+                                    } else {
+                                        alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
+                                    }
+                                }}
+                                style={{ background: 'none', border: 'none', color: colors.primary, fontSize: '0.8rem', cursor: 'pointer', padding: 0 }}
+                            >
+                                Esqueci minha senha
+                            </button>
+                        </div>
                         <input
                             type="password"
                             required
@@ -136,6 +160,17 @@ export default function Login() {
                     >
                         {loading ? 'Entrando...' : 'Entrar'}
                     </button>
+
+                    <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Não tem uma conta? </span>
+                        <button
+                            type="button"
+                            onClick={() => window.location.href = 'https://app.b2wenergia.com.br/cadastro-parceiro'}
+                            style={{ background: 'none', border: 'none', color: colors.primary, fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', padding: 0 }}
+                        >
+                            Criar conta
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
