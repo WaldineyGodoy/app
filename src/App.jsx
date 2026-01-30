@@ -8,6 +8,7 @@ import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import './App.css'
 import OriginatorSignup from './pages/OriginatorSignup'
+import SignupRoleScreen from './pages/SignupRoleScreen'
 const ProtectedRoute = ({ allowedRoles }) => {
   const { user, profile, loading } = useAuth();
 
@@ -55,7 +56,9 @@ function App() {
             <Route path="/fornecedores" element={<SupplierDashboard />} />
           </Route>
 
+
           <Route path="/cadastro-embaixador" element={<OriginatorSignup />} />
+          <Route path="/cadastro-parceiro" element={<SignupRoleScreen />} />
 
         </Routes>
       </AuthProvider>
