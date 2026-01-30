@@ -114,11 +114,15 @@ const AmbassadorDashboard = () => {
             // 5. Calculate Stats
             const totalLeads = leadsData ? leadsData.length : 0;
 
-            let totalValue = 0;
+            let totalValue = 0;      // Total Estimated Value (All Leads)
+            let activeSum = 0;       // Sum for 'ativo' leads
+            let paidSum = 0;         // Sum for 'pago' leads
+
             const processedLeads = (leadsData || []).map(lead => {
                 const consumption = lead.consumo_kwh || 0;
                 const tariff = lead.tarifa_concessionaria || 0.85;
                 const discount = lead.calculated_discount || 0; // Use discount from DB or 0
+                const status = lead.status ? lead.status.toLowerCase() : '';
 
                 // Formula: ((Consumption * Tariff) - Discount) * Commission%
                 // Commission is percentage 0-100, so divide by 100
@@ -128,17 +132,29 @@ const AmbassadorDashboard = () => {
 
                 totalValue += estimatedCommission;
 
+                // Sum based on status
+                if (status === 'ativo') {
+                    activeSum += estimatedCommission;
+                }
+                if (status === 'pago') {
+                    paidSum += estimatedCommission;
+                }
+
                 // We'll update estimated_bill_value to hold the COMMISSION value for the table
                 return { ...lead, estimated_bill_value: estimatedCommission };
             });
 
-            const totalRevenue = (commissionsData || []).reduce((acc, curr) => acc + (Number(curr.total_value) || 0), 0);
+            // "Comissões (Total)" Display = (Historical Payouts) + (Active Leads Value)
+            // As per user request: "Valores a receber com status [Ativo] devem ser somado na exibição comissões total"
+            const historicalRevenue = (commissionsData || []).reduce((acc, curr) => acc + (Number(curr.total_value) || 0), 0);
+            const displayTotalCommission = historicalRevenue + activeSum;
 
             setLeads(processedLeads);
             setStats({
                 totalLeads,
-                totalValue,
-                revenue: totalRevenue,
+                totalValue, // Comissões Estimadas (Geral)
+                revenue: displayTotalCommission, // Comissões (Total)
+                paid: paidSum, // New Stat: Comissões Pagas
                 commissionRate: commission // Add to stats
             });
 
@@ -208,6 +224,16 @@ const AmbassadorDashboard = () => {
                                 </span>
                                 <span className="stat-label">Comissões (Total)</span>
                             </div>
+
+                            {/* [NEW] Comissões Pagas */}
+                            <div className="stat-item">
+                                <span className="stat-value">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.paid)}
+                                    <span className="stat-trend" style={{ color: '#10b981' }}>✔</span>
+                                </span>
+                                <span className="stat-label">Comissões Pagas</span>
+                            </div>
+
                             <div className="stat-item">
                                 <span className="stat-value">
                                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
