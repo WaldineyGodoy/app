@@ -123,7 +123,13 @@ const SupplierDashboard = () => {
     // Filter Logic
     const filteredUsinas = activeTab === 'all'
         ? usinas
-        : usinas.filter(u => u.status?.toLowerCase().includes(activeTab.toLowerCase()));
+        : usinas.filter(u => {
+            const s = u.status?.toLowerCase() || '';
+            if (activeTab === 'active') return s.includes('ativa') || s.includes('ativo') || s.includes('operacao');
+            if (activeTab === 'generating') return s.includes('gerando');
+            if (activeTab === 'maintenance') return s.includes('manuten');
+            return false;
+        });
 
     return (
         <div className="supplier-dashboard">
@@ -152,13 +158,18 @@ const SupplierDashboard = () => {
                         <div className="section-header-row">
                             <h2>Suas Usinas</h2>
                             <div className="status-tabs">
-                                {['All', 'Active', 'Maintenance'].map(tab => (
+                                {[
+                                    { id: 'all', label: 'Todas' },
+                                    { id: 'active', label: 'Ativas' },
+                                    { id: 'generating', label: 'Gerando' },
+                                    { id: 'maintenance', label: 'Manutenção' }
+                                ].map(tab => (
                                     <button
-                                        key={tab}
-                                        className={`tab-pill ${activeTab === tab.toLowerCase() ? 'active' : ''}`}
-                                        onClick={() => setActiveTab(tab.toLowerCase())}
+                                        key={tab.id}
+                                        className={`tab-pill ${activeTab === tab.id ? 'active' : ''}`}
+                                        onClick={() => setActiveTab(tab.id)}
                                     >
-                                        {tab === 'All' ? 'Todas' : tab === 'Active' ? 'Ativas' : 'Manutenção'}
+                                        {tab.label}
                                     </button>
                                 ))}
                             </div>

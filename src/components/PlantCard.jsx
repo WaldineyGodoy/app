@@ -6,7 +6,7 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices }) => {
     // Determine status color
     const getStatusColor = (status) => {
         const s = status?.toLowerCase() || '';
-        if (s.includes('active') || s.includes('ativa') || s.includes('operacao')) return 'green';
+        if (s.includes('active') || s.includes('ativa') || s.includes('operacao') || s.includes('gerando')) return 'green';
         if (s.includes('maintenance') || s.includes('manutencao')) return 'yellow';
         if (s.includes('inactive') || s.includes('inativa')) return 'red';
         return 'gray';
