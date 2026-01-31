@@ -114,3 +114,31 @@ export const createAsaasCharge = async (id, type = 'invoice') => {
     if (error) throw error;
     return data;
 };
+
+/**
+ * Envia mensagem via WhatsApp usando Evolution API (CRM Integration)
+ * @param {string} phone Número destinatário (com DDI, ex: 5511999999999)
+ * @param {string} text Texto da mensagem
+ * @param {string} [mediaUrl] URL da imagem/video (opcional)
+ * @param {string} [instanceName] Nome da instância (opcional, se não definido usa o padrão do CRM)
+ */
+export const sendWhatsapp = async (phone, text, mediaUrl, instanceName) => {
+    try {
+        const { data, error } = await supabase.functions.invoke('send-whatsapp', {
+            body: {
+                phone: phone ? phone.replace(/\D/g, '') : '',
+                text,
+                mediaUrl,
+                instanceName
+            }
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        return data;
+    } catch (error) {
+        console.error('Erro ao enviar WhatsApp:', error);
+        throw error;
+    }
+};
