@@ -298,6 +298,37 @@ const AmbassadorDashboard = () => {
                                     <h2>{originatorName || 'Embaixador'}</h2>
 
                                     {/* Link de Indicação UI Area */}
+                                    <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Seu Link de Indicação:</span>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{
+                                                background: '#f1f5f9',
+                                                padding: '0.5rem 0.8rem',
+                                                borderRadius: '6px',
+                                                fontSize: '0.85rem',
+                                                color: '#334155',
+                                                border: '1px solid #cbd5e1',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                maxWidth: '300px'
+                                            }}>
+                                                {inviteLink}
+                                            </div>
+
+                                            <button
+                                                onClick={handleCopyLink}
+                                                style={{
+                                                    background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.5rem',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#475569'
+                                                }}
+                                                title="Copiar Link"
+                                            >
+                                                {copied ? <Check size={16} color="green" /> : <Copy size={16} />}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

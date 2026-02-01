@@ -46,7 +46,7 @@ const LeadsTable = ({ leads, onAddLead, onEditLead, onDeleteLead, onToggleFavori
         else if (s.includes('pago') || s.includes('paid')) colorClass = 'emerald';
         else if (s.includes('lost') || s.includes('perdido')) colorClass = 'red';
         else if (s.includes('negocia') || s.includes('negotiation')) colorClass = 'blue';
-        else if (s.includes('simul') || s.includes('new')) colorClass = 'orange';
+        else if (s.includes('simul') || s.includes('new') || s.includes('convite')) colorClass = 'orange';
 
         return <span className={`lead-status ${colorClass}`}>{status || 'Novo'}</span>;
     };

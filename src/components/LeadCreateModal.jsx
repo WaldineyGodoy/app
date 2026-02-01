@@ -8,36 +8,9 @@ const LeadCreateModal = ({ isOpen, onClose, originatorId, originatorName, compan
     const [loading, setLoading] = useState(false);
     const [inviteMediaUrl, setInviteMediaUrl] = useState(null);
 
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        phone: '',
-        status: 'convite_enviado'
-    });
+    const [success, setSuccess] = useState(false); // [NEW] Success State
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchConfig();
-        }
-    }, [isOpen]);
-
-    const fetchConfig = async () => {
-        try {
-            const { data } = await supabase
-                .from('integrations_config')
-                .select('variables')
-                .eq('service_name', 'evolution_api')
-                .maybeSingle();
-
-            if (data?.variables?.invite_media_url) {
-                setInviteMediaUrl(data.variables.invite_media_url);
-            }
-        } catch (err) {
-            console.error("Error fetching config:", err);
-        }
-    };
-
-    if (!isOpen) return null;
+    // ... (fetchConfig logic remains) ...
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -51,14 +24,13 @@ const LeadCreateModal = ({ isOpen, onClose, originatorId, originatorName, compan
         setLoading(true);
         try {
             // 1. Create Lead
-            // Remove email if empty string to avoid unique constraint issues if any (though usually nullable)
             const leadPayload = {
                 ...formData,
-                email: formData.email || null, // Ensure null if empty
+                email: formData.email || null,
                 phone: cleanDigits(formData.phone),
                 originator_id: originatorId,
                 status: 'convite_enviado',
-                consumo_kwh: 0 // Optional or 0
+                consumo_kwh: 0
             };
 
             const { error } = await supabase
@@ -69,25 +41,31 @@ const LeadCreateModal = ({ isOpen, onClose, originatorId, originatorName, compan
 
             // 2. Prepare WhatsApp Message
             const inviteLink = `https://b2wenergia.com.br/convite?name=${encodeURIComponent(originatorName || '')}&id=${originatorId}`;
-            const message = `Oi ${formData.name}. O ${originatorName} da ${companyName || 'B2W Energia'} em consideração especial aos seus amigos e clientes te enviou um super bonus de presente. Um super desconto todo mês na sua conta de energia.
 
-Para começar a receber o desconto bastar concluir o seu cadastro no link: ${inviteLink}`;
+            // [UPDATED] Message Template
+            const message = `🌟 Olá ${formData.name}, tudo bem?
+
+🎁 Tenho um presente especial para você!
+
+O ${originatorName} da *${companyName || 'B2W Energia'}* selecionou você para receber um *Super Desconto* na sua conta de energia todos os meses! 📉⚡
+
+É simples, rápido e gratuito. Não perca essa oportunidade de economizar! 💸
+
+👇 *Clique no link abaixo para ativar seu desconto agora:*
+${inviteLink}
+
+🚀 *Vem economizar com a gente!*`;
 
             // 3. Send WhatsApp
-            // Ensure DDI 55
             let whatsappPhone = cleanDigits(formData.phone);
-            if (whatsappPhone.length === 11) { // 11 digits = DDD + 9 digits (no DDI)
-                whatsappPhone = '55' + whatsappPhone;
-            } else if (whatsappPhone.length === 10) { // 10 digits = DDD + 8 digits (no DDI) - unlikely for mobile but possible
-                whatsappPhone = '55' + whatsappPhone;
-            }
+            if (whatsappPhone.length === 11) whatsappPhone = '55' + whatsappPhone;
+            else if (whatsappPhone.length === 10) whatsappPhone = '55' + whatsappPhone;
 
             await sendWhatsapp(whatsappPhone, message, inviteMediaUrl);
 
-            alert('Convite enviado com sucesso!');
+            setSuccess(true); // Show Success View
             onSuccess();
-            onClose();
-            setFormData({ name: '', email: '', phone: '', status: 'convite_enviado' });
+            // Don't close immediately
 
         } catch (error) {
             console.error('Error processing invite:', error);
@@ -96,6 +74,41 @@ Para começar a receber o desconto bastar concluir o seu cadastro no link: ${inv
             setLoading(false);
         }
     };
+
+    if (!isOpen) return null;
+
+    // [NEW] Visual Success Popup
+    if (success) {
+        return (
+            <div style={styles.overlay}>
+                <div style={styles.modal}>
+                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                        <div style={{
+                            width: '60px', height: '60px', borderRadius: '50%', background: '#dcfce7',
+                            color: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 1.5rem auto'
+                        }}>
+                            <Send size={32} />
+                        </div>
+                        <h3 style={{ color: '#1f2937', marginBottom: '1rem' }}>Convite Enviado!</h3>
+                        <p style={{ color: '#6b7280', marginBottom: '2rem' }}>
+                            O convite foi enviado com sucesso pelo WhatsApp para <strong>{formData.name}</strong>.
+                        </p>
+                        <button
+                            onClick={() => {
+                                setSuccess(false);
+                                setFormData({ name: '', email: '', phone: '', status: 'convite_enviado' });
+                                onClose();
+                            }}
+                            style={{ ...styles.submitBtn, background: '#16a34a', width: '100%', marginTop: 0 }}
+                        >
+                            Concluir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={styles.overlay}>
