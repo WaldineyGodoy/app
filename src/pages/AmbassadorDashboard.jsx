@@ -321,20 +321,20 @@ const AmbassadorDashboard = () => {
                             onToggleFavorite={handleToggleFavorite}
                         />
                     </div>
-                </div>
 
-            <LeadCreateModal
-                isOpen={isLeadModalOpen}
-                onClose={() => setIsLeadModalOpen(false)}
-                originatorId={originatorId}
-                originatorName={originatorName}
-                companyName={originatorCompany}
-                onSuccess={handleLeadCreated}
-            />
 
-        </>
-    )
-}
+                    <LeadCreateModal
+                        isOpen={isLeadModalOpen}
+                        onClose={() => setIsLeadModalOpen(false)}
+                        originatorId={originatorId}
+                        originatorName={originatorName}
+                        companyName={originatorCompany}
+                        onSuccess={handleLeadCreated}
+                    />
+
+                </>
+            )
+
         </div >
     );
 };
