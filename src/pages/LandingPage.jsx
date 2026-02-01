@@ -69,11 +69,21 @@ export default function LandingPage() {
         setSubmitting(true);
 
         try {
+            // Normalize phone for search
+            const cleanPhone = formData.phone.replace(/\D/g, '');
+
+            // 1. Check if lead exists
+            const { data: existingLead } = await supabase
+                .from('leads')
+                .select('id, status, originator_id')
+                .eq('phone', cleanPhone)
+                .maybeSingle();
+
             // Prepare data for Supabase
             const leadData = {
                 name: formData.name,
                 email: formData.email,
-                phone: formData.phone,
+                phone: cleanPhone, // Use clean phone
                 cep: formData.cep,
                 rua: address?.rua || '',
                 bairro: address?.bairro || '',
@@ -82,15 +92,53 @@ export default function LandingPage() {
                 concessionaria: formData.concessionaria,
                 consumo_kwh: Math.round(formData.gasto_medio / (offer?.['Tarifa Concessionaria'] || 0.85)), // Estimate kWh
                 gasto_medio: formData.gasto_medio,
-                originator_id: formData.originator_id,
+                originator_id: formData.originator_id || existingLead?.originator_id, // Keep existing if valid
                 status: 'simulacao',
                 tarifa_concessionaria: offer?.['Tarifa Concessionaria'],
                 desconto_assinante: offer?.['Desconto Assinante']
             };
 
-            const { error } = await supabase.from('leads').upsert(leadData);
+            let finalLeadId = existingLead?.id;
 
-            if (error) throw error;
+            if (existingLead) {
+                // UPDATE
+                const { error } = await supabase
+                    .from('leads')
+                    .update(leadData)
+                    .eq('id', existingLead.id);
+                if (error) throw error;
+            } else {
+                // INSERT
+                const { data: newLead, error } = await supabase
+                    .from('leads')
+                    .insert([leadData])
+                    .select()
+                    .single();
+                if (error) throw error;
+                finalLeadId = newLead.id;
+            }
+
+            // 2. Notification Logic (If converting from Invite)
+            if (existingLead && existingLead.status === 'convite_enviado' && leadData.originator_id) {
+                // Fetch Originator Phone
+                const { data: originator } = await supabase
+                    .from('originators_v2')
+                    .select('phone, name')
+                    .eq('id', leadData.originator_id)
+                    .single();
+
+                if (originator && originator.phone) {
+                    const msg = `${formData.name} recebeu seu convite e simulou o desconto.\nAgora é hora de reforçar a adesão.`;
+                    // Send to Originator (using imported sendWhatsapp? Need to import it if not present)
+                    // We assume sendWhatsapp is available or we import it. 
+                    // Wait, LandingPage imports fetchAddressByCep... I need to add sendWhatsapp to imports first.
+                    // Doing dynamic import or assuming I added it. 
+                    // I will need to update Imports in a separate block or use global if available (unlikely).
+                    // I WILL UPDATE IMPORTS IN NEXT STEP TO BE SAFE.
+                    // effectively: await sendWhatsapp(originator.phone, msg);
+                    await import('../lib/api').then(mod => mod.sendWhatsapp(originator.phone, msg));
+                }
+            }
 
             setSuccess(true);
             alert('Cadastro realizado com sucesso! Entraremos em contato.');

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import KPICard from '../components/KPICard';
 import LeadsTable from '../components/LeadsTable';
-import { Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Copy, Check, MessageCircle, Send } from 'lucide-react';
 import LeadCreateModal from '../components/LeadCreateModal';
+import { sendWhatsapp } from '../lib/api'; // [NEW] Import API
 import './AmbassadorDashboard.css';
 
 const AmbassadorDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [originatorName, setOriginatorName] = useState('');
+    const [originatorCompany, setOriginatorCompany] = useState(''); // [NEW]
     const [originatorId, setOriginatorId] = useState(null);
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false); // [NEW]
     const [leads, setLeads] = useState([]);
@@ -18,6 +20,12 @@ const AmbassadorDashboard = () => {
         totalValue: 0,
         revenue: 0
     });
+
+    // [NEW] Share States
+    const [copied, setCopied] = useState(false);
+    const [showWaInput, setShowWaInput] = useState(false);
+    const [waPhone, setWaPhone] = useState('');
+    const [sendingWa, setSendingWa] = useState(false);
 
     const [error, setError] = useState(null);
 
@@ -40,9 +48,9 @@ const AmbassadorDashboard = () => {
             // 2. Fetch Originator Profile
             let { data: originator, error: orgError } = await supabase
                 .from('originators_v2')
-                .select('id, name, split_commission')
+                .select('id, name, split_commission, company_name') // [NEW] Fetch company_name
                 .eq('email', email)
-                .maybeSingle(); // Use maybeSingle to avoid throw on 0 rows
+                .maybeSingle();
 
             // [FIX] Handling Admin/Dev Access:
             // If logged in user is NOT in originators table, check if they are admin/dev via profiles
@@ -51,7 +59,7 @@ const AmbassadorDashboard = () => {
                 console.warn("User not found in originators_v2. Trying fallback (Admin Mode).");
                 const { data: fallbackOriginator } = await supabase
                     .from('originators_v2')
-                    .select('id, name, split_commission')
+                    .select('id, name, split_commission, company_name')
                     .limit(1)
                     .single();
 
@@ -62,19 +70,18 @@ const AmbassadorDashboard = () => {
                     originator = {
                         id: 'mock-originator-id',
                         name: 'Embaixador Teste',
-                        split_commission: 12
+                        split_commission: 12,
+                        company_name: 'B2W Energia'
                     };
                 }
             }
 
             if (orgError) throw orgError;
             setOriginatorName(originator.name);
-            setOriginatorId(originator.id); // Set ID state
+            setOriginatorCompany(originator.company_name || 'B2W Energia'); // [NEW] Set company name (default if null)
+            setOriginatorId(originator.id);
 
-            // Store commission percentage (default 12 if null)
-            // Handle both number and object {start: X, recurrent: Y}
-            // Store commission percentage
-            // Handle both number and object {start: X, recurrent: Y}
+
             let commission = 0;
             const rawCommission = originator.split_commission;
 
@@ -194,6 +201,39 @@ const AmbassadorDashboard = () => {
         console.log("Toggle Fav", id);
     };
 
+    // [NEW] Check if link logic is correct
+    // Link format: https://b2wenergia.com.br/convite?name=NAME&id=ID
+    const inviteLink = `https://b2wenergia.com.br/convite?name=${encodeURIComponent(originatorName || '')}&id=${originatorId}`;
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(inviteLink);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleSendWhatsappInvite = async () => {
+        if (!waPhone || waPhone.length < 10) {
+            alert("Digite um número de telefone válido (DDD + Número).");
+            return;
+        }
+
+        setSendingWa(true);
+        try {
+            const message = `Olá! Sou ${originatorName}. Venha simular sua economia de energia solar com a B2W Energia de forma gratuita: ${inviteLink}`;
+
+            await sendWhatsapp(waPhone, message);
+
+            alert("Convite enviado com sucesso!");
+            setWaPhone('');
+            setShowWaInput(false);
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao enviar WhatsApp: " + (err.message || 'Erro desconhecido'));
+        } finally {
+            setSendingWa(false);
+        }
+    };
+
     return (
         <div className="ambassador-dashboard">
             {loading ? (
@@ -256,23 +296,83 @@ const AmbassadorDashboard = () => {
                                 </div>
                                 <div className="profile-details">
                                     <h2>{originatorName || 'Embaixador'}</h2>
-                                    {/* Link de Indicação */}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Link de Indicação:</span>
-                                        <a
-                                            href={`https://b2wenergia.com.br/convite?name=${encodeURIComponent(originatorName || '')}&id=${originatorId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            style={{ fontSize: '0.85rem', color: '#0ea5e9', fontWeight: '500', textDecoration: 'none' }}
-                                        >
-                                            b2wenergia.com.br/convite?name={originatorName}&id={originatorId}
-                                        </a>
+
+                                    {/* Link de Indicação UI Area */}
+                                    <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Seu Link de Indicação:</span>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <div style={{
+                                                background: '#f1f5f9',
+                                                padding: '0.5rem 0.8rem',
+                                                borderRadius: '6px',
+                                                fontSize: '0.85rem',
+                                                color: '#334155',
+                                                border: '1px solid #cbd5e1',
+                                                whiteSpace: 'nowrap',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                maxWidth: '300px'
+                                            }}>
+                                                {inviteLink}
+                                            </div>
+
+                                            <button
+                                                onClick={handleCopyLink}
+                                                style={{
+                                                    background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.5rem',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#475569'
+                                                }}
+                                                title="Copiar Link"
+                                            >
+                                                {copied ? <Check size={16} color="green" /> : <Copy size={16} />}
+                                            </button>
+
+                                            <button
+                                                onClick={() => setShowWaInput(!showWaInput)}
+                                                style={{
+                                                    background: '#25D366', border: 'none', borderRadius: '6px', padding: '0.5rem 0.8rem',
+                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'white', fontWeight: 500
+                                                }}
+                                                title="Enviar por WhatsApp"
+                                            >
+                                                <MessageCircle size={16} /> <span>Enviar</span>
+                                            </button>
+                                        </div>
+
+                                        {/* WhatsApp Input Expandable Area */}
+                                        {showWaInput && (
+                                            <div style={{
+                                                marginTop: '0.5rem', background: '#f0fdf4', padding: '0.8rem', borderRadius: '8px', border: '1px solid #bbf7d0',
+                                                display: 'flex', alignItems: 'center', gap: '0.5rem', animation: 'fadeIn 0.2s'
+                                            }}>
+                                                <input
+                                                    type="tel"
+                                                    placeholder="DDD + Número (ex: 11999999999)"
+                                                    value={waPhone}
+                                                    onChange={e => setWaPhone(e.target.value.replace(/\D/g, ''))}
+                                                    style={{
+                                                        padding: '0.5rem', borderRadius: '4px', border: '1px solid #86efac', outline: 'none', fontSize: '0.9rem', width: '200px'
+                                                    }}
+                                                />
+                                                <button
+                                                    onClick={handleSendWhatsappInvite}
+                                                    disabled={sendingWa || !waPhone}
+                                                    style={{
+                                                        background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', padding: '0.5rem 0.8rem',
+                                                        cursor: sendingWa ? 'default' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem'
+                                                    }}
+                                                >
+                                                    {sendingWa ? '...' : <><Send size={14} /> Enviar</>}
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
                             <div className="header-actions">
                                 <button className="action-btn primary" onClick={handleAddLead}>
-                                    + Novo Lead
+                                    Enviar Convite
                                 </button>
                                 <button className="action-btn" onClick={handleLogout} title="Sair do Sistema">
                                     <span style={{ color: '#e74c3c' }}>Sair</span>
@@ -292,11 +392,12 @@ const AmbassadorDashboard = () => {
                         </div>
                     </div>
 
-                    {/* Lead Creation Modal */}
                     <LeadCreateModal
                         isOpen={isLeadModalOpen}
                         onClose={() => setIsLeadModalOpen(false)}
                         originatorId={originatorId}
+                        originatorName={originatorName}
+                        companyName={originatorCompany}
                         onSuccess={handleLeadCreated}
                     />
 

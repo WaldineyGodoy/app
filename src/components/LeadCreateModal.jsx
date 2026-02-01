@@ -1,41 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { X } from 'lucide-react';
+import { X, Send } from 'lucide-react';
+import { sendWhatsapp } from '../lib/api';
+import { maskPhone, validatePhone, cleanDigits } from '../lib/validators';
 
-const LeadCreateModal = ({ isOpen, onClose, originatorId, onSuccess }) => {
+const LeadCreateModal = ({ isOpen, onClose, originatorId, originatorName, companyName, onSuccess }) => {
     const [loading, setLoading] = useState(false);
+    const [inviteMediaUrl, setInviteMediaUrl] = useState(null);
+
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         phone: '',
-        consumo_kwh: '',
-        status: 'Novo'
+        status: 'convite_enviado'
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchConfig();
+        }
+    }, [isOpen]);
+
+    const fetchConfig = async () => {
+        try {
+            const { data } = await supabase
+                .from('integrations_config')
+                .select('variables')
+                .eq('service_name', 'evolution_api')
+                .maybeSingle();
+
+            if (data?.variables?.invite_media_url) {
+                setInviteMediaUrl(data.variables.invite_media_url);
+            }
+        } catch (err) {
+            console.error("Error fetching config:", err);
+        }
+    };
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation
+        if (!validatePhone(formData.phone)) {
+            alert("Telefone inválido. Digite DDD + 9 dígitos.");
+            return;
+        }
+
         setLoading(true);
         try {
+            // 1. Create Lead
+            // Remove email if empty string to avoid unique constraint issues if any (though usually nullable)
+            const leadPayload = {
+                ...formData,
+                email: formData.email || null, // Ensure null if empty
+                phone: cleanDigits(formData.phone),
+                originator_id: originatorId,
+                status: 'convite_enviado',
+                consumo_kwh: 0 // Optional or 0
+            };
+
             const { error } = await supabase
                 .from('leads')
-                .insert([{
-                    ...formData,
-                    originator_id: originatorId,
-                    consumo_kwh: Number(formData.consumo_kwh),
-                    status: 'Simulação' // Default status based on new tabs
-                }]);
+                .insert([leadPayload]);
 
             if (error) throw error;
 
-            alert('Lead criado com sucesso!');
+            // 2. Prepare WhatsApp Message
+            const inviteLink = `https://b2wenergia.com.br/convite?name=${encodeURIComponent(originatorName || '')}&id=${originatorId}`;
+            const message = `Oi ${formData.name}. O ${originatorName} da ${companyName || 'B2W Energia'} em consideração especial aos seus amigos e clientes te enviou um super bonus de presente. Um super desconto todo mês na sua conta de energia.
+
+Para começar a receber o desconto bastar concluir o seu cadastro no link: ${inviteLink}`;
+
+            // 3. Send WhatsApp
+            await sendWhatsapp(formData.phone, message, inviteMediaUrl);
+
+            alert('Convite enviado com sucesso!');
             onSuccess();
             onClose();
-            setFormData({ name: '', email: '', phone: '', consumo_kwh: '', status: 'Novo' });
+            setFormData({ name: '', email: '', phone: '', status: 'convite_enviado' });
+
         } catch (error) {
-            console.error('Error creating lead:', error);
-            alert('Erro ao criar lead: ' + error.message);
+            console.error('Error processing invite:', error);
+            alert('Erro ao enviar convite: ' + (error.message || 'Erro desconhecido'));
         } finally {
             setLoading(false);
         }
@@ -45,53 +93,55 @@ const LeadCreateModal = ({ isOpen, onClose, originatorId, onSuccess }) => {
         <div style={styles.overlay}>
             <div style={styles.modal}>
                 <div style={styles.header}>
-                    <h3>Novo Lead</h3>
+                    <h3>Enviar Convite</h3>
                     <button onClick={onClose} style={styles.closeBtn}><X size={20} /></button>
                 </div>
                 <form onSubmit={handleSubmit} style={styles.form}>
                     <div style={styles.field}>
-                        <label>Nome Completo</label>
+                        <label>Nome do Lead</label>
                         <input
                             required
                             type="text"
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                             style={styles.input}
+                            placeholder="Nome Completo"
                         />
                     </div>
+
                     <div style={styles.field}>
-                        <label>E-mail</label>
-                        <input
-                            required
-                            type="email"
-                            value={formData.email}
-                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            style={styles.input}
-                        />
-                    </div>
-                    <div style={styles.field}>
-                        <label>Telefone</label>
+                        <label>Celular (WhatsApp)</label>
                         <input
                             required
                             type="tel"
                             value={formData.phone}
-                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                            onChange={e => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
                             style={styles.input}
+                            placeholder="(99) 99999-9999"
+                            maxLength={15}
                         />
                     </div>
+
                     <div style={styles.field}>
-                        <label>Consumo Médio (kWh)</label>
+                        <label>E-mail (Opcional)</label>
                         <input
-                            required
-                            type="number"
-                            value={formData.consumo_kwh}
-                            onChange={e => setFormData({ ...formData, consumo_kwh: e.target.value })}
+                            type="email"
+                            value={formData.email}
+                            onChange={e => setFormData({ ...formData, email: e.target.value })}
                             style={styles.input}
+                            placeholder="exemplo@email.com"
                         />
                     </div>
+
                     <button type="submit" disabled={loading} style={styles.submitBtn}>
-                        {loading ? 'Salvando...' : 'Cadastrar Lead'}
+                        {loading ? 'Enviando...' : <><Send size={18} /> Enviar Convite</>}
                     </button>
+
+                    {inviteMediaUrl && (
+                        <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.5rem', textAlign: 'center' }}>
+                            * Uma imagem personalizada será enviada junto com o convite.
+                        </p>
+                    )}
                 </form>
             </div>
         </div>
@@ -108,7 +158,7 @@ const styles = {
     modal: {
         background: 'white',
         borderRadius: '12px',
-        width: '90%', maxWidth: '500px',
+        width: '90%', maxWidth: '400px',
         padding: '2rem',
         boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
     },
@@ -138,7 +188,8 @@ const styles = {
         borderRadius: '8px',
         fontSize: '1rem',
         fontWeight: 'bold',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
     }
 };
 
