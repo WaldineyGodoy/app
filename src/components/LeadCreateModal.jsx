@@ -10,6 +10,13 @@ const LeadCreateModal = ({ isOpen, onClose, originatorId, originatorName, compan
 
     const [success, setSuccess] = useState(false); // [NEW] Success State
 
+    const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        status: 'convite_enviado'
+    });
+
     // ... (fetchConfig logic remains) ...
 
     const handleSubmit = async (e) => {
