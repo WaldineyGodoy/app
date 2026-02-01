@@ -333,9 +333,8 @@ const AmbassadorDashboard = () => {
                     />
 
                 </>
-            )
-
-        </div >
+            )}
+        </div>
     );
 };
 
