@@ -74,7 +74,15 @@ const LeadCreateModal = ({ isOpen, onClose, originatorId, originatorName, compan
 Para começar a receber o desconto bastar concluir o seu cadastro no link: ${inviteLink}`;
 
             // 3. Send WhatsApp
-            await sendWhatsapp(formData.phone, message, inviteMediaUrl);
+            // Ensure DDI 55
+            let whatsappPhone = cleanDigits(formData.phone);
+            if (whatsappPhone.length === 11) { // 11 digits = DDD + 9 digits (no DDI)
+                whatsappPhone = '55' + whatsappPhone;
+            } else if (whatsappPhone.length === 10) { // 10 digits = DDD + 8 digits (no DDI) - unlikely for mobile but possible
+                whatsappPhone = '55' + whatsappPhone;
+            }
+
+            await sendWhatsapp(whatsappPhone, message, inviteMediaUrl);
 
             alert('Convite enviado com sucesso!');
             onSuccess();

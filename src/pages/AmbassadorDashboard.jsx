@@ -298,112 +298,44 @@ const AmbassadorDashboard = () => {
                                     <h2>{originatorName || 'Embaixador'}</h2>
 
                                     {/* Link de Indicação UI Area */}
-                                    <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Seu Link de Indicação:</span>
-
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <div style={{
-                                                background: '#f1f5f9',
-                                                padding: '0.5rem 0.8rem',
-                                                borderRadius: '6px',
-                                                fontSize: '0.85rem',
-                                                color: '#334155',
-                                                border: '1px solid #cbd5e1',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                maxWidth: '300px'
-                                            }}>
-                                                {inviteLink}
-                                            </div>
-
-                                            <button
-                                                onClick={handleCopyLink}
-                                                style={{
-                                                    background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.5rem',
-                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#475569'
-                                                }}
-                                                title="Copiar Link"
-                                            >
-                                                {copied ? <Check size={16} color="green" /> : <Copy size={16} />}
-                                            </button>
-
-                                            <button
-                                                onClick={() => setShowWaInput(!showWaInput)}
-                                                style={{
-                                                    background: '#25D366', border: 'none', borderRadius: '6px', padding: '0.5rem 0.8rem',
-                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'white', fontWeight: 500
-                                                }}
-                                                title="Enviar por WhatsApp"
-                                            >
-                                                <MessageCircle size={16} /> <span>Enviar</span>
-                                            </button>
-                                        </div>
-
-                                        {/* WhatsApp Input Expandable Area */}
-                                        {showWaInput && (
-                                            <div style={{
-                                                marginTop: '0.5rem', background: '#f0fdf4', padding: '0.8rem', borderRadius: '8px', border: '1px solid #bbf7d0',
-                                                display: 'flex', alignItems: 'center', gap: '0.5rem', animation: 'fadeIn 0.2s'
-                                            }}>
-                                                <input
-                                                    type="tel"
-                                                    placeholder="DDD + Número (ex: 11999999999)"
-                                                    value={waPhone}
-                                                    onChange={e => setWaPhone(e.target.value.replace(/\D/g, ''))}
-                                                    style={{
-                                                        padding: '0.5rem', borderRadius: '4px', border: '1px solid #86efac', outline: 'none', fontSize: '0.9rem', width: '200px'
-                                                    }}
-                                                />
-                                                <button
-                                                    onClick={handleSendWhatsappInvite}
-                                                    disabled={sendingWa || !waPhone}
-                                                    style={{
-                                                        background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', padding: '0.5rem 0.8rem',
-                                                        cursor: sendingWa ? 'default' : 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem'
-                                                    }}
-                                                >
-                                                    {sendingWa ? '...' : <><Send size={14} /> Enviar</>}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
                             </div>
-                            <div className="header-actions">
-                                <button className="action-btn primary" onClick={handleAddLead}>
-                                    Enviar Convite
-                                </button>
-                                <button className="action-btn" onClick={handleLogout} title="Sair do Sistema">
-                                    <span style={{ color: '#e74c3c' }}>Sair</span>
-                                </button>
-                            </div>
                         </div>
-
-                        {/* 3. Content: Leads Table (Tabs are inside LeadsTable for now) */}
-                        <div className="dashboard-content-wrapper">
-                            <LeadsTable
-                                leads={leads}
-                                onAddLead={handleAddLead}
-                                onEditLead={handleEditLead}
-                                onDeleteLead={handleDeleteLead}
-                                onToggleFavorite={handleToggleFavorite}
-                            />
+                        <div className="header-actions">
+                            <button className="action-btn" style={{ background: '#16a34a', color: 'white', border: 'none' }} onClick={handleAddLead}>
+                                Enviar Convite
+                            </button>
+                            <button className="action-btn" onClick={handleLogout} title="Sair do Sistema">
+                                <span style={{ color: '#e74c3c' }}>Sair</span>
+                            </button>
                         </div>
                     </div>
 
-                    <LeadCreateModal
-                        isOpen={isLeadModalOpen}
-                        onClose={() => setIsLeadModalOpen(false)}
-                        originatorId={originatorId}
-                        originatorName={originatorName}
-                        companyName={originatorCompany}
-                        onSuccess={handleLeadCreated}
-                    />
+                    {/* 3. Content: Leads Table (Tabs are inside LeadsTable for now) */}
+                    <div className="dashboard-content-wrapper">
+                        <LeadsTable
+                            leads={leads}
+                            onAddLead={handleAddLead}
+                            onEditLead={handleEditLead}
+                            onDeleteLead={handleDeleteLead}
+                            onToggleFavorite={handleToggleFavorite}
+                        />
+                    </div>
+                </div>
 
-                </>
-            )}
-        </div>
+            <LeadCreateModal
+                isOpen={isLeadModalOpen}
+                onClose={() => setIsLeadModalOpen(false)}
+                originatorId={originatorId}
+                originatorName={originatorName}
+                companyName={originatorCompany}
+                onSuccess={handleLeadCreated}
+            />
+
+        </>
+    )
+}
+        </div >
     );
 };
 
