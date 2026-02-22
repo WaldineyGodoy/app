@@ -5,6 +5,7 @@ import LeadsTable from '../components/LeadsTable';
 import { Users, DollarSign, TrendingUp, Copy, Check, MessageCircle, Send } from 'lucide-react';
 import LeadCreateModal from '../components/LeadCreateModal';
 import { sendWhatsapp } from '../lib/api'; // [NEW] Import API
+import { ledgerService } from '../services/ledgerService'; // [NEW] Ledger Service
 import './AmbassadorDashboard.css';
 
 const AmbassadorDashboard = () => {
@@ -18,8 +19,11 @@ const AmbassadorDashboard = () => {
     const [stats, setStats] = useState({
         totalLeads: 0,
         totalValue: 0,
-        revenue: 0
+        totalValue: 0,
+        revenue: 0,
+        ledgerBalance: 0 // [NEW] Real Ledger Balance
     });
+    const [ledgerEntries, setLedgerEntries] = useState([]); // [NEW] Statement
 
     // [NEW] Share States
     const [copied, setCopied] = useState(false);
@@ -139,30 +143,29 @@ const AmbassadorDashboard = () => {
 
                 totalValue += estimatedCommission;
 
-                // Sum based on status
-                if (status === 'ativo') {
-                    activeSum += estimatedCommission;
-                }
-                if (status === 'pago') {
-                    paidSum += estimatedCommission;
-                }
+                // [REMOVED] Manual Status Sum (Revenue is now from Ledger)
+                // if (status === 'ativo') { activeSum += estimatedCommission; }
+                // if (status === 'pago') { paidSum += estimatedCommission; }
 
                 // We'll update estimated_bill_value to hold the COMMISSION value for the table
                 return { ...lead, estimated_bill_value: estimatedCommission };
             });
 
-            // "Comissões (Total)" Display = (Historical Payouts) + (Active Leads Value)
-            // As per user request: "Valores a receber com status [Ativo] devem ser somado na exibição comissões total"
-            const historicalRevenue = (commissionsData || []).reduce((acc, curr) => acc + (Number(curr.total_value) || 0), 0);
-            const displayTotalCommission = historicalRevenue + activeSum;
+            // 6. Fetch Real Ledger Data
+            const ledgerAccount = await ledgerService.getOriginatorBalance(originator.id);
+            const ledgerBalance = ledgerAccount.balance || 0;
+            const entries = ledgerAccount.id ? await ledgerService.getStatement(ledgerAccount.id) : [];
 
             setLeads(processedLeads);
+            setCommissions(commissionsData || []);
+            setLedgerEntries(entries);
             setStats({
                 totalLeads,
-                totalValue, // Comissões Estimadas (Geral)
-                revenue: displayTotalCommission, // Comissões (Total)
-                paid: paidSum, // New Stat: Comissões Pagas
-                commissionRate: commission // Add to stats
+                totalValue, // Comissões Estimadas (Potencial)
+                revenue: ledgerBalance, // [UPDATED] Agora reflete o saldo real do Ledger
+                paid: paidSum, // Mantido para histórico, se necessário, ou pode ser removido
+                commissionRate: commission,
+                ledgerBalance
             });
 
         } catch (err) {
@@ -259,10 +262,10 @@ const AmbassadorDashboard = () => {
                         <div className="top-stats">
                             <div className="stat-item">
                                 <span className="stat-value">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.revenue)}
-                                    <span className="stat-trend" style={{ color: '#2ecc71' }}>▲ {stats.commissionRate}%</span>
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.ledgerBalance)}
+                                    <span className="stat-trend" style={{ color: '#2ecc71' }}>▲ Disponível</span>
                                 </span>
-                                <span className="stat-label">Comissões (Total)</span>
+                                <span className="stat-label">Saldo em Conta (Real)</span>
                             </div>
 
                             {/* [NEW] Comissões Pagas */}
@@ -351,6 +354,54 @@ const AmbassadorDashboard = () => {
                             onDeleteLead={handleDeleteLead}
                             onToggleFavorite={handleToggleFavorite}
                         />
+
+                        {/* [NEW] Financial Statement Section */}
+                        <div className="statement-section" style={{ marginTop: '2rem', background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                            <h3 style={{ marginBottom: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <DollarSign size={20} /> Extrato Financeiro
+                            </h3>
+                            <div className="table-responsive">
+                                <table className="statement-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
+                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>Data</th>
+                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>Descrição</th>
+                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>Tipo</th>
+                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>Valor</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ledgerEntries.length > 0 ? (
+                                            ledgerEntries.map(entry => (
+                                                <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '0.75rem' }}>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</td>
+                                                    <td style={{ padding: '0.75rem' }}>{entry.description || 'Movimentação'}</td>
+                                                    <td style={{ padding: '0.75rem' }}>
+                                                        <span style={{
+                                                            padding: '0.25rem 0.5rem',
+                                                            borderRadius: '4px',
+                                                            background: entry.type === 'credit' ? '#dcfce7' : '#fee2e2',
+                                                            color: entry.type === 'credit' ? '#166534' : '#991b1b',
+                                                            fontSize: '0.8rem',
+                                                            fontWeight: '600'
+                                                        }}>
+                                                            {entry.type === 'credit' ? 'CRÉDITO' : 'DÉBITO'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold', color: entry.type === 'credit' ? '#16a34a' : '#ef4444' }}>
+                                                        {entry.type === 'debit' ? '-' : '+'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.amount)}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Nenhuma movimentação encontrada.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
 

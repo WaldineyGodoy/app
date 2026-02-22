@@ -106,8 +106,11 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor_a_pagar)}
                                             </td>
                                             <td>
-                                                <span className={`status - badge ${inv.status === 'paid' ? 'green' : 'yellow'} `}>
-                                                    {inv.status || 'Pendente'}
+                                                <span className={`status-badge ${inv.status === 'pago' ? 'green' :
+                                                        (inv.status === 'atrasado' ? 'red' : 'yellow')
+                                                    }`}>
+                                                    {inv.status === 'pago' ? 'Pago' :
+                                                        (inv.status === 'atrasado' ? 'Atrasado' : 'A Vencer')}
                                                 </span>
                                             </td>
                                             <td align="right">

@@ -2,22 +2,14 @@ import React from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 import './KPICard.css';
 
-const KPICard = ({ title, value, icon: Icon, trend }) => {
-    // Trend logic (optional)
-    const getTrendIcon = () => {
-        if (!trend) return null;
-        if (trend > 0) return <ArrowUpRight size={16} />;
-        if (trend < 0) return <ArrowDownRight size={16} />;
-        return <Minus size={16} />;
-    };
-
-    const getTrendColor = () => {
-        if (!trend) return '#95a5a6';
-        return trend > 0 ? '#2ecc71' : '#e74c3c';
-    };
+const KPICard = ({ title, value, icon: Icon, trend, onClick }) => {
+    // ... logic ...
 
     return (
-        <div className="kpi-card">
+        <div
+            className={`kpi-card ${onClick ? 'clickable' : ''}`}
+            onClick={onClick}
+        >
             <div className="kpi-icon-wrapper">
                 <Icon size={24} color="#FF6600" />
             </div>

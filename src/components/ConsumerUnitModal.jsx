@@ -99,6 +99,9 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
     useEffect(() => {
         fetchSubscribers();
         fetchUsinas();
+    }, []); // Run once on mount
+
+    useEffect(() => {
         if (consumerUnit) {
             setFormData({
                 subscriber_id: consumerUnit.subscriber_id || '',
@@ -126,7 +129,7 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 uf: consumerUnit.address?.uf || ''
             });
         }
-    }, [consumerUnit]);
+    }, [consumerUnit?.id, consumerUnit?.subscriber_id]); // Stable dependencies
 
     // Calculate Tarifa Minima automatically
     useEffect(() => {

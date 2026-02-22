@@ -107,6 +107,11 @@
     color: #f1c40f;
 }
 
+.status-badge.blue {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
 .download-btn {
     background: none;
     border: none;

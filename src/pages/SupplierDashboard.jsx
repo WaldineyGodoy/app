@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { ledgerService } from '../services/ledgerService'; // [NEW] Ledger Service
 import KPICard from '../components/KPICard';
 import PlantCard from '../components/PlantCard';
 import PlantInvoicesModal from '../components/PlantInvoicesModal';
 import PlantAnalyticsModal from '../components/PlantAnalyticsModal';
-import { Factory, Zap, Users } from 'lucide-react';
+import SupplierPlantsModal from '../components/SupplierPlantsModal';
+import SupplierUCsModal from '../components/SupplierUCsModal';
+import { Factory, Zap, Users, Coins } from 'lucide-react';
 import './SupplierDashboard.css';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -17,36 +20,65 @@ const SupplierDashboard = () => {
     const [stats, setStats] = useState({
         totalUsinas: 0,
         totalUCs: 0,
-        totalGeneration: 0
+        totalGeneration: 0,
+        totalReceivable: 0 // [NEW] KPI
     });
 
     // Modal States
-    const [invoicesModalOpen, setInvoicesModalOpen] = useState(false);
-    const [performanceModalOpen, setPerformanceModalOpen] = useState(false);
     const [selectedUsina, setSelectedUsina] = useState(null);
+    const [showInvoicesModal, setShowInvoicesModal] = useState(false);
+    const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
+    const [showPlantsModal, setShowPlantsModal] = useState(false);
+    const [showUCsModal, setShowUCsModal] = useState(false);
 
     // Active Tab (Status Filter)
     const [activeTab, setActiveTab] = useState('all');
 
     useEffect(() => {
-        if (!authLoading && user) {
+        if (user) {
             fetchSupplierData();
         }
-    }, [user, authLoading]);
+    }, [user]);
 
     const fetchSupplierData = async () => {
         setLoading(true);
         try {
-            if (!user?.email) return;
+            if (!user) return;
 
-            // 2. Fetch Supplier
-            const { data: supplier, error: suppError } = await supabase
+            // 1. Fetch Supplier - Try user_id first (safer), then email
+            let { data: supplier, error: suppError } = await supabase
                 .from('suppliers')
-                .select('id, name')
-                .eq('email', user.email)
-                .single();
+                .select('id, name, user_id')
+                .eq('user_id', user.id)
+                .maybeSingle();
 
-            if (suppError) throw suppError;
+            if (!supplier && user.email) {
+                // Fallback to email search
+                const { data: byEmail, error: emailError } = await supabase
+                    .from('suppliers')
+                    .select('id, name, user_id')
+                    .eq('email', user.email)
+                    .limit(1)
+                    .maybeSingle();
+
+                if (byEmail) {
+                    supplier = byEmail;
+                    // Auto-link if user_id is missing
+                    if (!byEmail.user_id) {
+                        await supabase
+                            .from('suppliers')
+                            .update({ user_id: user.id })
+                            .eq('id', byEmail.id);
+                    }
+                }
+            }
+
+            if (!supplier) {
+                console.warn("Supplier record not found for user:", user.email);
+                setLoading(false);
+                return;
+            }
+
             setSupplierName(supplier.name);
 
             // 3. Fetch Usinas linked to Supplier
@@ -100,8 +132,12 @@ const SupplierDashboard = () => {
             const totalUCs = usinasWithStats.reduce((acc, curr) => acc + curr.ucCount, 0);
             const totalGeneration = usinasWithStats.reduce((acc, curr) => acc + curr.generation, 0);
 
+            // [NEW] Fetch Ledger Balance (Receivable)
+            const ledgerAccount = await ledgerService.getSupplierBalance(supplier.id);
+            const totalReceivable = ledgerAccount.balance || 0;
+
             setUsinas(usinasWithStats);
-            setStats({ totalUsinas, totalUCs, totalGeneration });
+            setStats({ totalUsinas, totalUCs, totalGeneration, totalReceivable });
 
         } catch (err) {
             console.error("Error fetching supplier data:", err);
@@ -112,12 +148,12 @@ const SupplierDashboard = () => {
 
     const handleOpenInvoices = (usina) => {
         setSelectedUsina(usina);
-        setInvoicesModalOpen(true);
+        setShowInvoicesModal(true);
     };
 
     const handleOpenPerformance = (usina) => {
         setSelectedUsina(usina);
-        setPerformanceModalOpen(true);
+        setShowAnalyticsModal(true);
     };
 
     // Filter Logic
@@ -148,9 +184,28 @@ const SupplierDashboard = () => {
                 <div className="dashboard-content">
                     {/* KPIs */}
                     <div className="kpi-grid">
-                        <KPICard title="Total de Usinas" value={stats.totalUsinas} icon={Factory} />
-                        <KPICard title="Total de UCs" value={stats.totalUCs} icon={Users} />
-                        <KPICard title="Geração (Último Mês)" value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`} icon={Zap} />
+                        <KPICard
+                            title="Total a Receber"
+                            value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
+                            icon={Coins}
+                        />
+                        <KPICard
+                            title="Total de Usinas"
+                            value={stats.totalUsinas}
+                            icon={Factory}
+                            onClick={() => setShowPlantsModal(true)}
+                        />
+                        <KPICard
+                            title="Total de UCs"
+                            value={stats.totalUCs}
+                            icon={Users}
+                            onClick={() => setShowUCsModal(true)}
+                        />
+                        <KPICard
+                            title="Geração (Último Mês)"
+                            value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
+                            icon={Zap}
+                        />
                     </div>
 
                     {/* Filters & Grid */}
@@ -195,15 +250,27 @@ const SupplierDashboard = () => {
 
             {/* Modals */}
             <PlantInvoicesModal
-                isOpen={invoicesModalOpen}
-                onClose={() => setInvoicesModalOpen(false)}
+                isOpen={showInvoicesModal}
+                onClose={() => setShowInvoicesModal(false)}
                 usina={selectedUsina}
             />
 
             <PlantAnalyticsModal
-                isOpen={performanceModalOpen}
-                onClose={() => setPerformanceModalOpen(false)}
+                isOpen={showAnalyticsModal}
+                onClose={() => setShowAnalyticsModal(false)}
                 usina={selectedUsina}
+            />
+
+            <SupplierPlantsModal
+                isOpen={showPlantsModal}
+                onClose={() => setShowPlantsModal(false)}
+                usinas={usinas}
+            />
+
+            <SupplierUCsModal
+                isOpen={showUCsModal}
+                onClose={() => setShowUCsModal(false)}
+                usinaIds={usinas.map(u => u.id)}
             />
         </div>
     );
