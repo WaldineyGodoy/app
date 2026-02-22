@@ -162,12 +162,7 @@ const SubscriberDashboard = () => {
                 </div>
             ) : error ? (
                 <div className="error-state">
-                    <p>{error}</p>
-                    <p style={{ fontSize: '0.8rem', color: '#666' }}>
-                        (Nota:Se você usou o "Debug Login", certifique-se que o e-mail existe em 'subscribers'.
-                        Como o Debug Login não cria sessão, esta página pode estar vazia.
-                        Implementaremos a passagem de estado em breve.)
-                    </p>
+                    <p>Por enquanto nenhuma conta ativa, se você já é nosso cliente aguarde 24 horas para a atualização ou entre em contato com o nosso suporte</p>
                 </div>
             ) : (
                 <div className="dashboard-content">
