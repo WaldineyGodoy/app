@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { maskPhone } from '../lib/validators';
@@ -12,6 +12,25 @@ export default function Login() {
 
     // Recovery
     const [resetSent, setResetSent] = useState(false);
+    const [showResetForm, setShowResetForm] = useState(false);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmNewPassword, setConfirmNewPassword] = useState('');
+
+    useEffect(() => {
+        // Listen for recovery event
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                setShowResetForm(true);
+            }
+        });
+
+        // Also check URL for safety (sometimes redirect lands before event triggers handle)
+        if (window.location.search.includes('reset=true')) {
+            setShowResetForm(true);
+        }
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     // Signup Modal State
     const [showSignupModal, setShowSignupModal] = useState(false);
@@ -113,6 +132,31 @@ export default function Login() {
         }
     };
 
+    const handleUpdatePassword = async (e) => {
+        e.preventDefault();
+        if (newPassword !== confirmNewPassword) {
+            alert('As senhas não coincidem!');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+            if (error) throw error;
+            alert('Senha atualizada com sucesso! Agora você pode fazer login.');
+            setShowResetForm(false);
+            setNewPassword('');
+            setConfirmNewPassword('');
+            navigate('/login');
+        } catch (error) {
+            alert('Erro ao atualizar senha: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleResetPassword = async () => {
         if (!email) {
             alert('Digite seu email para recuperar a senha.');
@@ -120,7 +164,7 @@ export default function Login() {
         }
         setLoading(true);
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: window.location.origin + '/dashboard?reset=true',
+            redirectTo: window.location.origin + '/login?reset=true',
         });
         setLoading(false);
         if (error) {
@@ -181,66 +225,119 @@ export default function Login() {
 
     return (
         <div style={styles.container}>
-            <div style={styles.card}>
-                <div style={styles.header}>
-                    <h1 style={styles.title}>Acesse sua Conta</h1>
-                    <p style={styles.subtitle}>B2W Energia</p>
-                </div>
-
-                <form onSubmit={handleLogin} style={styles.form}>
-                    <div>
-                        <label style={styles.label}>E-mail</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            style={styles.input}
-                            placeholder="seu@email.com"
-                        />
+            {showResetForm ? (
+                <div style={styles.card}>
+                    <div style={styles.header}>
+                        <h1 style={styles.title}>Nova Senha</h1>
+                        <p style={styles.subtitle}>Crie uma nova senha para sua conta</p>
                     </div>
 
-                    <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={styles.label}>Senha</label>
-                            <button
-                                type="button"
-                                onClick={handleResetPassword}
-                                style={{ ...styles.secondaryButton, fontWeight: 'normal', fontSize: '0.8rem' }}
-                            >
-                                {resetSent ? 'Email enviado!' : 'Esqueci minha senha'}
-                            </button>
+                    <form onSubmit={handleUpdatePassword} style={styles.form}>
+                        <div>
+                            <label style={styles.label}>Nova Senha</label>
+                            <input
+                                type="password"
+                                required
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                style={styles.input}
+                                placeholder="••••••••"
+                                minLength={6}
+                            />
                         </div>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            style={styles.input}
-                            placeholder="••••••••"
-                        />
-                    </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
-                    >
-                        {loading ? 'Entrando...' : 'Entrar'}
-                    </button>
+                        <div>
+                            <label style={styles.label}>Confirmar Nova Senha</label>
+                            <input
+                                type="password"
+                                required
+                                value={confirmNewPassword}
+                                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                                style={styles.input}
+                                placeholder="••••••••"
+                                minLength={6}
+                            />
+                        </div>
 
-                    <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                        <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Não tem uma conta? </span>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+                        >
+                            {loading ? 'Atualizando...' : 'Definir Nova Senha'}
+                        </button>
+
                         <button
                             type="button"
-                            onClick={() => setShowSignupModal(true)}
-                            style={styles.secondaryButton}
+                            onClick={() => setShowResetForm(false)}
+                            style={{ ...styles.secondaryButton, marginTop: '1rem', width: '100%' }}
                         >
-                            Criar conta
+                            Cancelar
                         </button>
+                    </form>
+                </div>
+            ) : (
+                <div style={styles.card}>
+                    <div style={styles.header}>
+                        <h1 style={styles.title}>Acesse sua Conta</h1>
+                        <p style={styles.subtitle}>B2W Energia</p>
                     </div>
-                </form>
-            </div>
+
+                    <form onSubmit={handleLogin} style={styles.form}>
+                        <div>
+                            <label style={styles.label}>E-mail</label>
+                            <input
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                style={styles.input}
+                                placeholder="seu@email.com"
+                            />
+                        </div>
+
+                        <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <label style={styles.label}>Senha</label>
+                                <button
+                                    type="button"
+                                    onClick={handleResetPassword}
+                                    style={{ ...styles.secondaryButton, fontWeight: 'normal', fontSize: '0.8rem' }}
+                                >
+                                    {resetSent ? 'Email enviado!' : 'Esqueci minha senha'}
+                                </button>
+                            </div>
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={styles.input}
+                                placeholder="••••••••"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{ ...styles.button, opacity: loading ? 0.7 : 1 }}
+                        >
+                            {loading ? 'Entrando...' : 'Entrar'}
+                        </button>
+
+                        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                            <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>Não tem uma conta? </span>
+                            <button
+                                type="button"
+                                onClick={() => setShowSignupModal(true)}
+                                style={styles.secondaryButton}
+                            >
+                                Criar conta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            )}
 
             {/* Signup Modal */}
             {showSignupModal && (
