@@ -7,13 +7,13 @@ import PlantInvoicesModal from '../components/PlantInvoicesModal';
 import PlantAnalyticsModal from '../components/PlantAnalyticsModal';
 import SupplierPlantsModal from '../components/SupplierPlantsModal';
 import SupplierUCsModal from '../components/SupplierUCsModal';
-import { Factory, Zap, Users, Coins } from 'lucide-react';
+import { Factory, Zap, Users, Coins, LogOut } from 'lucide-react';
 import './SupplierDashboard.css';
 
 import { useAuth } from '../contexts/AuthContext';
 
 const SupplierDashboard = () => {
-    const { user, loading: authLoading } = useAuth();
+    const { user, signOut, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [supplierName, setSupplierName] = useState('');
     const [usinas, setUsinas] = useState([]);
@@ -156,6 +156,14 @@ const SupplierDashboard = () => {
         setShowAnalyticsModal(true);
     };
 
+    const handleLogout = async () => {
+        try {
+            await signOut();
+        } catch (error) {
+            console.error('Error signing out:', error);
+        }
+    };
+
     // Filter Logic
     const filteredUsinas = activeTab === 'all'
         ? usinas
@@ -272,6 +280,11 @@ const SupplierDashboard = () => {
                 onClose={() => setShowUCsModal(false)}
                 usinaIds={usinas.map(u => u.id)}
             />
+
+            <button className="logout-btn" onClick={handleLogout} title="Sair do Sistema">
+                <LogOut size={20} />
+                <span>Sair</span>
+            </button>
         </div>
     );
 };
