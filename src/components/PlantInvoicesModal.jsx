@@ -37,7 +37,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
             // 2. Fetch Invoices for these UCs in the selected Month
             // Assuming 'mes_referencia' is YYYY-MM-DD
             const startOfMonth = `${selectedMonth}-01`;
-            const endOfMonth = `${selectedMonth} -31`; // Loose match is fine for YYYY-MM filter usually, or use start/end logic
+            const endOfMonth = `${selectedMonth}-31`; // Loose match is fine for YYYY-MM filter usually, or use start/end logic
 
             const { data: invData, error: invError } = await supabase
                 .from('invoices')
@@ -107,7 +107,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                             </td>
                                             <td>
                                                 <span className={`status-badge ${inv.status === 'pago' ? 'green' :
-                                                        (inv.status === 'atrasado' ? 'red' : 'yellow')
+                                                    (inv.status === 'atrasado' ? 'red' : 'yellow')
                                                     }`}>
                                                     {inv.status === 'pago' ? 'Pago' :
                                                         (inv.status === 'atrasado' ? 'Atrasado' : 'A Vencer')}

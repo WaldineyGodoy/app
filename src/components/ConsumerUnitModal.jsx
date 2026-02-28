@@ -12,6 +12,9 @@ import { supabase } from '../lib/supabase'; // Using WS2 lib/supabase.js if avai
 
 import { fetchAddressByCep, fetchOfferData } from '../lib/api';
 import { useUI } from '../contexts/UIContext';
+import { FileSearch, PlusCircle, History, X, Key, Eye, EyeOff } from 'lucide-react';
+import UCInvoicesModal from './UCInvoicesModal';
+import InvoiceFormModal from './InvoiceFormModal';
 
 export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDelete }) {
     const { showAlert, showConfirm } = useUI();
@@ -19,6 +22,8 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
     const [usinas, setUsinas] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchingCep, setSearchingCep] = useState(false);
+    const [showInvoicesModal, setShowInvoicesModal] = useState(false);
+    const [showIssueInvoiceModal, setShowIssueInvoiceModal] = useState(false);
 
     // Helpers for Currency/Numbers
     const formatCurrency = (val) => {
@@ -93,7 +98,10 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
         complemento: '',
         bairro: '',
         cidade: '',
-        uf: ''
+        uf: '',
+        titular_fatura_id: '',
+        cpf_cnpj_fatura: '',
+        saldo_remanescente: false
     });
 
     useEffect(() => {
@@ -126,7 +134,10 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 complemento: consumerUnit.address?.complemento || '',
                 bairro: consumerUnit.address?.bairro || '',
                 cidade: consumerUnit.address?.cidade || '',
-                uf: consumerUnit.address?.uf || ''
+                uf: consumerUnit.address?.uf || '',
+                titular_fatura_id: consumerUnit.titular_fatura_id || '',
+                cpf_cnpj_fatura: consumerUnit.cpf_cnpj_fatura || '',
+                saldo_remanescente: !!consumerUnit.saldo_remanescente
             });
         }
     }, [consumerUnit?.id, consumerUnit?.subscriber_id]); // Stable dependencies
@@ -244,7 +255,10 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                     bairro: formData.bairro,
                     cidade: formData.cidade,
                     uf: formData.uf
-                }
+                },
+                titular_fatura_id: formData.titular_fatura_id || null,
+                cpf_cnpj_fatura: formData.cpf_cnpj_fatura,
+                saldo_remanescente: formData.saldo_remanescente
             };
 
             if (!payload.subscriber_id) throw new Error('Assinante é obrigatório.');
@@ -293,7 +307,11 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>
-                    <h3 style={{ margin: 0 }}>{consumerUnit ? 'Editar UC' : 'Nova Unidade Consumidora'}</h3>
+                    <h3 style={{ margin: 0 }}>
+                        {consumerUnit ? (
+                            `${formData.numero_uc} - ${subscribers.find(s => s.id === formData.subscriber_id)?.name || ''} - ${formData.titular_conta}`
+                        ) : 'Nova Unidade Consumidora'}
+                    </h3>
                     <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                 </div>
 
@@ -379,8 +397,39 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                         <input required value={formData.numero_uc} onChange={e => setFormData({ ...formData, numero_uc: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                     </div>
                     <div>
-                        <label style={{ display: 'block', marginBottom: '5px' }}>Titular da Conta</label>
-                        <input required value={formData.titular_conta} onChange={e => setFormData({ ...formData, titular_conta: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Identificação da Fatura</label>
+                        <input required value={formData.titular_conta} onChange={e => setFormData({ ...formData, titular_conta: e.target.value })} placeholder="Ex: Nome na Fatura" style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Titular da Fatura</label>
+                        <select
+                            value={formData.titular_fatura_id}
+                            onChange={e => {
+                                const sub = subscribers.find(s => s.id === e.target.value);
+                                setFormData({
+                                    ...formData,
+                                    titular_fatura_id: e.target.value,
+                                    cpf_cnpj_fatura: sub ? sub.cpf_cnpj : formData.cpf_cnpj_fatura
+                                });
+                            }}
+                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        >
+                            <option value="">Selecione...</option>
+                            {subscribers.map(s => (
+                                <option key={s.id} value={s.id}>{s.name} ({s.cpf_cnpj})</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>CPF/CNPJ do Titular</label>
+                        <input
+                            value={formData.cpf_cnpj_fatura}
+                            onChange={e => setFormData({ ...formData, cpf_cnpj_fatura: e.target.value })}
+                            placeholder="000.000.000-00"
+                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        />
                     </div>
 
                     {/* Address details */}
@@ -426,6 +475,52 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                         <select value={formData.modalidade} onChange={e => setFormData({ ...formData, modalidade: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
                             {modalidadeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.9rem', color: '#64748b' }}>Saldo Remanescente</label>
+                            {consumerUnit?.id && (
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowInvoicesModal(true)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', color: '#475569', fontWeight: 600 }}
+                                    >
+                                        <FileSearch size={14} /> Visualizar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowIssueInvoiceModal(true)}
+                                        style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', color: '#2563eb', fontWeight: 600 }}
+                                    >
+                                        <PlusCircle size={14} /> Emitir Fatura
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', gap: '1.25rem', padding: '0.55rem 0' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: '#475569' }}>
+                                <input
+                                    type="radio"
+                                    name="saldo_remanescente"
+                                    checked={formData.saldo_remanescente === true}
+                                    onChange={() => setFormData({ ...formData, saldo_remanescente: true })}
+                                    style={{ cursor: 'pointer', accentColor: '#2563eb' }}
+                                />
+                                Sim
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem', color: '#475569' }}>
+                                <input
+                                    type="radio"
+                                    name="saldo_remanescente"
+                                    checked={formData.saldo_remanescente === false}
+                                    onChange={() => setFormData({ ...formData, saldo_remanescente: false })}
+                                    style={{ cursor: 'pointer', accentColor: '#2563eb' }}
+                                />
+                                Não
+                            </label>
+                        </div>
                     </div>
 
                     <div style={{ gridColumn: '1 / -1', background: '#e0f2fe', padding: '1rem', borderRadius: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -477,6 +572,24 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                     </div>
                 </form>
             </div>
+
+            {showInvoicesModal && (
+                <UCInvoicesModal
+                    uc={consumerUnit}
+                    onClose={() => setShowInvoicesModal(false)}
+                />
+            )}
+
+            {showIssueInvoiceModal && (
+                <InvoiceFormModal
+                    ucs={[consumerUnit]}
+                    onClose={() => setShowIssueInvoiceModal(false)}
+                    onSave={() => {
+                        setShowIssueInvoiceModal(false);
+                        setShowInvoicesModal(true);
+                    }}
+                />
+            )}
         </div>
     );
 }

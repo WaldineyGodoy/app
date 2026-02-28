@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import { fetchAddressByCep, fetchCpfCnpjData, createAsaasCharge, manageAsaasCustomer } from '../lib/api';
 import { maskCpfCnpj, maskPhone, validateDocument, validatePhone } from '../lib/validators';
-import { CreditCard, Plus, Trash2 } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Eye, X, Zap } from 'lucide-react';
 import ConsumerUnitModal from './ConsumerUnitModal';
 
 export default function SubscriberModal({ subscriber, onClose, onSave, onDelete, userId }) {
@@ -14,6 +14,8 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
     const [consumerUnits, setConsumerUnits] = useState([]);
     const [generating, setGenerating] = useState(false);
     const [showUcModal, setShowUcModal] = useState(false);
+    const [previewUC, setPreviewUC] = useState(null);
+    const [showPreviewModal, setShowPreviewModal] = useState(false);
 
     // Status Options: ativacao, ativo, ativo_inadimplente, transferido, cancelado, cancelado_inadimplente
     const statusOptions = [
@@ -357,7 +359,7 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
         }}>
             <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '90%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
                 <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>
-                    {subscriber ? 'Editar Assinante' : 'Novo Assinante'}
+                    {subscriber ? `Assinante - ${formData.name}` : 'Novo Assinante'}
                 </h3>
 
                 <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -518,19 +520,33 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
                                 {consumerUnits.map(uc => (
                                     <li key={uc.id} style={{ background: '#f8fafc', padding: '0.5rem', marginBottom: '0.5rem', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                         <div style={{ flex: 1 }}>
-                                            <span>UC: {uc.numero_uc} - {uc.concessionaria}</span>
-                                            <span style={{ display: 'block', fontSize: '0.8rem', color: '#666' }}>{uc.status?.replace('_', ' ').toUpperCase()}</span>
+                                            <span style={{ fontWeight: 600, color: '#1e293b' }}>UC: {uc.numero_uc}</span>
+                                            <span style={{ display: 'block', fontSize: '0.85rem', color: '#1e293b', fontWeight: 500 }}>{uc.titular_conta}</span>
+                                            <span style={{ display: 'block', fontSize: '0.8rem', color: '#666' }}>{uc.concessionaria} - {uc.status?.replace('_', ' ').toUpperCase()}</span>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleUnlinkUC(uc.id)}
-                                            style={{
-                                                padding: '0.3rem', background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer'
-                                            }}
-                                            title="Desvincular UC"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setPreviewUC(uc);
+                                                    setShowPreviewModal(true);
+                                                }}
+                                                style={{ padding: '0.3rem', background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer' }}
+                                                title="Ver Detalhes"
+                                            >
+                                                <Eye size={16} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleUnlinkUC(uc.id)}
+                                                style={{
+                                                    padding: '0.3rem', background: 'transparent', border: 'none', color: '#a1a1aa', cursor: 'pointer'
+                                                }}
+                                                title="Desvincular UC"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>
@@ -582,6 +598,89 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
                         setShowUcModal(false);
                     }}
                 />
+            )}
+
+            {/* UC Detail Preview Modal */}
+            {showPreviewModal && previewUC && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1200
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '16px', width: '95%', maxWidth: '550px',
+                        padding: '2rem', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)',
+                        position: 'relative', maxHeight: '90vh', overflowY: 'auto'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+                                <div style={{ padding: '0.6rem', background: '#f0f9ff', color: '#0369a1', borderRadius: '10px' }}>
+                                    <Zap size={24} />
+                                </div>
+                                <div>
+                                    <h4 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Detalhes da Unidade Consumidora</h4>
+                                    <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
+                                        UC: <strong>{previewUC.numero_uc}</strong> - {previewUC.titular_conta}
+                                    </p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowPreviewModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Status</label>
+                                <span style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem', borderRadius: '20px', background: '#f0fdf4', color: '#166534', fontWeight: 600 }}>
+                                    {previewUC.status?.replace('_', ' ').toUpperCase()}
+                                </span>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Concessionária</label>
+                                <div style={{ fontSize: '0.95rem', color: '#1e293b', fontWeight: 500 }}>{previewUC.concessionaria}</div>
+                            </div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Identificação na Fatura</label>
+                                <div style={{ fontSize: '0.95rem', color: '#1e293b' }}>{previewUC.titular_conta}</div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Tipo de Ligação</label>
+                                <div style={{ fontSize: '0.95rem', color: '#1e293b', textTransform: 'capitalize' }}>{previewUC.tipo_ligacao || 'Não inf.'}</div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Modalidade</label>
+                                <div style={{ fontSize: '0.95rem', color: '#1e293b' }}>{previewUC.modalidade?.replace(/_/g, ' ') || 'Não inf.'}</div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Consumo Médio</label>
+                                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#059669' }}>{previewUC.consumo_medio_kwh || previewUC.franquia || 0} kWh</div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Vencimento</label>
+                                <div style={{ fontSize: '0.95rem', color: '#1e293b' }}>Dia {previewUC.dia_vencimento || 'N/A'}</div>
+                            </div>
+                            <div style={{ height: '1px', background: '#f1f5f9', gridColumn: '1 / -1' }}></div>
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Endereço da Unidade</label>
+                                <div style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.4 }}>
+                                    {previewUC.address?.rua || 'N/A'}{previewUC.address?.numero ? `, ${previewUC.address.numero}` : ''}<br />
+                                    {previewUC.address?.bairro || 'N/A'} - {previewUC.address?.cidade || 'N/A'}/{previewUC.address?.uf || 'N/A'}<br />
+                                    CEP: {previewUC.address?.cep || 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ marginTop: '2.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => setShowPreviewModal(false)}
+                                style={{ padding: '0.7rem 2.5rem', background: '#003366', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                                Fechar
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
