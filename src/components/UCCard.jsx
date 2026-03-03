@@ -5,6 +5,7 @@ import './UCCard.css';
 
 const UCCard = ({
     ucNumber,
+    identification,
     concessionaire,
     ucStatus,
     invoiceStatus,
@@ -69,6 +70,7 @@ const UCCard = ({
                         <Zap size={14} fill="#FF6600" color="#FF6600" />
                         <span>UC: {ucNumber}</span>
                     </div>
+                    {identification && <div className="uc-identification-text">{identification}</div>}
                     {/* Item 4: Identificação da fatura/concessionaria */}
                     <span className="uc-concessionaire-text">{concessionaire}</span>
                 </div>

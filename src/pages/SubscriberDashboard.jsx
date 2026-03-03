@@ -12,6 +12,7 @@ const SubscriberDashboard = () => {
     const [ucs, setUcs] = useState([]);
     const [allInvoices, setAllInvoices] = useState([]); // Store all raw invoices
     const [chartData, setChartData] = useState([]);
+    const [branding, setBranding] = useState(null);
     const [error, setError] = useState(null);
 
     // Modal State
@@ -36,6 +37,13 @@ const SubscriberDashboard = () => {
                 setLoading(false);
                 return;
             }
+
+            // fetch branding
+            const { data: brandingData } = await supabase
+                .from('branding_settings')
+                .select('*')
+                .single();
+            if (brandingData) setBranding(brandingData);
 
             // 2. Fetch Subscriber Profile
             const { data: subscriber, error: subError } = await supabase
@@ -82,13 +90,17 @@ const SubscriberDashboard = () => {
 
                     return {
                         ...uc,
+                        identification: uc.titular_conta || uc.address?.apelido || 'Unidade Consumidora',
                         lastConsumption: latestInvoice?.consumo_kwh || 0,
-                        compensatedConsumption: latestInvoice?.energia_compensada || latestInvoice?.consumo_kwh || 0, // Fallback if column not yet visible/renamed in code
+                        compensatedConsumption: latestInvoice?.energia_compensada || latestInvoice?.consumo_kwh || 0,
                         amountToPay: latestInvoice?.valor_a_pagar || 0,
                         invoiceStatus: latestInvoice?.status || 'Sem Faturas',
                         invoiceDueDate: latestInvoice?.vencimento || null,
-                        invoiceId: latestInvoice?.id || null, // For reference
-                        paymentUrl: latestInvoice?.asaas_boleto_url || null
+                        invoiceId: latestInvoice?.id || null,
+                        paymentUrl: latestInvoice?.asaas_boleto_url || null,
+                        // Data Sync Fixes: Fallback to UC data if invoice data is missing
+                        invoiceTipoLigacao: latestInvoice?.tipo_ligacao || uc.tipo_ligacao,
+                        invoiceDesconto: latestInvoice?.desconto_assinante || uc.desconto_assinante
                     };
                 });
                 setUcs(processedUnits);
@@ -196,6 +208,7 @@ const SubscriberDashboard = () => {
                                         <UCCard
                                             key={uc.id}
                                             ucNumber={uc.numero_uc || uc.consumer_unit_number || 'N/A'}
+                                            identification={uc.identification}
                                             concessionaire={uc.concessionaria || uc.distributor}
                                             ucStatus={uc.status}
                                             invoiceStatus={uc.invoiceStatus}
@@ -235,6 +248,8 @@ const SubscriberDashboard = () => {
                 onClose={handleCloseModal}
                 ucData={selectedUC}
                 invoices={selectedVCInvoices}
+                subscriberName={subscriberName}
+                branding={branding}
             />
         </div >
     );
