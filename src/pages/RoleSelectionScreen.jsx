@@ -69,7 +69,7 @@ const RoleSelectionScreen = () => {
             desc: "Consulte suas UCs, relatórios de consumo e faturas.",
             icon: "bi-house-heart",
             img: SubsImg,
-            color: "#FF6600",
+            color: "#FF6600", // Laranja B2W
             path: "/assinantes",
             role: "subscriber",
             btn: "Acessar Área do Assinante"
@@ -79,7 +79,7 @@ const RoleSelectionScreen = () => {
             desc: "Gerencie seus leads e acompanhe suas comissões.",
             icon: "bi-people-fill",
             img: AmbImg,
-            color: "#8F00FF",
+            color: "#003366", // Azul B2W
             path: "/originadores",
             role: "originator",
             btn: "Acessar Painel do Embaixador"
@@ -89,7 +89,7 @@ const RoleSelectionScreen = () => {
             desc: "Visualize a geração e performance de suas usinas.",
             icon: "bi-building-up",
             img: SuppImg,
-            color: "#FFB800",
+            color: "#FF6600", // Laranja B2W
             path: "/fornecedores",
             role: "supplier",
             btn: "Acessar Painel do Fornecedor"
