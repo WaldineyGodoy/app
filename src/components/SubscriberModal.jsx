@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
 import { fetchAddressByCep, fetchCpfCnpjData, createAsaasCharge, manageAsaasCustomer } from '../lib/api';
 import { maskCpfCnpj, maskPhone, validateDocument, validatePhone } from '../lib/validators';
-import { CreditCard, Plus, Trash2, Eye, X, Zap } from 'lucide-react';
+import { CreditCard, Plus, Trash2, Eye, X, Zap, DollarSign } from 'lucide-react';
 import ConsumerUnitModal from './ConsumerUnitModal';
 
 export default function SubscriberModal({ subscriber, onClose, onSave, onDelete, userId }) {
@@ -16,6 +16,8 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
     const [showUcModal, setShowUcModal] = useState(false);
     const [previewUC, setPreviewUC] = useState(null);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
+    const [editingUC, setEditingUC] = useState(null);
+    const [ucModalMode, setUcModalMode] = useState('all'); // 'all' | 'technical'
 
     // Status Options: ativacao, ativo, ativo_inadimplente, transferido, cancelado, cancelado_inadimplente
     const statusOptions = [
@@ -503,7 +505,11 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
                         {subscriber?.id && (
                             <button
                                 type="button"
-                                onClick={() => setShowUcModal(true)}
+                                onClick={() => {
+                                    setEditingUC({ subscriber_id: subscriber.id });
+                                    setUcModalMode('all');
+                                    setShowUcModal(true);
+                                }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '0.3rem',
                                     background: '#ecfdf5', color: '#059669', border: '1px solid #d1fae5',
@@ -535,6 +541,18 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
                                                 title="Ver Detalhes"
                                             >
                                                 <Eye size={16} />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setEditingUC(uc);
+                                                    setUcModalMode('technical');
+                                                    setShowUcModal(true);
+                                                }}
+                                                style={{ padding: '0.3rem', background: 'transparent', border: 'none', color: '#f59e0b', cursor: 'pointer' }}
+                                                title="Dados Técnicos e Comerciais"
+                                            >
+                                                <DollarSign size={16} />
                                             </button>
                                             <button
                                                 type="button"
@@ -589,13 +607,18 @@ export default function SubscriberModal({ subscriber, onClose, onSave, onDelete,
 
             {showUcModal && subscriber && (
                 <ConsumerUnitModal
-                    consumerUnit={(() => {
-                        return { subscriber_id: subscriber.id };
-                    })()}
-                    onClose={() => setShowUcModal(false)}
+                    consumerUnit={editingUC}
+                    defaultSection={ucModalMode}
+                    onClose={() => {
+                        setShowUcModal(false);
+                        setEditingUC(null);
+                        setUcModalMode('all');
+                    }}
                     onSave={() => {
                         fetchConsumerUnits(subscriber.id); // Refresh List
                         setShowUcModal(false);
+                        setEditingUC(null);
+                        setUcModalMode('all');
                     }}
                 />
             )}

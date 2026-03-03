@@ -65,13 +65,16 @@ const SubscriberDashboard = () => {
 
                 if (invError) throw invError;
 
-                setAllInvoices(invoices); // Store raw for modal filtering
+                setAllInvoices(invoices); // Store all for reference
 
-                // 5. Process Data for UC Cards (Latest Invoice per UC)
+                // 4.1 Filter Valid Invoices for Charts and Summaries (exclude cancelled)
+                const validInvoices = invoices.filter(inv => inv.status !== 'cancelado');
+
+                // 5. Process Data for UC Cards (Latest Valid Invoice per UC)
                 const processedUnits = units.map(uc => {
-                    // Filter invoices for this UC
-                    const ucInvoices = invoices.filter(inv => inv.uc_id === uc.id);
-                    // Sort descending to get latest (already sorted by query but good to ensure)
+                    // Filter valid invoices for this UC
+                    const ucInvoices = validInvoices.filter(inv => inv.uc_id === uc.id);
+                    // Sort descending to get latest
                     const sortedInvoices = [...ucInvoices].sort((a, b) => new Date(b.mes_referencia) - new Date(a.mes_referencia));
                     const latestInvoice = sortedInvoices[0];
 
@@ -79,15 +82,15 @@ const SubscriberDashboard = () => {
                         ...uc,
                         lastConsumption: latestInvoice?.consumo_kwh || 0,
                         amountToPay: latestInvoice?.valor_a_pagar || 0,
-                        status: latestInvoice?.status || 'Sem Faturas'
+                        invoiceStatus: latestInvoice?.status || 'Sem Faturas' // Renamed to avoid overriding uc.status
                     };
                 });
                 setUcs(processedUnits);
 
-                // 6. Process Data for Charts (Aggregated by Month, Ascending)
+                // 6. Process Data for Charts (Aggregated by Month, Ascending) - Use validInvoices only
                 const monthlyData = {};
                 // Need to sort ascending for chart
-                const ascendingInvoices = [...invoices].sort((a, b) => new Date(a.mes_referencia) - new Date(b.mes_referencia));
+                const ascendingInvoices = [...validInvoices].sort((a, b) => new Date(a.mes_referencia) - new Date(b.mes_referencia));
 
                 ascendingInvoices.forEach(inv => {
                     const monthKey = inv.mes_referencia ? inv.mes_referencia.substring(0, 7) : 'Unknown'; // YYYY-MM
@@ -101,8 +104,13 @@ const SubscriberDashboard = () => {
                         };
                     }
 
-                    monthlyData[monthKey].concessionaireValue += (inv.consumo_reais || 0);
-                    monthlyData[monthKey].b2wValue += (inv.valor_a_pagar || 0);
+                    // To show real savings, Concessionaire = B2W + Economy
+                    // This avoids apples-to-oranges comparison if columns are populated differently
+                    const b2w = (inv.valor_a_pagar || 0);
+                    const economy = (inv.economia_reais || 0);
+
+                    monthlyData[monthKey].concessionaireValue += (b2w + economy);
+                    monthlyData[monthKey].b2wValue += b2w;
                     monthlyData[monthKey].consumption += (inv.consumo_kwh || 0);
                 });
 
@@ -176,7 +184,7 @@ const SubscriberDashboard = () => {
                                         key={uc.id}
                                         ucNumber={uc.numero_uc || uc.consumer_unit_number || 'N/A'}
                                         concessionaire={uc.concessionaria || uc.distributor}
-                                        status={uc.status}
+                                        status={uc.invoiceStatus || uc.status}
                                         lastConsumption={uc.lastConsumption}
                                         amountToPay={uc.amountToPay}
                                         onViewInvoices={() => handleOpenModal(uc)}
