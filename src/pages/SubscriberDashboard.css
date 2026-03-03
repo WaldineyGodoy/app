@@ -6,22 +6,54 @@
 }
 
 .dashboard-header {
-    margin-bottom: 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    margin-bottom: 2.5rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 51, 102, 0.05);
 }
 
-.dashboard-header h1 {
+.title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.title-wrapper h1 {
     font-size: 2rem;
     color: #003366;
-    /* Brand Navy */
     margin: 0;
+    font-weight: 800;
+}
+
+.subscriber-status-badge {
+    padding: 0.35rem 1rem;
+    border-radius: 30px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.subscriber-status-badge.ativo {
+    background: rgba(46, 204, 113, 0.1);
+    color: #27ae60;
+    border-color: rgba(46, 204, 113, 0.2);
+}
+
+.subscriber-status-badge.cancelado {
+    background: rgba(231, 76, 60, 0.1);
+    color: #c0392b;
+    border-color: rgba(231, 76, 60, 0.2);
 }
 
 .dashboard-header p {
-    color: #7f8c8d;
+    color: #64748b;
     margin: 0.5rem 0 0 0;
+    font-weight: 500;
 }
 
 .dashboard-content {

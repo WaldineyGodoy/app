@@ -8,6 +8,7 @@ import './SubscriberDashboard.css';
 const SubscriberDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [subscriberName, setSubscriberName] = useState('');
+    const [subscriberStatus, setSubscriberStatus] = useState(null);
     const [ucs, setUcs] = useState([]);
     const [allInvoices, setAllInvoices] = useState([]); // Store all raw invoices
     const [chartData, setChartData] = useState([]);
@@ -39,12 +40,13 @@ const SubscriberDashboard = () => {
             // 2. Fetch Subscriber Profile
             const { data: subscriber, error: subError } = await supabase
                 .from('subscribers')
-                .select('id, name')
+                .select('id, name, status')
                 .eq('email', email)
                 .single();
 
             if (subError) throw subError;
             setSubscriberName(subscriber.name);
+            setSubscriberStatus(subscriber.status); // Add this state
 
             // 3. Fetch Consumer Units
             const { data: units, error: ucError } = await supabase
@@ -81,8 +83,12 @@ const SubscriberDashboard = () => {
                     return {
                         ...uc,
                         lastConsumption: latestInvoice?.consumo_kwh || 0,
+                        compensatedConsumption: latestInvoice?.energia_compensada || latestInvoice?.consumo_kwh || 0, // Fallback if column not yet visible/renamed in code
                         amountToPay: latestInvoice?.valor_a_pagar || 0,
-                        invoiceStatus: latestInvoice?.status || 'Sem Faturas' // Renamed to avoid overriding uc.status
+                        invoiceStatus: latestInvoice?.status || 'Sem Faturas',
+                        invoiceDueDate: latestInvoice?.vencimento || null,
+                        invoiceId: latestInvoice?.id || null, // For reference
+                        paymentUrl: latestInvoice?.asaas_boleto_url || null
                     };
                 });
                 setUcs(processedUnits);
@@ -157,59 +163,71 @@ const SubscriberDashboard = () => {
         <div className="dashboard-container">
             <header className="dashboard-header">
                 <div className="header-content">
-                    <h1>Olá, {subscriberName || 'Assinante'}</h1>
+                    <div className="title-wrapper">
+                        <h1>Olá, {subscriberName || 'Assinante'}</h1>
+                        {subscriberStatus && (
+                            <span className={`subscriber-status-badge ${subscriberStatus.toLowerCase()}`}>
+                                {subscriberStatus}
+                            </span>
+                        )}
+                    </div>
                     <p>Bem-vindo ao seu painel de energia.</p>
                 </div>
-                {/* Add User Menu/Logout eventually */}
             </header>
 
-            {loading ? (
-                <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Carregando seus dados...</p>
-                </div>
-            ) : error ? (
-                <div className="error-state">
-                    <p>Por enquanto nenhuma conta ativa, se você já é nosso cliente aguarde 24 horas para a atualização ou entre em contato com o nosso suporte</p>
-                </div>
-            ) : (
-                <div className="dashboard-content">
-                    {/* section: UC Cards */}
-                    <section className="ucs-section">
-                        <h2>Suas Unidades Consumidoras</h2>
-                        <div className="ucs-grid">
-                            {ucs.length > 0 ? (
-                                ucs.map(uc => (
-                                    <UCCard
-                                        key={uc.id}
-                                        ucNumber={uc.numero_uc || uc.consumer_unit_number || 'N/A'}
-                                        concessionaire={uc.concessionaria || uc.distributor}
-                                        status={uc.invoiceStatus || uc.status}
-                                        lastConsumption={uc.lastConsumption}
-                                        amountToPay={uc.amountToPay}
-                                        onViewInvoices={() => handleOpenModal(uc)}
-                                    />
-                                ))
-                            ) : (
-                                <p className="no-data">Nenhuma UC encontrada para este perfil.</p>
-                            )}
-                        </div>
-                    </section>
+            {
+                loading ? (
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Carregando seus dados...</p>
+                    </div>
+                ) : error ? (
+                    <div className="error-state">
+                        <p>Por enquanto nenhuma conta ativa, se você já é nosso cliente aguarde 24 horas para a atualização ou entre em contato com o nosso suporte</p>
+                    </div>
+                ) : (
+                    <div className="dashboard-content">
+                        {/* section: UC Cards */}
+                        <section className="ucs-section">
+                            <h2>Suas Unidades Consumidoras</h2>
+                            <div className="ucs-grid">
+                                {ucs.length > 0 ? (
+                                    ucs.map(uc => (
+                                        <UCCard
+                                            key={uc.id}
+                                            ucNumber={uc.numero_uc || uc.consumer_unit_number || 'N/A'}
+                                            concessionaire={uc.concessionaria || uc.distributor}
+                                            ucStatus={uc.status}
+                                            invoiceStatus={uc.invoiceStatus}
+                                            lastConsumption={uc.lastConsumption}
+                                            compensatedConsumption={uc.compensatedConsumption}
+                                            invoiceDueDate={uc.invoiceDueDate}
+                                            amountToPay={uc.amountToPay}
+                                            paymentUrl={uc.paymentUrl}
+                                            onViewInvoices={() => handleOpenModal(uc)}
+                                        />
+                                    ))
+                                ) : (
+                                    <p className="no-data">Nenhuma UC encontrada para este perfil.</p>
+                                )}
+                            </div>
+                        </section>
 
-                    {/* section: Charts */}
-                    {chartData.length > 0 && (
-                        <>
-                            <section className="charts-section">
-                                <SavingsChart data={chartData} />
-                            </section>
+                        {/* section: Charts */}
+                        {chartData.length > 0 && (
+                            <>
+                                <section className="charts-section">
+                                    <SavingsChart data={chartData} />
+                                </section>
 
-                            <section className="charts-section">
-                                <ConsumptionChart data={chartData} />
-                            </section>
-                        </>
-                    )}
-                </div>
-            )}
+                                <section className="charts-section">
+                                    <ConsumptionChart data={chartData} />
+                                </section>
+                            </>
+                        )}
+                    </div>
+                )
+            }
 
             {/* Invoices Modal */}
             <InvoicesModal
@@ -218,7 +236,7 @@ const SubscriberDashboard = () => {
                 ucData={selectedUC}
                 invoices={selectedVCInvoices}
             />
-        </div>
+        </div >
     );
 };
 
