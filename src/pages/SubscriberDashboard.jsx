@@ -159,8 +159,11 @@ const SubscriberDashboard = () => {
 
     const handleOpenModal = (uc) => {
         setSelectedUC(uc);
-        // Filter invoices for this UC
-        const filtered = allInvoices.filter(inv => inv.uc_id === uc.id);
+        // Filter invoices for this UC and exclude cancelled ones
+        const filtered = allInvoices.filter(inv =>
+            inv.uc_id === uc.id &&
+            inv.status?.toLowerCase() !== 'cancelado'
+        );
         setSelectedVCInvoices(filtered);
         setIsModalOpen(true);
     };
