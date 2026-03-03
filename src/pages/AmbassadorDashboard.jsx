@@ -19,7 +19,6 @@ const AmbassadorDashboard = () => {
     const [stats, setStats] = useState({
         totalLeads: 0,
         totalValue: 0,
-        totalValue: 0,
         revenue: 0,
         ledgerBalance: 0 // [NEW] Real Ledger Balance
     });
