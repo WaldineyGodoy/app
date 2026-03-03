@@ -7,6 +7,7 @@ import './InvoicesModal.css';
 
 const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, branding }) => {
     const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [invoiceToDownload, setInvoiceToDownload] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const detailRef = useRef(null);
     const hiddenRef = useRef(null);
@@ -54,14 +55,15 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
         }
 
         setIsGenerating(true);
-        try {
-            // 1. Prepare PDF of the detailed summary (the "eye" view)
-            // We use a small timeout to ensure the hiddenRef is populated or use the current view if it's open
-            // but since icon 3 can be clicked from the list, we'll use a hidden version of the detail
+        setInvoiceToDownload(invoice);
 
-            // Temporary "Detalhamento" for PDF capture
+        try {
+            // Wait for the hidden render to update
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // 1. Prepare PDF of the detailed summary
             const element = hiddenRef.current;
-            element.style.display = 'block'; // Temporarily show to capture
+            element.style.display = 'block';
 
             const canvas = await html2canvas(element, {
                 scale: 2,
@@ -70,7 +72,7 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
                 backgroundColor: "#f8fafc"
             });
 
-            element.style.display = 'none'; // Hide again
+            element.style.display = 'none';
 
             const imgData = canvas.toDataURL('image/png');
             const pdfSummary = new jsPDF('p', 'mm', 'a4');
@@ -80,20 +82,21 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
 
             const summaryBytes = pdfSummary.output('arraybuffer');
 
-            // 2. Fetch the Asaas Boleto PDF
-            const response = await fetch(invoice.asaas_boleto_url);
-            if (!response.ok) throw new Error("Falha ao buscar boleto do Asaas.");
-            const boletoBytes = await response.arrayBuffer();
+            // 2. Fetch the Asaas Boleto PDF via custom Edge Function Proxy
+            const { data: pdfBlob, error: proxyError } = await supabase.functions.invoke('proxy-pdf', {
+                body: { url: invoice.asaas_boleto_url }
+            });
+
+            if (proxyError) throw proxyError;
+            const boletoBytes = await pdfBlob.arrayBuffer();
 
             // 3. Merge PDFs using pdf-lib
             const mergedPdf = await PDFDocument.create();
 
-            // Load and copy summary
             const summaryDoc = await PDFDocument.load(summaryBytes);
             const copiedSummaryPages = await mergedPdf.copyPages(summaryDoc, summaryDoc.getPageIndices());
             copiedSummaryPages.forEach((page) => mergedPdf.addPage(page));
 
-            // Load and copy boleto
             const boletoDoc = await PDFDocument.load(boletoBytes);
             const copiedBoletoPages = await mergedPdf.copyPages(boletoDoc, boletoDoc.getPageIndices());
             copiedBoletoPages.forEach((page) => mergedPdf.addPage(page));
@@ -116,6 +119,7 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
             alert("Erro ao gerar PDF combinado. Por favor, tente novamente.");
         } finally {
             setIsGenerating(false);
+            setInvoiceToDownload(null);
         }
     };
 
@@ -475,7 +479,7 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
             {/* Hidden wrapper for PDF capture */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
                 <div ref={hiddenRef}>
-                    {invoices && invoices.length > 0 && renderHiddenInvoiceDetail(invoices[0])}
+                    {invoiceToDownload && renderHiddenInvoiceDetail(invoiceToDownload)}
                 </div>
             </div>
 
