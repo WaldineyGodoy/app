@@ -47,12 +47,6 @@
     font-weight: 600;
 }
 
-.usinas-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 1.5rem;
-}
-
 @media (max-width: 768px) {
     .supplier-dashboard {
         padding: 1rem;

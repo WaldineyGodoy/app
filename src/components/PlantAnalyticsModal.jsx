@@ -3,8 +3,9 @@ import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCir
 import { supabase } from '../lib/supabase';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    PieChart, Pie, Cell
+    PieChart, Pie, Cell, AreaChart, Area
 } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 import './PlantAnalyticsModal.css';
 
 const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
@@ -145,163 +146,237 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
     const formatCurrency = (val) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
     const formatNumber = (val) => new Intl.NumberFormat('pt-BR').format(val);
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content analytics-modal" onClick={(e) => e.stopPropagation()}>
-                <button className="modal-close" onClick={onClose}>
-                    <X size={24} />
-                </button>
-
-                <div className="analytics-header">
-                    <h2>Painel de Análise - {usina.name}</h2>
-                    <span className="date-range-badge">Últimos 12 Meses</span>
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="custom-tooltip bg-white p-3 rounded shadow border">
+                    <p className="label fw-bold mb-1 text-dark">{label}</p>
+                    {payload.map((entry, index) => (
+                        <p key={index} className="mb-0" style={{ color: entry.color }}>
+                            {entry.name}: {entry.name === 'Revenue' ? formatCurrency(entry.value) : `${formatNumber(entry.value)} kWh`}
+                        </p>
+                    ))}
                 </div>
+            );
+        }
+        return null;
+    };
 
-                {loading ? (
-                    <div className="loading-spinner">Carregando dados...</div>
-                ) : (
-                    <div className="analytics-grid">
+    return (
+        <AnimatePresence>
+            {isOpen && (
+                <div className="modal-overlay" onClick={onClose}>
+                    <motion.div
+                        className="modal-content analytics-modal container-fluid"
+                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    >
+                        <button className="modal-close" onClick={onClose}>
+                            <X size={24} />
+                        </button>
 
-                        {/* TOP CARDS ROW */}
-                        <div className="stat-card top">
-                            <h4>UCs Vinculadas</h4>
-                            <div className="stat-main">
-                                <Users size={24} color="#FF6600" />
-                                <span>{metrics.totalUCs}</span>
-                            </div>
-                            <small className="stat-sub">Todas as propriedades</small>
-                        </div>
-
-                        <div className="stat-card top">
-                            <h4>Geração (Mês)</h4>
-                            <div className="stat-main">
-                                <Zap size={24} color="#FF6600" />
-                                <span>{formatNumber(metrics.generationLastMonth)} kWh</span>
-                            </div>
-                            <small className="stat-sub">Analíticos do último mês</small>
-                        </div>
-
-                        <div className="stat-card top">
-                            <h4>Consumo (Mês)</h4>
-                            <div className="stat-main">
-                                <ArrowDownRight size={24} color="#FF6600" />
-                                <span>{formatNumber(metrics.consumptionLastMonth)} kWh</span>
-                            </div>
-                            <small className="stat-sub">Soma das UCs vinculadas</small>
-                        </div>
-
-                        <div className="stat-card top">
-                            <h4>Faturamento (Mês)</h4>
-                            <div className="stat-main">
-                                <DollarSign size={24} color="#FF6600" />
-                                <span>{formatCurrency(metrics.revenueLastMonth)}</span>
-                            </div>
-                            <small className="stat-sub">Total faturas emitidas</small>
-                        </div>
-
-                        {/* MIDDLE SECTION - CHARTS & SIDE STATS */}
-
-                        {/* CHART: Generation x Consumption */}
-                        <div className="chart-container large">
-                            <div className="chart-header">
-                                <h3>Geração x Consumo</h3>
-                                <div className="chart-actions">
-                                    <button>...</button>
-                                </div>
-                            </div>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                    <YAxis axisLine={false} tickLine={false} />
-                                    <Tooltip
-                                        cursor={{ fill: 'transparent' }}
-                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    />
-                                    <Legend />
-                                    <Bar dataKey="Geracao" name="Geração" fill="#FF6600" radius={[4, 4, 0, 0]} maxBarSize={20} />
-                                    <Bar dataKey="Consumo" name="Consumo" fill="#003366" radius={[4, 4, 0, 0]} maxBarSize={20} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-
-                        {/* RIGHT SIDE STATS COLUMN */}
-                        <div className="side-stats-column">
-
-                            {/* VACANCY */}
-                            <div className="stat-card side">
-                                <div className="side-header">
-                                    <h4>Vacância</h4>
-                                    <div className="icon-circle red"><AlertCircle size={14} /></div>
-                                </div>
-                                <div className="side-values">
-                                    <span className="big-val">{formatNumber(metrics.vacancyKwh)} kWh</span>
-                                    <span className={`percent-badge ${metrics.vacancyKwh >= 0 ? 'pos' : 'neg'}`}>
-                                        {metrics.vacancyPercent.toFixed(1)}%
-                                    </span>
-                                </div>
-                                <small>Diferença Geração - Consumo</small>
-                            </div>
-
-                            {/* PROFITABILITY */}
-                            <div className="stat-card side">
-                                <div className="side-header">
-                                    <h4>Rentabilidade</h4>
-                                    <div className="icon-circle user"><Users size={14} /></div>
-                                </div>
-                                <div className="side-values">
-                                    <span className="big-val">{metrics.profitability.toFixed(2)}%</span>
-                                    <small>Retorno sobre Investimento</small>
-                                </div>
-                            </div>
-
-                            {/* BALANCE */}
-                            <div className="stat-card side">
-                                <div className="side-header">
-                                    <h4>Saldo a Receber</h4>
-                                    <div className="icon-circle user"><DollarSign size={14} /></div>
-                                </div>
-                                <div className="side-values">
-                                    <span className="big-val">{formatCurrency(metrics.balanceToReceive)}</span>
-                                    <small>Faturamento - Despesas</small>
-                                </div>
-                            </div>
-
-                        </div>
-
-                        {/* OCCUPANCY CHART (Bottom Right) */}
-                        <div className="chart-container small">
-                            <div className="chart-header">
-                                <h3>Ocupação</h3>
-                            </div>
-                            <div className="donut-wrapper">
-                                <ResponsiveContainer width="100%" height={180}>
-                                    <PieChart>
-                                        <Pie
-                                            data={occupancyData}
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                        >
-                                            {occupancyData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div className="donut-center-text">
-                                    {/* Calculated Occupancy % */}
-                                    <strong>{((metrics.consumptionLastMonth / metrics.generationLastMonth) * 100).toFixed(0)}%</strong>
-                                </div>
+                        <div className="analytics-header row mb-4 align-items-center">
+                            <div className="col">
+                                <h2 className="mb-0">Painel de Análise - {usina.name}</h2>
+                                <span className="badge bg-primary mt-1">Últimos 12 Meses</span>
                             </div>
                         </div>
 
-                    </div>
-                )}
-            </div>
-        </div>
+                        {loading ? (
+                            <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+                                <div className="spinner-border text-primary" role="status">
+                                    <span className="visually-hidden">Carregando dados...</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="analytics-grid">
+
+                                {/* TOP CARDS ROW */}
+                                <div className="row g-3 mb-4">
+                                    <div className="col-12 col-sm-6 col-lg-3">
+                                        <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
+                                            <h4>UCs Vinculadas</h4>
+                                            <div className="stat-main d-flex align-items-center gap-2">
+                                                <Users size={24} color="#FF6600" />
+                                                <span className="fs-3 fw-bold">{metrics.totalUCs}</span>
+                                            </div>
+                                            <small className="text-muted">Todas as propriedades</small>
+                                        </motion.div>
+                                    </div>
+
+                                    <div className="col-12 col-sm-6 col-lg-3">
+                                        <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
+                                            <h4>Geração (Mês)</h4>
+                                            <div className="stat-main d-flex align-items-center gap-2">
+                                                <Zap size={24} color="#FF6600" />
+                                                <span className="fs-3 fw-bold">{formatNumber(metrics.generationLastMonth)} kWh</span>
+                                            </div>
+                                            <small className="text-muted">Analíticos do último mês</small>
+                                        </motion.div>
+                                    </div>
+
+                                    <div className="col-12 col-sm-6 col-lg-3">
+                                        <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
+                                            <h4>Consumo (Mês)</h4>
+                                            <div className="stat-main d-flex align-items-center gap-2">
+                                                <ArrowDownRight size={24} color="#FF6600" />
+                                                <span className="fs-3 fw-bold">{formatNumber(metrics.consumptionLastMonth)} kWh</span>
+                                            </div>
+                                            <small className="text-muted">Soma das UCs vinculadas</small>
+                                        </motion.div>
+                                    </div>
+
+                                    <div className="col-12 col-sm-6 col-lg-3">
+                                        <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
+                                            <h4>Faturamento (Mês)</h4>
+                                            <div className="stat-main d-flex align-items-center gap-2">
+                                                <DollarSign size={24} color="#FF6600" />
+                                                <span className="fs-3 fw-bold">{formatCurrency(metrics.revenueLastMonth)}</span>
+                                            </div>
+                                            <small className="text-muted">Total faturas emitidas</small>
+                                        </motion.div>
+                                    </div>
+                                </div>
+
+                                {/* MIDDLE SECTION - CHARTS & SIDE STATS */}
+                                <div className="row g-4 mb-4">
+                                    {/* CHART: Generation x Consumption */}
+                                    <div className="col-12 col-xl-8">
+                                        <div className="chart-container p-4 bg-white rounded shadow-sm h-100">
+                                            <div className="chart-header d-flex justify-content-between mb-4">
+                                                <h3 className="h5 mb-0">Geração x Consumo</h3>
+                                            </div>
+                                            <ResponsiveContainer width="100%" height={350}>
+                                                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                    <defs>
+                                                        <linearGradient id="colorGen" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#FF6600" stopOpacity={0.1} />
+                                                            <stop offset="95%" stopColor="#FF6600" stopOpacity={0} />
+                                                        </linearGradient>
+                                                        <linearGradient id="colorCons" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#003366" stopOpacity={0.1} />
+                                                            <stop offset="95%" stopColor="#003366" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#7f8c8d', fontSize: 12 }} />
+                                                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7f8c8d', fontSize: 12 }} />
+                                                    <Tooltip content={<CustomTooltip />} />
+                                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                                    <Area type="monotone" dataKey="Geracao" name="Geração (kWh)" stroke="#FF6600" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
+                                                    <Area type="monotone" dataKey="Consumo" name="Consumo (kWh)" stroke="#003366" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    {/* RIGHT SIDE STATS COLUMN */}
+                                    <div className="col-12 col-xl-4">
+                                        <div className="row g-3">
+                                            {/* VACANCY */}
+                                            <div className="col-12">
+                                                <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-danger border-4">
+                                                    <div className="side-header d-flex justify-content-between align-items-start mb-2">
+                                                        <h4 className="h6 text-muted mb-0">Vacância</h4>
+                                                        <div className="icon-circle red text-danger bg-danger bg-opacity-10 p-1 rounded-circle"><AlertCircle size={16} /></div>
+                                                    </div>
+                                                    <div className="side-values d-flex align-items-baseline gap-2">
+                                                        <span className="fs-4 fw-bold text-dark">{formatNumber(metrics.vacancyKwh)} kWh</span>
+                                                        <span className={`badge px-2 py-1 ${metrics.vacancyKwh >= 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}>
+                                                            {metrics.vacancyPercent.toFixed(1)}%
+                                                        </span>
+                                                    </div>
+                                                    <small className="text-muted d-block mt-1">Diferença Geração - Consumo</small>
+                                                </div>
+                                            </div>
+
+                                            {/* PROFITABILITY */}
+                                            <div className="col-12">
+                                                <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-success border-4">
+                                                    <div className="side-header d-flex justify-content-between align-items-start mb-2">
+                                                        <h4 className="h6 text-muted mb-0">Rentabilidade</h4>
+                                                        <div className="icon-circle user text-success bg-success bg-opacity-10 p-1 rounded-circle"><Users size={16} /></div>
+                                                    </div>
+                                                    <div className="side-values">
+                                                        <span className="fs-4 fw-bold text-dark">{metrics.profitability.toFixed(2)}%</span>
+                                                        <small className="text-muted d-block">Retorno sobre Investimento</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* BALANCE */}
+                                            <div className="col-12">
+                                                <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-primary border-4">
+                                                    <div className="side-header d-flex justify-content-between align-items-start mb-2">
+                                                        <h4 className="h6 text-muted mb-0">Saldo a Receber</h4>
+                                                        <div className="icon-circle user text-primary bg-primary bg-opacity-10 p-1 rounded-circle"><DollarSign size={16} /></div>
+                                                    </div>
+                                                    <div className="side-values">
+                                                        <span className="fs-4 fw-bold text-dark">{formatCurrency(metrics.balanceToReceive)}</span>
+                                                        <small className="text-muted d-block">Faturamento - Despesas</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* BOTTOM SECTION - SECONDARY CHART */}
+                                <div className="row g-4">
+                                    <div className="col-12 col-md-6">
+                                        <div className="chart-container p-4 bg-white rounded shadow-sm">
+                                            <h3 className="h6 mb-4">Distribuição de Receita</h3>
+                                            <ResponsiveContainer width="100%" height={250}>
+                                                <BarChart data={chartData.slice(-6)}>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                                    <YAxis axisLine={false} tickLine={false} />
+                                                    <Tooltip content={<CustomTooltip />} />
+                                                    <Bar dataKey="Revenue" name="Receita" fill="#003366" radius={[4, 4, 0, 0]} animationDuration={1500} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+
+                                    <div className="col-12 col-md-6">
+                                        <div className="chart-container p-4 bg-white rounded shadow-sm d-flex flex-column align-items-center">
+                                            <h3 className="h6 mb-4 w-100">Ocupação da Usina</h3>
+                                            <div className=" donut-wrapper position-relative" style={{ width: '100%', maxWidth: '250px' }}>
+                                                <ResponsiveContainer width="100%" height={200}>
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={occupancyData}
+                                                            innerRadius={60}
+                                                            outerRadius={80}
+                                                            paddingAngle={5}
+                                                            dataKey="value"
+                                                            animationDuration={1500}
+                                                        >
+                                                            {occupancyData.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                                <div className="donut-center-text position-absolute top-50 start-50 translate-middle text-center">
+                                                    <strong className="fs-4 text-dark">{((metrics.consumptionLastMonth / metrics.generationLastMonth) * 100 || 0).toFixed(0)}%</strong>
+                                                    <small className="text-muted d-block">Ocupação</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        )}
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
     );
 };
 

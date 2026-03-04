@@ -8,6 +8,7 @@ import PlantAnalyticsModal from '../components/PlantAnalyticsModal';
 import SupplierPlantsModal from '../components/SupplierPlantsModal';
 import SupplierUCsModal from '../components/SupplierUCsModal';
 import { Factory, Zap, Users, Coins, LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './SupplierDashboard.css';
 
 import { useAuth } from '../contexts/AuthContext';
@@ -177,50 +178,78 @@ const SupplierDashboard = () => {
 
     return (
         <div className="supplier-dashboard">
-            <header className="dashboard-header">
-                <div className="header-content">
+            <motion.header
+                className="dashboard-header"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <div className="header-content container">
                     <h1>Olá, {supplierName || 'Parceiro'}!</h1>
                     <p>Visão geral de suas usinas e geração.</p>
                 </div>
-            </header>
+            </motion.header>
 
             {loading ? (
                 <div className="loading-state">
-                    <div className="spinner"></div>
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Carregando...</span>
+                    </div>
                 </div>
             ) : (
-                <div className="dashboard-content">
+                <motion.div
+                    className="dashboard-content container"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
                     {/* KPIs */}
-                    <div className="kpi-grid">
-                        <KPICard
-                            title="Total a Receber"
-                            value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
-                            icon={Coins}
-                        />
-                        <KPICard
-                            title="Total de Usinas"
-                            value={stats.totalUsinas}
-                            icon={Factory}
-                            onClick={() => setShowPlantsModal(true)}
-                        />
-                        <KPICard
-                            title="Total de UCs"
-                            value={stats.totalUCs}
-                            icon={Users}
-                            onClick={() => setShowUCsModal(true)}
-                        />
-                        <KPICard
-                            title="Geração (Último Mês)"
-                            value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
-                            icon={Zap}
-                        />
+                    <div className="row g-4 mb-5">
+                        <div className="col-12 col-md-6 col-lg-3">
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Total a Receber"
+                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
+                                    icon={Coins}
+                                />
+                            </motion.div>
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-3">
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Total de Usinas"
+                                    value={stats.totalUsinas}
+                                    icon={Factory}
+                                    onClick={() => setShowPlantsModal(true)}
+                                />
+                            </motion.div>
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-3">
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Total de UCs"
+                                    value={stats.totalUCs}
+                                    icon={Users}
+                                    onClick={() => setShowUCsModal(true)}
+                                />
+                            </motion.div>
+                        </div>
+                        <div className="col-12 col-md-6 col-lg-3">
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Geração (Último Mês)"
+                                    value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
+                                    icon={Zap}
+                                />
+                            </motion.div>
+                        </div>
                     </div>
 
                     {/* Filters & Grid */}
                     <section className="usinas-section">
-                        <div className="section-header-row">
+                        <div className="section-header-row mb-4">
                             <h2>Suas Usinas</h2>
-                            <div className="status-tabs">
+                            <div className="status-tabs btn-group" role="group">
                                 {[
                                     { id: 'all', label: 'Todas' },
                                     { id: 'active', label: 'Ativas' },
@@ -229,7 +258,7 @@ const SupplierDashboard = () => {
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
-                                        className={`tab-pill ${activeTab === tab.id ? 'active' : ''}`}
+                                        className={`btn btn-outline-primary ${activeTab === tab.id ? 'active' : ''}`}
                                         onClick={() => setActiveTab(tab.id)}
                                     >
                                         {tab.label}
@@ -238,22 +267,36 @@ const SupplierDashboard = () => {
                             </div>
                         </div>
 
-                        <div className="usinas-grid">
-                            {filteredUsinas.length > 0 ? (
-                                filteredUsinas.map(usina => (
-                                    <PlantCard
-                                        key={usina.id}
-                                        usina={usina}
-                                        onOpenGraphs={handleOpenPerformance}
-                                        onOpenInvoices={handleOpenInvoices}
-                                    />
-                                ))
-                            ) : (
-                                <p className="no-data">Nenhuma usina encontrada com este status.</p>
-                            )}
-                        </div>
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                className="row g-4"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                {filteredUsinas.length > 0 ? (
+                                    filteredUsinas.map(usina => (
+                                        <div key={usina.id} className="col-12 col-md-6 col-lg-4">
+                                            <motion.div whileHover={{ y: -5 }}>
+                                                <PlantCard
+                                                    usina={usina}
+                                                    onOpenGraphs={handleOpenPerformance}
+                                                    onOpenInvoices={handleOpenInvoices}
+                                                />
+                                            </motion.div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="col-12">
+                                        <p className="no-data alert alert-info text-center">Nenhuma usina encontrada com este status.</p>
+                                    </div>
+                                )}
+                            </motion.div>
+                        </AnimatePresence>
                     </section>
-                </div>
+                </motion.div>
             )}
 
             {/* Modals */}
