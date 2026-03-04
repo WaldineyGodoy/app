@@ -111,18 +111,21 @@ const SupplierDashboard = () => {
 
                 const generation = Number(genData?.geracao_mensal_kwh) || 0;
 
-                // 2. Fetch UCs and calculate stats (Same as PlantAnalyticsModal)
-                const { data: ucs, error: ucsError } = await supabase
+                // 2. Fetch UCs for this usina (Select all for robustness)
+                const { data: ucs } = await supabase
                     .from('consumer_units')
-                    .select('id, consumo_kwh, franquia')
+                    .select('*')
                     .eq('usina_id', usina.id);
 
-                const ucIds = ucs?.map(u => u.id) || [];
                 const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
+                const ucIds = ucs?.map(u => u.id) || [];
 
-                // Fetch Invoices for this month to calculate "Valor a Receber"
+                // Fetch Invoices for the latest available month
                 const now = new Date();
-                const currentMonthKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+                const year = now.getFullYear();
+                const month = now.getMonth() + 1;
+                const startOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`;
+                const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-31`;
 
                 let plantReceivable = 0;
                 if (ucIds.length > 0) {
@@ -130,19 +133,19 @@ const SupplierDashboard = () => {
                         .from('invoices')
                         .select('valor_a_pagar')
                         .in('uc_id', ucIds)
-                        .like('mes_referencia', `${currentMonthKey}%`);
+                        .gte('mes_referencia', startOfMonth)
+                        .lte('mes_referencia', endOfMonth);
 
                     plantReceivable = invData?.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0) || 0;
                 }
 
-                // Sync Percentage Logic with PlantAnalyticsModal.jsx
-                const vacancyKwh = Math.max(0, generation - committedCapacity);
-                const vacancy = generation > 0 ? (vacancyKwh / generation) * 100 : 0;
+                // Calculate Percentages based on ACTUAL generation
                 const occupation = generation > 0 ? (committedCapacity / generation) * 100 : 0;
+                const vacancy = Math.max(0, 100 - occupation);
 
                 return {
                     ...usina,
-                    ucCount: ucCount || 0,
+                    ucCount: ucs?.length || 0,
                     generation,
                     committedCapacity,
                     plantReceivable,
