@@ -236,8 +236,7 @@ const SupplierDashboard = () => {
                                 <KPICard
                                     title="Total de UCs"
                                     value={stats.totalUCs}
-                                    subValue={stats.newUCs}
-                                    icon={<Users size={24} />}
+                                    icon={Users}
                                     onClick={() => {
                                         setSelectedUsina(null);
                                         setShowUCsModal(true);
