@@ -236,8 +236,12 @@ const SupplierDashboard = () => {
                                 <KPICard
                                     title="Total de UCs"
                                     value={stats.totalUCs}
-                                    icon={Users}
-                                    onClick={() => setShowUCsModal(true)}
+                                    subValue={stats.newUCs}
+                                    icon={<Users size={24} />}
+                                    onClick={() => {
+                                        setSelectedUsina(null);
+                                        setShowUCsModal(true);
+                                    }}
                                 />
                             </motion.div>
                         </div>
@@ -329,7 +333,7 @@ const SupplierDashboard = () => {
             <SupplierUCsModal
                 isOpen={showUCsModal}
                 onClose={() => setShowUCsModal(false)}
-                usinaIds={selectedUsina ? [selectedUsina.id] : usinas.map(u => u.id)} // [UPDATED] Support single usina filter
+                usinaIds={selectedUsina ? [selectedUsina.id] : (usinas || []).map(u => u.id)}
             />
 
             <button className="logout-btn" onClick={handleLogout} title="Sair do Sistema">

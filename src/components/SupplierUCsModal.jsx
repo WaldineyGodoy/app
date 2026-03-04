@@ -16,21 +16,52 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
     }, [isOpen, usinaIds]);
 
     const fetchUCs = async () => {
+        if (!usinaIds || usinaIds.length === 0) {
+            setUcs([]);
+            return;
+        }
+
         setLoading(true);
         try {
+            // Simplify query to avoid join errors if relationship names differ
             const { data, error } = await supabase
                 .from('consumer_units')
                 .select(`
                     *,
-                    usinas (name, geracao_referencia),
-                    subscribers (name, email, cpf_cnpj)
+                    usina:usina_id (name, geracao_referencia),
+                    subscriber:subscriber_id (name, email, cpf_cnpj)
                 `)
                 .in('usina_id', usinaIds);
 
-            if (error) throw error;
-            setUcs(data || []);
+            if (error) {
+                console.warn("Retrying fetch with fallback relationship names...");
+                // Fallback attempt with standard plural names if first one fails
+                const { data: retryData, error: retryError } = await supabase
+                    .from('consumer_units')
+                    .select(`
+                        *,
+                        usinas (name, geracao_referencia),
+                        subscribers (name, email, cpf_cnpj)
+                    `)
+                    .in('usina_id', usinaIds);
+
+                if (retryError) throw retryError;
+                setUcs(retryData || []);
+            } else {
+                setUcs(data || []);
+            }
         } catch (error) {
             console.error("Error fetching supplier UCs:", error);
+            // Last resort: fetch just the records without joins
+            try {
+                const { data: simpleData } = await supabase
+                    .from('consumer_units')
+                    .select('*')
+                    .in('usina_id', usinaIds);
+                setUcs(simpleData || []);
+            } catch (inner) {
+                setUcs([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -39,9 +70,10 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
     if (!isOpen) return null;
 
     const filteredUcs = ucs.filter(uc => {
+        const subscriber = uc.subscriber || uc.subscribers;
         const matchesSearch =
             uc.numero_uc?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            uc.subscribers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            subscriber?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             uc.titular_conta?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesStatus = statusFilter === 'all' || uc.status === statusFilter;
@@ -94,7 +126,8 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                         </div>
                     ) : filteredUcs.length > 0 ? (
                         filteredUcs.map((uc, index) => {
-                            const generation = uc.usinas?.geracao_referencia || 1000; // Fallback
+                            const usinaData = uc.usina || uc.usinas;
+                            const generation = usinaData?.geracao_referencia || 1000; // Fallback
                             const percent = generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : 0;
 
                             return (
@@ -106,9 +139,9 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                                         <div className="d-flex justify-content-between align-items-start">
                                             <div>
                                                 <h4 className="h6 mb-1 fw-bold">{uc.numero_uc} <span className="badge bg-warning text-dark small ms-2" style={{ fontSize: '0.65rem' }}>Geradora</span></h4>
-                                                <div className="small text-muted mb-1">{uc.usinas?.name}</div>
-                                                <div className="small fw-semibold mt-1">Titular: <span className="text-dark">{uc.titular_conta || uc.subscribers?.name}</span></div>
-                                                <div className="small text-muted">CPF/CNPJ: {uc.subscribers?.cpf_cnpj || '---'}</div>
+                                                <div className="small text-muted mb-1">{(uc.usina || uc.usinas)?.name}</div>
+                                                <div className="small fw-semibold mt-1">Titular: <span className="text-dark">{uc.titular_conta || (uc.subscriber || uc.subscribers)?.name}</span></div>
+                                                <div className="small text-muted">CPF/CNPJ: {(uc.subscriber || uc.subscribers)?.cpf_cnpj || '---'}</div>
                                             </div>
                                             <div className="text-end">
                                                 <div className="small text-muted">{uc.concessionaria || 'Neoenergia Cosern'}</div>
