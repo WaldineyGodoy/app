@@ -142,3 +142,45 @@ export const sendWhatsapp = async (phone, text, mediaUrl, instanceName) => {
         throw error;
     }
 };
+
+/**
+ * Invoca a Edge Function merge-pdf para combinar o detalhamento com o boleto Asaas
+ * @param {string} base64Summary PDF do detalhamento em Base64
+ * @param {string} asaasUrl URL do boleto gerado no Asaas
+ * @param {string} fileName Nome do arquivo para download
+ */
+export const mergePdf = async (base64Summary, asaasUrl, fileName) => {
+    try {
+        const { data, error } = await supabase.functions.invoke('merge-pdf', {
+            body: {
+                pdf_base64: base64Summary,
+                asaas_url: asaasUrl
+            }
+        });
+
+        if (error) throw error;
+        if (!data?.pdf) throw new Error('PDF não retornado pela função');
+
+        // Converter Base64 retornado em Blob e disparar download
+        const binaryString = atob(data.pdf);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName || 'fatura_combinada.pdf');
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error invoking merge-pdf:', error);
+        throw error;
+    }
+};

@@ -1,13 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
-import { X, FileText, Download } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, FileText, Download, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { mergePdf } from '../lib/api';
 import './PlantInvoicesModal.css';
-import { supabase } from '../lib/supabase'; // Assuming supabase client is configured here
+import { supabase } from '../lib/supabase';
 
 const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [invoiceToDownload, setInvoiceToDownload] = useState(null);
+    const hiddenRef = useRef(null);
 
     useEffect(() => {
         if (isOpen && usina) {
@@ -55,6 +61,108 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDownloadCombined = async (invoice) => {
+        if (!invoice.asaas_boleto_url) {
+            alert("Boleto não disponível para download.");
+            return;
+        }
+
+        setIsGenerating(true);
+        setInvoiceToDownload(invoice);
+
+        try {
+            // Wait for hidden render
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            const element = hiddenRef.current;
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#f8fafc"
+            });
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdfSummary = new jsPDF('p', 'mm', 'a4');
+            pdfSummary.addImage(imgData, 'PNG', 0, 0, 210, 297);
+
+            const base64Summary = pdfSummary.output('datauristring');
+
+            await mergePdf(
+                base64Summary,
+                invoice.asaas_boleto_url,
+                `Fatura_${invoice.mes_referencia}_${invoice.consumer_units?.numero_uc}.pdf`
+            );
+
+        } catch (error) {
+            console.error("Erro no download:", error);
+            alert("Erro ao gerar PDF combinado.");
+        } finally {
+            setIsGenerating(false);
+            setInvoiceToDownload(null);
+        }
+    };
+
+    const renderHiddenInvoiceDetail = (invoice) => {
+        if (!invoice) return null;
+
+        // Local logic for detail calculation (same as InvoicesModal)
+        const tarifa = parseFloat(invoice.tarifa_concessionaria || 1);
+        const totalKwh = parseFloat(invoice.consumo_kwh || 0);
+        const tarifaMinimaRs = parseFloat(invoice.tarifa_minima || 0);
+        const tarifaMinimaKwh = tarifaMinimaRs / tarifa;
+        const consumoCompensadoKwh = totalKwh - tarifaMinimaKwh;
+        const consumoCompensadoReais = consumoCompensadoKwh * tarifa;
+        const economia = parseFloat(invoice.economia_reais || 0);
+        const energiaCompensadaLiquida = consumoCompensadoReais - economia;
+
+        return (
+            <div className="pdf-capture-wrapper" style={{ width: '800px', padding: '40px', background: '#f8fafc' }}>
+                <div className="detail-card" style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#fff', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
+                    <div className="detail-header" style={{ background: '#003366', padding: '20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '1.25rem' }}>Detalhamento da Fatura</h3>
+                            <p style={{ margin: '4px 0 0', opacity: 0.8, fontSize: '0.875rem' }}>Ref: {invoice.mes_referencia}</p>
+                        </div>
+                        <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: 'rgba(255,255,255,0.2)' }}>
+                            {invoice.status?.toUpperCase()}
+                        </span>
+                    </div>
+
+                    <div style={{ padding: '24px' }}>
+                        <div style={{ marginBottom: '24px', padding: '16px', background: '#f1f5f9', borderRadius: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>ASSINANTE</label>
+                                    <span style={{ color: '#1e293b', fontWeight: '500' }}>{invoice.consumer_units?.subscribers?.name || 'Assinante'}</span>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>NÚMERO DA UC</label>
+                                    <span style={{ color: '#1e293b', fontWeight: '500' }}>{invoice.consumer_units?.numero_uc}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
+                                <span>Consumo Compensado ({consumoCompensadoKwh.toFixed(0)} kWh):</span>
+                                <span>R$ {consumoCompensadoReais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444', fontWeight: '500' }}>
+                                <span>Economia Gerada:</span>
+                                <span>- R$ {economia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div style={{ height: '1px', background: '#e2e8f0', margin: '8px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.125rem', fontWeight: 'bold', color: '#003366' }}>
+                                <span>TOTAL A PAGAR</span>
+                                <span>R$ {parseFloat(invoice.valor_a_pagar).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     if (!isOpen || !usina) return null;
@@ -115,9 +223,18 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                             </td>
                                             <td align="right">
                                                 {inv.asaas_boleto_url ? (
-                                                    <a href={inv.asaas_boleto_url} target="_blank" rel="noopener noreferrer" className="download-btn" title="Baixar Fatura">
-                                                        <Download size={16} />
-                                                    </a>
+                                                    <button
+                                                        onClick={() => handleDownloadCombined(inv)}
+                                                        className="download-btn"
+                                                        title="Baixar Detalhamento + Boleto"
+                                                        disabled={isGenerating}
+                                                    >
+                                                        {isGenerating && invoiceToDownload?.id === inv.id ? (
+                                                            <Loader2 size={16} className="spin-animation" />
+                                                        ) : (
+                                                            <Download size={16} />
+                                                        )}
+                                                    </button>
                                                 ) : (
                                                     <span style={{ color: '#ccc' }}>-</span>
                                                 )}
@@ -134,6 +251,22 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                     )}
                 </div>
             </div>
+
+            {/* Hidden capture area */}
+            <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                <div ref={hiddenRef}>
+                    {invoiceToDownload && renderHiddenInvoiceDetail(invoiceToDownload)}
+                </div>
+            </div>
+
+            {isGenerating && (
+                <div className="generation-overlay">
+                    <div className="generation-spinner">
+                        <Loader2 size={48} className="spin-animation" />
+                        <p>Gerando PDF combinado...</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

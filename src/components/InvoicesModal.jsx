@@ -2,8 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Eye, Download, FileText, CreditCard, Calendar, ArrowLeft, Info, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PDFDocument } from 'pdf-lib';
-import { supabase } from '../lib/supabase';
+import { mergePdf } from '../lib/api';
 import './InvoicesModal.css';
 
 const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, branding }) => {
