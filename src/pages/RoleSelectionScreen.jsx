@@ -47,7 +47,7 @@ const RoleSelectionScreen = () => {
                 title = "Assinantes";
                 message = "Você ainda não tem um plano de assinatura ativo conosco, aproveite para se cadastrar e começar a economizar com os nossos descontos.";
                 actionText = "Conhecer Planos";
-                action = () => { closeModal(); navigate('/assine'); };
+                action = () => { closeModal(); window.open('https://www.b2wenergia.com.br/assine', '_blank'); };
             } else if (requiredRole === 'originator') {
                 title = "Embaixadores / Originadores";
                 message = "Você ainda não tem um link de indicação ativo conosco, aproveite para se cadastrar e começar a receber recompensas.";
