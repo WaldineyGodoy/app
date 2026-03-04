@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Filter, Eye, Zap, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import ConsumerUnitModal from './ConsumerUnitModal';
+import UCDetailsModal from './UCDetailsModal';
 import './SupplierUCsModal.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
     const [ucs, setUcs] = useState([]);
@@ -136,8 +137,17 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                     ) : filteredUcs.length > 0 ? (
                         filteredUcs.map((uc, index) => {
                             const usinaData = uc.usina || uc.usinas;
-                            const generation = usinaData?.geracao_referencia || 1000; // Fallback
+                            const generation = usinaData?.geracao_estimada_kwh || 1000; // Correct field name
                             const percent = generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : 0;
+
+                            const statusMap = {
+                                ativo: { label: 'Ativa', class: 'bg-success' },
+                                em_ativacao: { label: 'Em Ativação', class: 'bg-info text-dark' },
+                                aguardando_conexao: { label: 'Aguardando Conexão', class: 'bg-warning text-dark' },
+                                em_atraso: { label: 'Em Atraso', class: 'bg-danger' },
+                                cancelado: { label: 'Cancelada', class: 'bg-secondary' }
+                            };
+                            const statusInfo = statusMap[uc.status] || { label: uc.status, class: 'bg-light text-dark' };
 
                             return (
                                 <div key={uc.id} className="uc-item-card d-flex align-items-center mb-3 p-3 border rounded shadow-sm">
@@ -151,6 +161,9 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                                                     {uc.numero_uc}
                                                     <span className={`badge ${uc.tipo_unidade === 'geradora' ? 'bg-warning text-dark' : 'bg-info text-dark'} small ms-2`} style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
                                                         {uc.tipo_unidade || 'Beneficiária'}
+                                                    </span>
+                                                    <span className={`badge ${statusInfo.class} small ms-2`} style={{ fontSize: '0.65rem' }}>
+                                                        {statusInfo.label}
                                                     </span>
                                                 </h4>
                                                 <div className="small text-muted mb-1">{(uc.usina || uc.usinas)?.name}</div>
@@ -166,11 +179,12 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                                         </div>
                                     </div>
                                     <button
-                                        className="action-icon-btn ms-3"
+                                        className="action-icon-btn ms-3 border-0 bg-transparent"
                                         title="Ver Detalhes"
                                         onClick={() => setSelectedUcDetails(uc)}
+                                        style={{ color: '#fd7e14' }}
                                     >
-                                        <Eye size={20} />
+                                        <i className="bi bi-eye-fill" style={{ fontSize: '1.25rem' }}></i>
                                     </button>
                                 </div>
                             );
@@ -184,13 +198,9 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
             </div>
 
             {selectedUcDetails && (
-                <ConsumerUnitModal
-                    consumerUnit={selectedUcDetails}
+                <UCDetailsModal
+                    uc={selectedUcDetails}
                     onClose={() => setSelectedUcDetails(null)}
-                    onSave={() => {
-                        fetchUCs();
-                        setSelectedUcDetails(null);
-                    }}
                 />
             )}
         </div>
