@@ -3,6 +3,11 @@ import { supabase } from '../lib/supabase';
 import UCCard from '../components/UCCard';
 import { SavingsChart, ConsumptionChart } from '../components/DashboardCharts';
 import InvoicesModal from '../components/InvoicesModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download, FileText } from 'lucide-react';
+import { mergePdf } from '../lib/api';
 import './SubscriberDashboard.css';
 
 const SubscriberDashboard = () => {
@@ -13,7 +18,13 @@ const SubscriberDashboard = () => {
     const [allInvoices, setAllInvoices] = useState([]); // Store all raw invoices
     const [chartData, setChartData] = useState([]);
     const [branding, setBranding] = useState(null);
+    const [billingMode, setBillingMode] = useState('individualizada');
+    const [consolidatedInvoice, setConsolidatedInvoice] = useState(null);
+    const [consolidatedDetails, setConsolidatedDetails] = useState([]);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [loadingStep, setLoadingStep] = useState('');
     const [error, setError] = useState(null);
+    const hiddenConsolidatedRef = useRef(null);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,13 +59,37 @@ const SubscriberDashboard = () => {
             // 2. Fetch Subscriber Profile
             const { data: subscriber, error: subError } = await supabase
                 .from('subscribers')
-                .select('id, name, status')
+                .select('id, name, status, billing_mode')
                 .eq('email', email)
                 .single();
 
             if (subError) throw subError;
             setSubscriberName(subscriber.name);
-            setSubscriberStatus(subscriber.status); // Add this state
+            setSubscriberStatus(subscriber.status);
+            setBillingMode(subscriber.billing_mode || 'individualizada');
+
+            // 2.1 Fetch Consolidated Invoice if applicable
+            if (subscriber.billing_mode === 'consolidada') {
+                const { data: consolidated, error: consError } = await supabase
+                    .from('consolidated_invoices')
+                    .select('*')
+                    .eq('subscriber_id', subscriber.id)
+                    .order('due_date', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                if (consolidated) {
+                    setConsolidatedInvoice(consolidated);
+
+                    // Fetch details (individual invoices)
+                    const { data: details, error: detailsError } = await supabase
+                        .from('invoices')
+                        .select('*, consumer_units(numero_uc, titular_conta)')
+                        .eq('consolidated_invoice_id', consolidated.id);
+
+                    if (details) setConsolidatedDetails(details);
+                }
+            }
 
             // 3. Fetch Consumer Units
             const { data: units, error: ucError } = await supabase
@@ -174,6 +209,114 @@ const SubscriberDashboard = () => {
         setSelectedVCInvoices([]);
     };
 
+    const handleDownloadConsolidated = async () => {
+        if (!consolidatedInvoice) return;
+
+        setIsGenerating(true);
+        setLoadingStep('Preparando demonstrativo consolidado...');
+
+        try {
+            // Wait for hidden render
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            setLoadingStep('Capturando resumo das unidades...');
+            const element = hiddenConsolidatedRef.current;
+            element.style.display = 'block';
+
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: "#ffffff"
+            });
+
+            element.style.display = 'none';
+
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = 210;
+            const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+            const base64Summary = pdf.output('datauristring');
+
+            setLoadingStep('Mesclando com boleto consolidado...');
+            await mergePdf(
+                base64Summary,
+                consolidatedInvoice.asaas_boleto_url,
+                `Fatura_Consolidada_${consolidatedInvoice.due_date}.pdf`
+            );
+
+        } catch (error) {
+            console.error("Erro no download consolidado:", error);
+            alert("Erro ao gerar fatura consolidada.");
+        } finally {
+            setIsGenerating(false);
+            setLoadingStep('');
+        }
+    };
+
+    const renderHiddenConsolidatedDetail = () => {
+        if (!consolidatedInvoice || consolidatedDetails.length === 0) return null;
+
+        const totalValue = consolidatedDetails.reduce((sum, inv) => sum + (Number(inv.valor_a_pagar) || 0), 0);
+
+        return (
+            <div className="consolidated-pdf-template" style={{ padding: '40px', background: 'white', color: '#1e293b', fontFamily: 'Inter, sans-serif' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', borderBottom: '2px solid #003366', paddingBottom: '20px' }}>
+                    <div>
+                        {branding?.logo_url ? (
+                            <img src={branding.logo_url} alt="Logo" style={{ height: '50px' }} />
+                        ) : (
+                            <h2 style={{ color: '#003366', margin: 0 }}>{branding?.company_name || 'B2W Energia'}</h2>
+                        )}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <h1 style={{ margin: 0, fontSize: '24px', color: '#003366' }}>DETALHAMENTO CONSOLIDADO</h1>
+                        <p style={{ margin: '5px 0', color: '#64748b' }}>Referência: {new Date(consolidatedInvoice.due_date).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                    </div>
+                </div>
+
+                <div style={{ marginBottom: '30px' }}>
+                    <p><strong>Assinante:</strong> {subscriberName}</p>
+                    <p><strong>Vencimento:</strong> {new Date(consolidatedInvoice.due_date).toLocaleDateString('pt-BR')}</p>
+                </div>
+
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '40px' }}>
+                    <thead>
+                        <tr style={{ background: '#f8fafc', color: '#003366' }}>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Unidade Consumidora</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Titular</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>Valor (R$)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {consolidatedDetails.map((inv, idx) => (
+                            <tr key={idx}>
+                                <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{inv.consumer_units?.numero_uc}</td>
+                                <td style={{ padding: '12px', borderBottom: '1px solid #e2e8f0' }}>{inv.consumer_units?.titular_conta}</td>
+                                <td style={{ padding: '12px', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor_a_pagar)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr style={{ fontWeight: 'bold', background: '#f8fafc' }}>
+                            <td colSpan="2" style={{ padding: '15px', textAlign: 'right', fontSize: '18px' }}>VALOR TOTAL</td>
+                            <td style={{ padding: '15px', textAlign: 'right', fontSize: '18px', color: '#003366' }}>
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalValue)}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+
+                <div style={{ marginTop: '50px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+                    Documento gerado automaticamente pelo portal do assinante {branding?.company_name || 'B2W Energia'}.
+                </div>
+            </div>
+        );
+    };
+
     return (
         <div className="dashboard-container">
             <header className="dashboard-header">
@@ -187,6 +330,26 @@ const SubscriberDashboard = () => {
                         )}
                     </div>
                     <p>Bem-vindo ao seu painel de energia.</p>
+                </div>
+
+                <div className="header-actions">
+                    <div className="billing-info-badge">
+                        <span className="info-label">Opção de faturamento:</span>
+                        <span className={`info-value ${billingMode}`}>
+                            {billingMode === 'consolidada' ? 'Consolidada' : 'Individualizada'}
+                        </span>
+                    </div>
+
+                    {billingMode === 'consolidada' && consolidatedInvoice && (
+                        <button
+                            className="btn-consolidated"
+                            onClick={handleDownloadConsolidated}
+                            disabled={isGenerating}
+                        >
+                            <FileText size={18} />
+                            Emitir Fatura Consolidada
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -254,6 +417,51 @@ const SubscriberDashboard = () => {
                 subscriberName={subscriberName}
                 branding={branding}
             />
+
+            {/* Hidden area for capture */}
+            <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                <div ref={hiddenConsolidatedRef} style={{ display: 'none' }}>
+                    {renderHiddenConsolidatedDetail()}
+                </div>
+            </div>
+
+            <AnimatePresence>
+                {isGenerating && (
+                    <motion.div
+                        className="generation-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="generation-card"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", damping: 20 }}
+                        >
+                            <div className="motion-spinner-container">
+                                <motion.div
+                                    className="motion-spinner"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                />
+                                <div className="spinner-icon-center">
+                                    <Download size={24} style={{ color: '#00D166' }} />
+                                </div>
+                            </div>
+                            <h4 className="mt-3 mb-1">Processando Fatura</h4>
+                            <motion.p
+                                key={loadingStep}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-muted small"
+                            >
+                                {loadingStep}
+                            </motion.p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 };

@@ -7,10 +7,20 @@
 
 .dashboard-header {
     margin-bottom: 2.5rem;
-    padding: 1.5rem;
+    padding: 1.5rem 2rem;
     background: white;
     border-radius: 20px;
     box-shadow: 0 4px 15px rgba(0, 51, 102, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.header-content {
+    flex: 1;
+    min-width: 250px;
 }
 
 .title-wrapper {
@@ -54,6 +64,112 @@
     color: #64748b;
     margin: 0.5rem 0 0 0;
     font-weight: 500;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.billing-info-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #003366;
+}
+
+.info-value.consolidada {
+    color: #00D166;
+}
+
+.btn-consolidated {
+    background: #003366;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 51, 102, 0.1);
+}
+
+.btn-consolidated:hover:not(:disabled) {
+    background: #002244;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 51, 102, 0.2);
+}
+
+.btn-consolidated:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.generation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.generation-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    text-align: center;
+    width: 320px;
+}
+
+.motion-spinner-container {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+}
+
+.motion-spinner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 3px solid #e2e8f0;
+    border-top-color: #003366;
+    border-right-color: #00D166;
+    border-radius: 50%;
+}
+
+.spinner-icon-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .dashboard-content {
