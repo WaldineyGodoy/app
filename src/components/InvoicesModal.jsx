@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Eye, Download, FileText, CreditCard, Calendar, ArrowLeft, Info, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { motion, AnimatePresence } from 'framer-motion';
 import { mergePdf } from '../lib/api';
 import './InvoicesModal.css';
 
@@ -9,6 +10,7 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [invoiceToDownload, setInvoiceToDownload] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [loadingStep, setLoadingStep] = useState('');
     const detailRef = useRef(null);
     const hiddenRef = useRef(null);
 
@@ -56,12 +58,14 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
 
         setIsGenerating(true);
         setInvoiceToDownload(invoice);
+        setLoadingStep('Preparando demonstrativo...');
 
         try {
             // Wait for the hidden render to update
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 600));
 
             // 1. Prepare PDF of the detailed summary
+            setLoadingStep('Capturando faturamento...');
             const element = hiddenRef.current;
             element.style.display = 'block';
 
@@ -76,12 +80,18 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
 
             const imgData = canvas.toDataURL('image/png');
             const pdfSummary = new jsPDF('p', 'mm', 'a4');
-            // Standard A4 is 210x297mm
-            pdfSummary.addImage(imgData, 'PNG', 0, 0, 210, 297);
+
+            // Calculando dimensões para evitar compressão lateral
+            const pageWidth = 210;
+            const imgWidth = pageWidth;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+            pdfSummary.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
             const base64Summary = pdfSummary.output('datauristring');
 
             // 2. Mescla com o boleto do Asaas via CRM através da API
+            setLoadingStep('Mesclando com boleto Asaas...');
             await mergePdf(
                 base64Summary,
                 invoice.asaas_boleto_url,
@@ -94,6 +104,7 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
         } finally {
             setIsGenerating(false);
             setInvoiceToDownload(null);
+            setLoadingStep('');
         }
     };
 
@@ -452,19 +463,48 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
 
             {/* Hidden wrapper for PDF capture */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-                <div ref={hiddenRef}>
+                <div ref={hiddenRef} style={{ display: 'none' }}>
                     {invoiceToDownload && renderHiddenInvoiceDetail(invoiceToDownload)}
                 </div>
             </div>
 
-            {isGenerating && (
-                <div className="generation-overlay">
-                    <div className="generation-spinner">
-                        <Loader2 size={48} className="spin-animation" />
-                        <p>Gerando PDF combinado...</p>
-                    </div>
-                </div>
-            )}
+            <AnimatePresence>
+                {isGenerating && (
+                    <motion.div
+                        className="generation-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="generation-card"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", damping: 20 }}
+                        >
+                            <div className="motion-spinner-container">
+                                <motion.div
+                                    className="motion-spinner"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                />
+                                <div className="spinner-icon-center">
+                                    <Download size={24} className="text-secondary" />
+                                </div>
+                            </div>
+                            <h4 className="mt-3 mb-1">Processando Fatura</h4>
+                            <motion.p
+                                key={loadingStep}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="text-muted small"
+                            >
+                                {loadingStep}
+                            </motion.p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

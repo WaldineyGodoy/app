@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, FileText, Download, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { motion, AnimatePresence } from 'framer-motion';
 import { mergePdf } from '../lib/api';
 import './PlantInvoicesModal.css';
 import { supabase } from '../lib/supabase';
@@ -12,6 +13,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
     const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [loadingStep, setLoadingStep] = useState('');
     const [invoiceToDownload, setInvoiceToDownload] = useState(null);
     const hiddenRef = useRef(null);
 
@@ -71,24 +73,34 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
 
         setIsGenerating(true);
         setInvoiceToDownload(invoice);
+        setLoadingStep('Preparando faturamento...');
 
         try {
             // Wait for hidden render
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 600));
 
+            setLoadingStep('Capturando dados...');
             const element = hiddenRef.current;
+            element.style.display = 'block';
+
             const canvas = await html2canvas(element, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: "#f8fafc"
             });
 
+            element.style.display = 'none';
+
             const imgData = canvas.toDataURL('image/png');
             const pdfSummary = new jsPDF('p', 'mm', 'a4');
-            pdfSummary.addImage(imgData, 'PNG', 0, 0, 210, 297);
+            const pageWidth = 210;
+            const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+            pdfSummary.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
 
             const base64Summary = pdfSummary.output('datauristring');
 
+            setLoadingStep('Mesclando com boleto Asaas...');
             await mergePdf(
                 base64Summary,
                 invoice.asaas_boleto_url,
@@ -101,6 +113,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
         } finally {
             setIsGenerating(false);
             setInvoiceToDownload(null);
+            setLoadingStep('');
         }
     };
 
@@ -254,19 +267,48 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
 
             {/* Hidden capture area */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-                <div ref={hiddenRef}>
+                <div ref={hiddenRef} style={{ display: 'none' }}>
                     {invoiceToDownload && renderHiddenInvoiceDetail(invoiceToDownload)}
                 </div>
             </div>
 
-            {isGenerating && (
-                <div className="generation-overlay">
-                    <div className="generation-spinner">
-                        <Loader2 size={48} className="spin-animation" />
-                        <p>Gerando PDF combinado...</p>
-                    </div>
-                </div>
-            )}
+            <AnimatePresence>
+                {isGenerating && (
+                    <motion.div
+                        className="generation-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            className="generation-card"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", damping: 20 }}
+                        >
+                            <div className="motion-spinner-container">
+                                <motion.div
+                                    className="motion-spinner"
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                />
+                                <div className="spinner-icon-center">
+                                    <Download size={24} style={{ color: '#00D166' }} />
+                                </div>
+                            </div>
+                            <h4 style={{ marginTop: '1rem', marginBottom: '0.25rem', fontSize: '1.1rem', fontWeight: '600' }}>Processando Fatura</h4>
+                            <motion.p
+                                key={loadingStep}
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                style={{ color: '#64748b', fontSize: '0.85rem' }}
+                            >
+                                {loadingStep}
+                            </motion.p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
