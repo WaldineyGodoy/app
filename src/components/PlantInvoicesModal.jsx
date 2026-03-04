@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, FileText, Download, Loader2 } from 'lucide-react';
+import { X, FileText, Download, Loader2, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,6 +16,26 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
     const [loadingStep, setLoadingStep] = useState('');
     const [invoiceToDownload, setInvoiceToDownload] = useState(null);
     const hiddenRef = useRef(null);
+
+    const [showMonthPicker, setShowMonthPicker] = useState(false);
+    const pickerRef = useRef(null);
+
+    const monthNames = [
+        "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+        "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
+
+    const shortMonthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+                setShowMonthPicker(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (isOpen && usina) {
@@ -43,13 +63,14 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
             }
 
             // 2. Fetch Invoices for these UCs in the selected Month
-            // Assuming 'mes_referencia' is YYYY-MM-DD
-            const startOfMonth = `${selectedMonth}-01`;
-            const endOfMonth = `${selectedMonth}-31`; // Loose match is fine for YYYY-MM filter usually, or use start/end logic
+            // Assuming 'mes_referencia' is YYYY-MM-DD (stored as first day of month)
+            const yearMonth = selectedMonth; // "YYYY-MM"
+            const startOfMonth = `${yearMonth}-01`;
+            const endOfMonth = `${yearMonth}-31`;
 
             const { data: invData, error: invError } = await supabase
                 .from('invoices')
-                .select('*, consumer_units(numero_uc, subscribers(name))') // JOIN to get UC Number and Client Name
+                .select('*, consumer_units(numero_uc, subscriber:subscriber_id(name))')
                 .in('uc_id', ucIds)
                 .gte('mes_referencia', startOfMonth)
                 .lte('mes_referencia', endOfMonth);
@@ -148,7 +169,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>ASSINANTE</label>
-                                    <span style={{ color: '#1e293b', fontWeight: '500' }}>{invoice.consumer_units?.subscribers?.name || 'Assinante'}</span>
+                                    <span style={{ color: '#1e293b', fontWeight: '500' }}>{invoice.consumer_units?.subscriber?.name || 'Assinante'}</span>
                                 </div>
                                 <div>
                                     <label style={{ display: 'block', fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '4px' }}>NÚMERO DA UC</label>
@@ -193,13 +214,67 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                         <p>Usina: {usina.name}</p>
                     </div>
 
-                    <div className="month-selector">
-                        <label>Mês de Referência:</label>
-                        <input
-                            type="month"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                        />
+                    <div className="month-selector" ref={pickerRef}>
+                        <div className="custom-month-picker-wrapper">
+                            <div className="picker-label-group">
+                                <span className="picker-label">Mês:</span>
+                                <button
+                                    className="picker-trigger"
+                                    onClick={() => setShowMonthPicker(!showMonthPicker)}
+                                >
+                                    <Calendar size={18} />
+                                    <span>{`${monthNames[parseInt(selectedMonth.split('-')[1]) - 1]} de ${selectedMonth.split('-')[0]}`}</span>
+                                </button>
+                            </div>
+
+                            <AnimatePresence>
+                                {showMonthPicker && (
+                                    <motion.div
+                                        className="picker-popover"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                    >
+                                        <button className="any-date-btn" onClick={() => {
+                                            const now = new Date();
+                                            setSelectedMonth(`${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`);
+                                            setShowMonthPicker(false);
+                                        }}>Qualquer Data</button>
+
+                                        <div className="picker-header">
+                                            <button onClick={() => {
+                                                const [year, month] = selectedMonth.split('-');
+                                                setSelectedMonth(`${parseInt(year) - 1}-${month}`);
+                                            }}><ChevronLeft size={16} /></button>
+                                            <span className="current-year">{selectedMonth.split('-')[0]}</span>
+                                            <button onClick={() => {
+                                                const [year, month] = selectedMonth.split('-');
+                                                setSelectedMonth(`${parseInt(year) + 1}-${month}`);
+                                            }}><ChevronRight size={16} /></button>
+                                        </div>
+                                        <div className="months-grid">
+                                            {shortMonthNames.map((m, i) => {
+                                                const monthVal = (i + 1).toString().padStart(2, '0');
+                                                const isSelected = selectedMonth.split('-')[1] === monthVal;
+                                                return (
+                                                    <button
+                                                        key={m}
+                                                        className={`month-btn ${isSelected ? 'active' : ''}`}
+                                                        onClick={() => {
+                                                            const year = selectedMonth.split('-')[0];
+                                                            setSelectedMonth(`${year}-${monthVal}`);
+                                                            setShowMonthPicker(false);
+                                                        }}
+                                                    >
+                                                        {m}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </header>
 
@@ -222,7 +297,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                     invoices.map(inv => (
                                         <tr key={inv.id}>
                                             <td>{inv.consumer_units?.numero_uc || 'N/A'}</td>
-                                            <td>{inv.consumer_units?.subscribers?.name || 'Cliente'}</td>
+                                            <td>{inv.consumer_units?.subscriber?.name || 'Cliente'}</td>
                                             <td className="value-col">
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor_a_pagar)}
                                             </td>

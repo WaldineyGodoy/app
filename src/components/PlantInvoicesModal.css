@@ -35,25 +35,133 @@
     color: #7f8c8d;
 }
 
-.month-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+.custom-month-picker-wrapper {
+    position: relative;
 }
 
-.month-selector label {
-    font-size: 0.85rem;
-    color: #95a5a6;
+.picker-label-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.picker-label {
+    font-size: 1rem;
+    color: #475569;
     font-weight: 600;
 }
 
-.month-selector input {
-    padding: 0.5rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    font-family: inherit;
+.picker-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
     color: #003366;
-    outline: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.picker-trigger:hover {
+    border-color: #003366;
+    background: #f8faff;
+}
+
+.picker-popover {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 280px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 15px 35px rgba(0, 51, 102, 0.15);
+    padding: 1.25rem;
+    z-index: 100;
+    border: 1px solid #f1f5f9;
+}
+
+.any-date-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #475569;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.any-date-btn:hover {
+    border-color: #003366;
+    color: #003366;
+    background: #f8faff;
+}
+
+.picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding: 0 0.5rem;
+}
+
+.picker-header button {
+    background: none;
+    border: none;
+    padding: 0.4rem;
+    border-radius: 6px;
+    color: #003366;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background 0.2s;
+}
+
+.picker-header button:hover {
+    background: #f1f5f9;
+}
+
+.current-year {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: 1.1rem;
+}
+
+.months-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+}
+
+.month-btn {
+    background: #f8fafc;
+    border: none;
+    padding: 0.75rem 0.25rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.month-btn:hover {
+    background: #f1f5f9;
+    color: #003366;
+}
+
+.month-btn.active {
+    background: #003366;
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 51, 102, 0.2);
 }
 
 .invoices-list-container {
