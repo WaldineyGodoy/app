@@ -151,25 +151,18 @@ export const sendWhatsapp = async (phone, text, mediaUrl, instanceName) => {
  */
 export const mergePdf = async (base64Summary, asaasUrl, fileName) => {
     try {
-        const { data, error } = await supabase.functions.invoke('merge-pdf', {
+        const { data: pdfBlob, error } = await supabase.functions.invoke('merge-pdf', {
             body: {
-                pdf_base64: base64Summary,
-                asaas_url: asaasUrl
+                summaryBase64: base64Summary,
+                asaasUrl: asaasUrl
             }
         });
 
         if (error) throw error;
-        if (!data?.pdf) throw new Error('PDF não retornado pela função');
+        if (!pdfBlob) throw new Error('PDF não retornado pela função');
 
-        // Converter Base64 retornado em Blob e disparar download
-        const binaryString = atob(data.pdf);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = window.URL.createObjectURL(blob);
+        // O supabase.functions.invoke retorna um Blob quando o Content-Type é application/pdf
+        const url = window.URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', fileName || 'fatura_combinada.pdf');
