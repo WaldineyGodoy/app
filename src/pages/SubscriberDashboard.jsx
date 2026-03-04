@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import UCCard from '../components/UCCard';
 import { SavingsChart, ConsumptionChart } from '../components/DashboardCharts';
@@ -6,11 +7,12 @@ import InvoicesModal from '../components/InvoicesModal';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, FileText } from 'lucide-react';
+import { Download, FileText, LogOut } from 'lucide-react';
 import { mergePdf } from '../lib/api';
 import './SubscriberDashboard.css';
 
 const SubscriberDashboard = () => {
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [subscriberName, setSubscriberName] = useState('');
     const [subscriberStatus, setSubscriberStatus] = useState(null);
@@ -207,6 +209,11 @@ const SubscriberDashboard = () => {
         setIsModalOpen(false);
         setSelectedUC(null);
         setSelectedVCInvoices([]);
+    };
+
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        navigate('/login');
     };
 
     const handleDownloadConsolidated = async () => {
@@ -414,9 +421,16 @@ const SubscriberDashboard = () => {
                 onClose={handleCloseModal}
                 ucData={selectedUC}
                 invoices={selectedVCInvoices}
-                subscriberName={subscriberName}
                 branding={branding}
             />
+
+            <footer className="dashboard-footer">
+                <button className="btn-logout" onClick={handleLogout}>
+                    <LogOut size={18} />
+                    Sair da Conta
+                </button>
+                <p>&copy; {new Date().getFullYear()} {branding?.company_name || 'B2W Energia'} - Todos os direitos reservados</p>
+            </footer>
 
             {/* Hidden area for capture */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
