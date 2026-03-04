@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, Filter, Eye, Zap, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import ConsumerUnitModal from './ConsumerUnitModal';
 import './SupplierUCsModal.css';
 
 const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
@@ -8,6 +9,7 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [selectedUcDetails, setSelectedUcDetails] = useState(null);
 
     const formatNumber = (val) => {
         if (!val && val !== 0) return '0';
@@ -33,10 +35,11 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                 .from('consumer_units')
                 .select(`
                     *,
-                    usina:usina_id (name, geracao_referencia),
+                    usina:usina_id (name, geracao_estimada_kwh),
                     subscriber:subscriber_id (name, email, cpf_cnpj)
                 `)
-                .in('usina_id', usinaIds);
+                .in('usina_id', usinaIds)
+                .order('prioridade', { ascending: true });
 
             if (error) {
                 console.warn("Retrying fetch with fallback relationship names...");
@@ -45,10 +48,11 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                     .from('consumer_units')
                     .select(`
                         *,
-                        usinas (name, geracao_referencia),
+                        usinas (name, geracao_estimada_kwh),
                         subscribers (name, email, cpf_cnpj)
                     `)
-                    .in('usina_id', usinaIds);
+                    .in('usina_id', usinaIds)
+                    .order('prioridade', { ascending: true });
 
                 if (retryError) throw retryError;
                 setUcs(retryData || []);
@@ -143,20 +147,29 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                                     <div className="flex-grow-1">
                                         <div className="d-flex justify-content-between align-items-start">
                                             <div>
-                                                <h4 className="h6 mb-1 fw-bold">{uc.numero_uc} <span className="badge bg-warning text-dark small ms-2" style={{ fontSize: '0.65rem' }}>Geradora</span></h4>
+                                                <h4 className="h6 mb-1 fw-bold">
+                                                    {uc.numero_uc}
+                                                    <span className={`badge ${uc.tipo_unidade === 'geradora' ? 'bg-warning text-dark' : 'bg-info text-dark'} small ms-2`} style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
+                                                        {uc.tipo_unidade || 'Beneficiária'}
+                                                    </span>
+                                                </h4>
                                                 <div className="small text-muted mb-1">{(uc.usina || uc.usinas)?.name}</div>
                                                 <div className="small fw-semibold mt-1">Titular: <span className="text-dark">{uc.titular_conta || (uc.subscriber || uc.subscribers)?.name}</span></div>
-                                                <div className="small text-muted">CPF/CNPJ: {(uc.subscriber || uc.subscribers)?.cpf_cnpj || '---'}</div>
+                                                <div className="small text-muted">CPF/CNPJ: {(uc.subscriber || uc.subscribers)?.cpf_cnpj || uc.cpf_cnpj_fatura || '---'}</div>
                                             </div>
                                             <div className="text-end">
                                                 <div className="small text-muted">{uc.concessionaria || 'Neoenergia Cosern'}</div>
                                                 <div className="h5 mb-0 fw-bold text-success">{formatNumber(uc.franquia)} kWh</div>
-                                                <div className="small fw-bold text-success">{percent}%</div>
-                                                <div className="small text-muted" style={{ fontSize: '0.7rem' }}>Saldo R.: Não</div>
+                                                <div className="small fw-bold text-success">{generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : '0.00'}%</div>
+                                                <div className="small text-muted" style={{ fontSize: '0.7rem' }}>Saldo R.: {uc.saldo_remanescente ? 'Sim' : 'Não'}</div>
                                             </div>
                                         </div>
                                     </div>
-                                    <button className="action-icon-btn ms-3" title="Ver Detalhes">
+                                    <button
+                                        className="action-icon-btn ms-3"
+                                        title="Ver Detalhes"
+                                        onClick={() => setSelectedUcDetails(uc)}
+                                    >
                                         <Eye size={20} />
                                     </button>
                                 </div>
@@ -169,6 +182,17 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                     )}
                 </div>
             </div>
+
+            {selectedUcDetails && (
+                <ConsumerUnitModal
+                    consumerUnit={selectedUcDetails}
+                    onClose={() => setSelectedUcDetails(null)}
+                    onSave={() => {
+                        fetchUCs();
+                        setSelectedUcDetails(null);
+                    }}
+                />
+            )}
         </div>
     );
 };
