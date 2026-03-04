@@ -76,43 +76,17 @@ const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, bran
 
             const imgData = canvas.toDataURL('image/png');
             const pdfSummary = new jsPDF('p', 'mm', 'a4');
-            const pdfWidth = pdfSummary.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdfSummary.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            // Standard A4 is 210x297mm
+            pdfSummary.addImage(imgData, 'PNG', 0, 0, 210, 297);
 
-            const summaryBytes = pdfSummary.output('arraybuffer');
+            const base64Summary = pdfSummary.output('datauristring');
 
-            // 2. Fetch the Asaas Boleto PDF via custom Edge Function Proxy
-            const { data: pdfBlob, error: proxyError } = await supabase.functions.invoke('proxy-pdf', {
-                body: { url: invoice.asaas_boleto_url }
-            });
-
-            if (proxyError) throw proxyError;
-            const boletoBytes = await pdfBlob.arrayBuffer();
-
-            // 3. Merge PDFs using pdf-lib
-            const mergedPdf = await PDFDocument.create();
-
-            const summaryDoc = await PDFDocument.load(summaryBytes);
-            const copiedSummaryPages = await mergedPdf.copyPages(summaryDoc, summaryDoc.getPageIndices());
-            copiedSummaryPages.forEach((page) => mergedPdf.addPage(page));
-
-            const boletoDoc = await PDFDocument.load(boletoBytes);
-            const copiedBoletoPages = await mergedPdf.copyPages(boletoDoc, boletoDoc.getPageIndices());
-            copiedBoletoPages.forEach((page) => mergedPdf.addPage(page));
-
-            // 4. Save and trigger download
-            const mergedPdfBytes = await mergedPdf.save();
-            const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Fatura_${invoice.mes_referencia}_${ucData?.numero_uc}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            // 2. Mescla com o boleto do Asaas via CRM através da API
+            await mergePdf(
+                base64Summary,
+                invoice.asaas_boleto_url,
+                `Fatura_${invoice.mes_referencia}_${ucData?.numero_uc}.pdf`
+            );
 
         } catch (error) {
             console.error("Error generating combined PDF:", error);
