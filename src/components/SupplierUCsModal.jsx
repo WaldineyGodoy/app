@@ -9,6 +9,11 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
 
+    const formatNumber = (val) => {
+        if (!val && val !== 0) return '0';
+        return Number(val).toLocaleString('pt-BR');
+    };
+
     useEffect(() => {
         if (isOpen && usinaIds?.length > 0) {
             fetchUCs();
