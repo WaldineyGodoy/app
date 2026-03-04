@@ -51,6 +51,14 @@ export default function Login() {
             if (data?.user) {
                 const { data: profile } = await supabase.from('profiles').select('role').eq('id', data.user.id).single();
                 const role = profile?.role || 'visitor';
+
+                // Check if user was redirected to login with an intended path
+                const intendedPath = window.history.state?.usr?.from;
+                if (intendedPath && intendedPath !== '/login') {
+                    navigate(intendedPath, { replace: true });
+                    return;
+                }
+
                 switch (role) {
                     case 'subscriber': navigate('/assinantes'); break;
                     case 'originator': navigate('/originadores'); break;

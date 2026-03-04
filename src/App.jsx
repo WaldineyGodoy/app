@@ -15,7 +15,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
   if (loading) return <div>Carregando...</div>;
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
   }
 
   // Check profile role or fallback to metadata role
@@ -24,7 +24,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
     // Redirect to unauthorized or home if role doesn't match
     console.warn(`Access Denied: Role '${userRole}' not in allowed list [${allowedRoles.join(', ')}]`);
-    return <Navigate to="/" replace />;
+    return <Navigate to="/" state={{ deniedRole: allowedRoles[0], from: window.location.pathname }} replace />;
   }
 
   return <Outlet />;

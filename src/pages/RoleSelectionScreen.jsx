@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import AccessDeniedModal from '../components/AccessDeniedModal';
@@ -13,6 +13,7 @@ import SuppImg from '../assets/suppliers.png';
 
 const RoleSelectionScreen = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user, profile } = useAuth();
 
     const [modalState, setModalState] = useState({
@@ -23,6 +24,15 @@ const RoleSelectionScreen = () => {
         action: () => { }
     });
 
+    // Handle automatic modal display if redirected back here from ProtectedRoute
+    useEffect(() => {
+        if (location.state?.deniedRole) {
+            triggerRoleModal(location.state.deniedRole);
+            // Clear state to avoid modal popping up on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
+
     const openModal = (title, message, actionText, action) => {
         setModalState({ isOpen: true, title, message, actionText, action });
     };
@@ -31,35 +41,45 @@ const RoleSelectionScreen = () => {
         setModalState(prev => ({ ...prev, isOpen: false }));
     };
 
+    const triggerRoleModal = (requiredRole) => {
+        let title = "Acesso Restrito";
+        let message = "Você não tem permissão para acessar esta área.";
+        let actionText = "Entendi";
+        let action = closeModal;
+
+        if (requiredRole === 'subscriber') {
+            title = "Assinantes";
+            message = "Você ainda não tem um plano de assinatura ativo conosco, aproveite para se cadastrar e começar a economizar com os nossos descontos.";
+            actionText = "Conhecer Planos";
+            action = () => { closeModal(); window.open('https://www.b2wenergia.com.br/assine', '_blank'); };
+        } else if (requiredRole === 'originator') {
+            title = "Embaixadores / Originadores";
+            message = "Você ainda não tem um link de indicação ativo conosco, aproveite para se cadastrar e começar a receber recompensas.";
+            actionText = "Quero ser Embaixador";
+            action = () => { closeModal(); navigate('/cadastro-embaixador'); };
+        } else if (requiredRole === 'supplier') {
+            title = "Donos de Usinas";
+            message = "Você ainda não tem uma usina conosco, aproveite para se cadastrar e começar a faturar alto com as nossas usinas de investimento e energia por assinatura.";
+            actionText = "Saiba Mais";
+            action = () => { closeModal(); window.open('https://b2wenergia.com.br', '_blank'); };
+        }
+        openModal(title, message, actionText, action);
+    };
+
     const handleRoleSelect = (path, requiredRole) => {
+        if (!user) {
+            // Redirect to login first, passing the intended path
+            navigate('/login', { state: { from: path } });
+            return;
+        }
+
         const userRole = profile?.role || user?.user_metadata?.role;
         const allowedRoles = ['admin', 'super_admin', 'super_super_admin', requiredRole];
 
         if (userRole && allowedRoles.includes(userRole)) {
             navigate(path);
         } else {
-            let title = "Acesso Restrito";
-            let message = "Você não tem permissão para acessar esta área.";
-            let actionText = "Entendi";
-            let action = closeModal;
-
-            if (requiredRole === 'subscriber') {
-                title = "Assinantes";
-                message = "Você ainda não tem um plano de assinatura ativo conosco, aproveite para se cadastrar e começar a economizar com os nossos descontos.";
-                actionText = "Conhecer Planos";
-                action = () => { closeModal(); window.open('https://www.b2wenergia.com.br/assine', '_blank'); };
-            } else if (requiredRole === 'originator') {
-                title = "Embaixadores / Originadores";
-                message = "Você ainda não tem um link de indicação ativo conosco, aproveite para se cadastrar e começar a receber recompensas.";
-                actionText = "Quero ser Embaixador";
-                action = () => { closeModal(); navigate('/cadastro-embaixador'); };
-            } else if (requiredRole === 'supplier') {
-                title = "Donos de Usinas";
-                message = "Você ainda não tem uma usina conosco, aproveite para se cadastrar e começar a faturar alto com as nossas usinas de investimento e energia por assinatura.";
-                actionText = "Saiba Mais";
-                action = () => { closeModal(); window.open('https://b2wenergia.com.br', '_blank'); };
-            }
-            openModal(title, message, actionText, action);
+            triggerRoleModal(requiredRole);
         }
     };
 
