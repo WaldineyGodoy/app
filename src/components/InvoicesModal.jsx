@@ -3,6 +3,7 @@ import { X, Eye, Download, FileText, CreditCard, Calendar, ArrowLeft, Info, Load
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { PDFDocument } from 'pdf-lib';
+import { supabase } from '../lib/supabase';
 import './InvoicesModal.css';
 
 const InvoicesModal = ({ isOpen, onClose, ucData, invoices, subscriberName, branding }) => {
