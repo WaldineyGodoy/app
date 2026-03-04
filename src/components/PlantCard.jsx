@@ -2,7 +2,7 @@ import React from 'react';
 import { Activity, Zap, Users, FileText, BarChart2 } from 'lucide-react';
 import './PlantCard.css';
 
-const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices }) => {
+const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs }) => {
     // Determine status color
     const getStatusColor = (status) => {
         const s = status?.toLowerCase() || '';
@@ -32,7 +32,7 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices }) => {
                     </div>
                 </div>
 
-                <div className="plant-stat">
+                <div className="plant-stat clickable" onClick={onOpenUCs} title="Ver lista de UCs">
                     <span className="stat-label">UCs Vinculadas</span>
                     <div className="stat-value-row">
                         <Users size={18} color="#003366" />
@@ -41,10 +41,10 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices }) => {
                 </div>
 
                 <div className="plant-stat">
-                    <span className="stat-label">Consumo Vinc. (Último Mês)</span>
+                    <span className="stat-label">Capacidade Comprometida</span>
                     <div className="stat-value-row">
-                        <Zap size={18} color="#7f8c8d" /> {/* Grey for secondary consumption */}
-                        <span className="stat-value secondary">{formatNumber(usina.kwhConsumption)} kWh</span>
+                        <Zap size={18} color="#7f8c8d" />
+                        <span className="stat-value secondary">{formatNumber(usina.committedCapacity)} kWh</span>
                     </div>
                 </div>
             </div>

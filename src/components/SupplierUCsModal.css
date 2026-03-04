@@ -75,125 +75,48 @@
     font-weight: 500;
 }
 
-.table-container {
+.ucs-list {
     flex: 1;
     overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.uc-item-card {
     background: white;
-    border-radius: 12px;
-    border: 1px solid #e9ecef;
-}
-
-.ucs-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.ucs-table th {
-    background: #f8f9fa;
-    padding: 1rem;
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #7f8c8d;
-    text-transform: uppercase;
-    position: sticky;
-    top: 0;
-    border-bottom: 2px solid #eee;
-}
-
-.ucs-table th svg {
-    vertical-align: middle;
-    margin-right: 4px;
-}
-
-.ucs-table td {
-    padding: 1rem;
-    border-bottom: 1px solid #f1f3f5;
-}
-
-.client-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.client-name {
-    font-weight: 600;
-    color: #2c3e50;
-}
-
-.client-email {
-    font-size: 0.8rem;
-    color: #95a5a6;
-}
-
-.uc-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.uc-num {
-    font-weight: 600;
-    color: #003366;
-}
-
-.usina-name {
-    font-size: 0.8rem;
-    color: #7f8c8d;
-}
-
-.status-pill {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: capitalize;
-}
-
-.status-pill.ativo {
-    background: #e8f5e9;
-    color: #2e7d32;
-}
-
-.status-pill.em_ativacao {
-    background: #fff3e0;
-    color: #ef6c00;
-}
-
-.status-pill.aguardando_conexao {
-    background: #e3f2fd;
-    color: #1565c0;
-}
-
-.status-pill.em_atraso {
-    background: #ffebee;
-    color: #c62828;
-}
-
-.status-pill.cancelado {
-    background: #eeeeee;
-    color: #616161;
-}
-
-.action-icon-btn {
-    background: none;
-    border: none;
-    color: #FF6600;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 8px;
+    border: 1px solid #e9ecef !important;
     transition: all 0.2s;
 }
 
-.action-icon-btn:hover {
-    background: rgba(255, 102, 0, 0.1);
-    transform: scale(1.1);
+.uc-item-card:hover {
+    border-color: #dee2e6 !important;
+    background: #fdfdfd;
 }
 
-.empty-table {
-    padding: 3rem !important;
-    text-align: center;
-    color: #95a5a6;
-    font-style: italic;
+.uc-index-circle {
+    width: 32px;
+    height: 32px;
+    background: #6f42c1;
+    /* Purple like CRM */
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.uc-item-card h4 {
+    color: #495057;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
 }
 
 .modal-loading {

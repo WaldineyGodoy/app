@@ -46,9 +46,13 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
             if (genError) throw genError;
 
-            // 2. Fetch Consumption History (Sum of UCs)
-            // Simplified: Fetch invoices for filtered UCs for the last 12 months
-            const { data: ucs } = await supabase.from('consumer_units').select('id, franquia').eq('usina_id', usina.id);
+            // 2. Fetch UCs and calculate Total Franquia (Committed Capacity)
+            const { data: ucs, error: ucsError } = await supabase
+                .from('consumer_units')
+                .select('id, franquia')
+                .eq('usina_id', usina.id);
+
+            if (ucsError) throw ucsError;
             const ucIds = ucs?.map(u => u.id) || [];
             const totalFranquia = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
 
@@ -63,19 +67,15 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             }
 
             // 3. Process Chart Data
-            // We need to merge Generation and Consumption by Month (YYYY-MM)
             const processedData = [];
             for (let i = 0; i < 12; i++) {
                 const d = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1);
                 const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
                 const monthName = d.toLocaleDateString('pt-BR', { month: 'short' });
 
-                // Find Competing Data
-                // Generation: 'fechamento' is date
                 const genItem = genHistory?.find(g => g.fechamento.startsWith(monthKey));
                 const generation = Number(genItem?.geracao_mensal_kwh) || 0;
 
-                // Consumption: 'mes_referencia' is date
                 const consItems = invHistory.filter(inv => inv.mes_referencia.startsWith(monthKey));
                 const consumption = consItems.reduce((acc, curr) => acc + (Number(curr.consumo_kwh) || 0), 0);
                 const revenue = consItems.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0);
@@ -91,30 +91,21 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
             setChartData(processedData);
 
-            // 4. Metrics Helper (Last Month)
-            const lastMonthData = processedData[processedData.length - 1]; // or the last one with data?
-            // Let's use the actual last month of array
+            // 4. Metrics Helper (Syncing with CRM logic)
+            // Latest generation record specifically
+            const latestGenItem = [...genHistory].reverse()[0];
+            const generationLastMonth = Number(latestGenItem?.geracao_mensal_kwh) || 0;
 
-            const totalUCs = ucs?.length || 0;
-            const generationLastMonth = lastMonthData.Geracao;
-            const consumptionLastMonth = lastMonthData.Consumo;
-            const revenueLastMonth = lastMonthData.Revenue;
+            // For sync: Occupancy kwh Value = Total Franquia (Committed)
+            // Occupancy % = Committed / Generation
+            const consumptionLastMonth = totalFranquia;
+            const revenueLastMonth = processedData[processedData.length - 1].Revenue;
 
-            // 5. Vacancy
-            const vacancyKwh = generationLastMonth - consumptionLastMonth;
+            const vacancyKwh = Math.max(0, generationLastMonth - totalFranquia);
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
+            const occupancyRate = generationLastMonth > 0 ? (totalFranquia / generationLastMonth) * 100 : 0;
 
-            // 6. Occupancy (Based on Franquia Allocation usually, but let's use actual consumption ratio)
-            const occupancyRate = generationLastMonth > 0 ? (consumptionLastMonth / generationLastMonth) * 100 : 0;
-
-            const pieData = [
-                { name: 'Ocupado', value: consumptionLastMonth, color: '#FF6600' },
-                { name: 'Vacância', value: Math.max(0, vacancyKwh), color: '#eee' }
-            ];
-            setOccupancyData(pieData);
-
-
-            // 7. Profitability & Financials
+            // 5. Profitability & Financials
             // Hardcoded expenses/investment logic as fallback if columns missing
             const { data: usinaDetails } = await supabase.from('usinas').select('*').eq('id', usina.id).single();
             const invested = usinaDetails?.valor_investido || usina.valor_investido || 500000;
@@ -124,7 +115,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             const profitability = invested > 0 ? (revenueLastMonth / invested) * 100 : 0;
 
             setMetrics({
-                totalUCs,
+                totalUCs: ucs?.length || 0,
                 generationLastMonth,
                 consumptionLastMonth,
                 revenueLastMonth,
@@ -220,12 +211,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
                                     <div className="col-12 col-sm-6 col-lg-3">
                                         <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
-                                            <h4>Consumo (Mês)</h4>
+                                            <h4>Capacidade Comprometida</h4>
                                             <div className="stat-main d-flex align-items-center gap-2">
                                                 <ArrowDownRight size={24} color="#FF6600" />
                                                 <span className="fs-3 fw-bold">{formatNumber(metrics.consumptionLastMonth)} kWh</span>
                                             </div>
-                                            <small className="text-muted">Soma das UCs vinculadas</small>
+                                            <small className="text-muted">Soma da franquia das UCs</small>
                                         </motion.div>
                                     </div>
 
@@ -248,6 +239,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                         <div className="chart-container p-4 bg-white rounded shadow-sm h-100">
                                             <div className="chart-header d-flex justify-content-between mb-4">
                                                 <h3 className="h5 mb-0">Geração x Consumo</h3>
+                                            </div>
+                                            <div className="side-values">
+                                                <span className="big-val">{formatNumber(metrics.consumptionLastMonth)} kWh</span>
+                                                <span className={`percent-badge pos`}>
+                                                    {metrics.generationLastMonth > 0 ? ((metrics.consumptionLastMonth / metrics.generationLastMonth) * 100).toFixed(1) : 0}% Ocupação
+                                                </span>
                                             </div>
                                             <ResponsiveContainer width="100%" height={350}>
                                                 <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>

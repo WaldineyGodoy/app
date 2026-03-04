@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Filter, FileText, Zap, User } from 'lucide-react';
+import { X, Search, Filter, Eye, Zap, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import './SupplierUCsModal.css';
 
@@ -22,8 +22,8 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                 .from('consumer_units')
                 .select(`
                     *,
-                    usinas (name),
-                    subscribers (name, email)
+                    usinas (name, geracao_referencia),
+                    subscribers (name, email, cpf_cnpj)
                 `)
                 .in('usina_id', usinaIds);
 
@@ -86,59 +86,48 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                     </div>
                 </header>
 
-                <div className="table-container">
+                <div className="ucs-list">
                     {loading ? (
                         <div className="modal-loading">
-                            <div className="spinner"></div>
+                            <div className="spinner-border text-primary"></div>
                             <p>Carregando unidades...</p>
                         </div>
+                    ) : filteredUcs.length > 0 ? (
+                        filteredUcs.map((uc, index) => {
+                            const generation = uc.usinas?.geracao_referencia || 1000; // Fallback
+                            const percent = generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : 0;
+
+                            return (
+                                <div key={uc.id} className="uc-item-card d-flex align-items-center mb-3 p-3 border rounded shadow-sm">
+                                    <div className="uc-index-circle me-3">
+                                        <span>{index + 1}</span>
+                                    </div>
+                                    <div className="flex-grow-1">
+                                        <div className="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h4 className="h6 mb-1 fw-bold">{uc.numero_uc} <span className="badge bg-warning text-dark small ms-2" style={{ fontSize: '0.65rem' }}>Geradora</span></h4>
+                                                <div className="small text-muted mb-1">{uc.usinas?.name}</div>
+                                                <div className="small fw-semibold mt-1">Titular: <span className="text-dark">{uc.titular_conta || uc.subscribers?.name}</span></div>
+                                                <div className="small text-muted">CPF/CNPJ: {uc.subscribers?.cpf_cnpj || '---'}</div>
+                                            </div>
+                                            <div className="text-end">
+                                                <div className="small text-muted">{uc.concessionaria || 'Neoenergia Cosern'}</div>
+                                                <div className="h5 mb-0 fw-bold text-success">{formatNumber(uc.franquia)} kWh</div>
+                                                <div className="small fw-bold text-success">{percent}%</div>
+                                                <div className="small text-muted" style={{ fontSize: '0.7rem' }}>Saldo R.: Não</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button className="action-icon-btn ms-3" title="Ver Detalhes">
+                                        <Eye size={20} />
+                                    </button>
+                                </div>
+                            );
+                        })
                     ) : (
-                        <table className="ucs-table">
-                            <thead>
-                                <tr>
-                                    <th><User size={16} /> CLIENTE</th>
-                                    <th><Zap size={16} /> UC / USINA</th>
-                                    <th>STATUS</th>
-                                    <th>AÇÕES</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUcs.length > 0 ? (
-                                    filteredUcs.map(uc => (
-                                        <tr key={uc.id}>
-                                            <td>
-                                                <div className="client-info">
-                                                    <span className="client-name">{uc.subscribers?.name || uc.titular_conta}</span>
-                                                    <span className="client-email">{uc.subscribers?.email || 'Sem e-mail'}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div className="uc-details">
-                                                    <span className="uc-num">UC: {uc.numero_uc}</span>
-                                                    <span className="usina-name">{uc.usinas?.name || 'Não vinculada'}</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <span className={`status-pill ${uc.status}`}>
-                                                    {uc.status?.replace('_', ' ')}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button className="action-icon-btn" title="Ver Detalhes">
-                                                    <FileText size={18} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="4" className="empty-table">
-                                            Nenhuma unidade consumidora encontrada.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                        <div className="empty-state text-center py-5 text-muted">
+                            <p>Nenhuma unidade consumidora encontrada.</p>
+                        </div>
                     )}
                 </div>
             </div>

@@ -113,18 +113,20 @@ const SupplierDashboard = () => {
 
                 // Fetch Consumption of linked UCs (Optional for "Consumo das UCs vinculadas")
                 // Mocking or Summing 'consumo' from UCs if available
-                const { data: ucs } = await supabase
+                const { data: ucs, error: ucsError } = await supabase
                     .from('consumer_units')
-                    .select('consumo_kwh') // Assuming column
+                    .select('consumo_kwh, franquia') // [UPDATED] Added franquia
                     .eq('usina_id', usina.id);
 
                 const kwhConsumption = ucs?.reduce((acc, curr) => acc + (Number(curr.consumo_kwh) || 0), 0) || 0;
+                const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0; // [NEW]
 
                 return {
                     ...usina,
                     ucCount: ucCount || 0,
                     generation: Number(generation),
-                    kwhConsumption
+                    kwhConsumption,
+                    committedCapacity // [NEW]
                 };
             }));
 
@@ -155,6 +157,11 @@ const SupplierDashboard = () => {
     const handleOpenPerformance = (usina) => {
         setSelectedUsina(usina);
         setShowAnalyticsModal(true);
+    };
+
+    const handleOpenUCs = (usina) => { // [NEW]
+        setSelectedUsina(usina);
+        setShowUCsModal(true);
     };
 
     const handleLogout = async () => {
@@ -284,6 +291,7 @@ const SupplierDashboard = () => {
                                                     usina={usina}
                                                     onOpenGraphs={handleOpenPerformance}
                                                     onOpenInvoices={handleOpenInvoices}
+                                                    onOpenUCs={() => handleOpenUCs(usina)} // [NEW]
                                                 />
                                             </motion.div>
                                         </div>
@@ -321,7 +329,7 @@ const SupplierDashboard = () => {
             <SupplierUCsModal
                 isOpen={showUCsModal}
                 onClose={() => setShowUCsModal(false)}
-                usinaIds={usinas.map(u => u.id)}
+                usinaIds={selectedUsina ? [selectedUsina.id] : usinas.map(u => u.id)} // [UPDATED] Support single usina filter
             />
 
             <button className="logout-btn" onClick={handleLogout} title="Sair do Sistema">

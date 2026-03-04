@@ -69,6 +69,18 @@
     align-items: center;
 }
 
+.plant-stat.clickable {
+    cursor: pointer;
+    transition: background 0.2s;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    border-radius: 4px;
+}
+
+.plant-stat.clickable:hover {
+    background: #f0f4f8;
+}
+
 .stat-label {
     font-size: 0.85rem;
     color: #7f8c8d;
