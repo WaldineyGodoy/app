@@ -109,45 +109,41 @@ const SupplierDashboard = () => {
                     .limit(1)
                     .maybeSingle();
 
-                const generation = genData?.geracao_mensal_kwh || 0;
+                const generation = Number(genData?.geracao_mensal_kwh) || 0;
 
-                // 2. Fetch Invoices for this month to calculate "Valor a Receber"
-                const now = new Date();
-                const startOfMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`;
-                const endOfMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-31`;
-
+                // 2. Fetch UCs and calculate stats (Same as PlantAnalyticsModal)
                 const { data: ucs, error: ucsError } = await supabase
                     .from('consumer_units')
                     .select('id, consumo_kwh, franquia')
                     .eq('usina_id', usina.id);
 
-                const ucIds = ucs?.map(uc => uc.id) || [];
-                let plantReceivable = 0;
+                const ucIds = ucs?.map(u => u.id) || [];
+                const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
 
+                // Fetch Invoices for this month to calculate "Valor a Receber"
+                const now = new Date();
+                const currentMonthKey = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+
+                let plantReceivable = 0;
                 if (ucIds.length > 0) {
                     const { data: invData } = await supabase
                         .from('invoices')
                         .select('valor_a_pagar')
                         .in('uc_id', ucIds)
-                        .gte('mes_referencia', startOfMonth)
-                        .lte('mes_referencia', endOfMonth);
+                        .like('mes_referencia', `${currentMonthKey}%`);
 
                     plantReceivable = invData?.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0) || 0;
                 }
 
-                const kwhConsumption = ucs?.reduce((acc, curr) => acc + (Number(curr.consumo_kwh) || 0), 0) || 0;
-                const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
-
-                // Calculate Percentages
-                const estimatedGen = Number(usina.geracao_estimada_kwh) || 12461; // Fallback or use real field
-                const occupation = estimatedGen > 0 ? (committedCapacity / estimatedGen) * 100 : 0;
-                const vacancy = 100 - occupation;
+                // Sync Percentage Logic with PlantAnalyticsModal.jsx
+                const vacancyKwh = Math.max(0, generation - committedCapacity);
+                const vacancy = generation > 0 ? (vacancyKwh / generation) * 100 : 0;
+                const occupation = generation > 0 ? (committedCapacity / generation) * 100 : 0;
 
                 return {
                     ...usina,
                     ucCount: ucCount || 0,
-                    generation: Number(generation),
-                    kwhConsumption,
+                    generation,
                     committedCapacity,
                     plantReceivable,
                     occupation,
