@@ -24,15 +24,19 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs }) => {
             </div>
 
             <div className="plant-body">
-                <div className="plant-stat">
+                <div className="plant-stat mb-3">
                     <span className="stat-label">Geração (Último Mês)</span>
                     <div className="stat-value-row">
                         <Zap size={18} color="#FF6600" />
                         <span className="stat-value">{formatNumber(usina.generation)} kWh</span>
                     </div>
+                    {/* [NEW] Valor a receber */}
+                    <div className="stat-subtext orange-text fw-bold mt-1">
+                        Valor a receber: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(usina.plantReceivable || 0)}
+                    </div>
                 </div>
 
-                <div className="plant-stat clickable" onClick={onOpenUCs} title="Ver lista de UCs">
+                <div className="plant-stat clickable mb-3" onClick={onOpenUCs} title="Ver lista de UCs">
                     <span className="stat-label">UCs Vinculadas</span>
                     <div className="stat-value-row">
                         <Users size={18} color="#003366" />
@@ -45,6 +49,15 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs }) => {
                     <div className="stat-value-row">
                         <Zap size={18} color="#7f8c8d" />
                         <span className="stat-value secondary">{formatNumber(usina.committedCapacity)} kWh</span>
+                    </div>
+                    {/* [NEW] Ocupação e Vacância */}
+                    <div className="mt-2">
+                        <div className="stat-subtext orange-text fw-semibold">
+                            Ocupação: {Math.round(usina.occupation || 0)}%
+                        </div>
+                        <div className="stat-subtext text-muted">
+                            Vacância: {Math.round(usina.vacancy || 0)}%
+                        </div>
                     </div>
                 </div>
             </div>

@@ -111,22 +111,47 @@ const SupplierDashboard = () => {
 
                 const generation = genData?.geracao_mensal_kwh || 0;
 
-                // Fetch Consumption of linked UCs (Optional for "Consumo das UCs vinculadas")
-                // Mocking or Summing 'consumo' from UCs if available
+                // 2. Fetch Invoices for this month to calculate "Valor a Receber"
+                const now = new Date();
+                const startOfMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-01`;
+                const endOfMonth = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-31`;
+
                 const { data: ucs, error: ucsError } = await supabase
                     .from('consumer_units')
-                    .select('consumo_kwh, franquia') // [UPDATED] Added franquia
+                    .select('id, consumo_kwh, franquia')
                     .eq('usina_id', usina.id);
 
+                const ucIds = ucs?.map(uc => uc.id) || [];
+                let plantReceivable = 0;
+
+                if (ucIds.length > 0) {
+                    const { data: invData } = await supabase
+                        .from('invoices')
+                        .select('valor_a_pagar')
+                        .in('uc_id', ucIds)
+                        .gte('mes_referencia', startOfMonth)
+                        .lte('mes_referencia', endOfMonth);
+
+                    plantReceivable = invData?.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0) || 0;
+                }
+
                 const kwhConsumption = ucs?.reduce((acc, curr) => acc + (Number(curr.consumo_kwh) || 0), 0) || 0;
-                const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0; // [NEW]
+                const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
+
+                // Calculate Percentages
+                const estimatedGen = Number(usina.geracao_estimada_kwh) || 12461; // Fallback or use real field
+                const occupation = estimatedGen > 0 ? (committedCapacity / estimatedGen) * 100 : 0;
+                const vacancy = 100 - occupation;
 
                 return {
                     ...usina,
                     ucCount: ucCount || 0,
                     generation: Number(generation),
                     kwhConsumption,
-                    committedCapacity // [NEW]
+                    committedCapacity,
+                    plantReceivable,
+                    occupation,
+                    vacancy
                 };
             }));
 

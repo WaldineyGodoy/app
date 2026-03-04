@@ -67,6 +67,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .plant-stat.clickable {
@@ -130,4 +131,38 @@
     /* Orange */
     color: white;
     border-color: #FF6600;
+}
+
+.stat-subtext {
+    font-size: 0.85rem;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+.orange-text {
+    color: #FF6600 !important;
+}
+
+.text-muted {
+    color: #7f8c8d !important;
+}
+
+.fw-bold {
+    font-weight: 700;
+}
+
+.fw-semibold {
+    font-weight: 600;
+}
+
+.mt-1 {
+    margin-top: 0.25rem;
+}
+
+.mt-2 {
+    margin-top: 0.5rem;
+}
+
+.mb-3 {
+    margin-bottom: 0.75rem;
 }
