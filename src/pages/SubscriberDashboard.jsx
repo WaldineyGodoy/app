@@ -34,13 +34,25 @@ const SubscriberDashboard = () => {
     const [selectedUC, setSelectedUC] = useState(null);
     const [selectedVCInvoices, setSelectedVCInvoices] = useState([]);
 
+    const lastFetchRef = useRef(0);
+    const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutos
+
     useEffect(() => {
-        fetchDashboardData();
+        const now = Date.now();
+        if (now - lastFetchRef.current > FETCH_COOLDOWN) {
+            fetchDashboardData();
+        }
     }, []);
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (force = false) => {
+        const now = Date.now();
+        if (!force && now - lastFetchRef.current < FETCH_COOLDOWN && ucs.length > 0) {
+            return;
+        }
+
         setLoading(true);
         try {
+            lastFetchRef.current = now;
             // 1. Get User Session
             const { data: { session } } = await supabase.auth.getSession();
             const email = session?.user?.email;

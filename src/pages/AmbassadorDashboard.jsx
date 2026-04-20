@@ -33,13 +33,25 @@ const AmbassadorDashboard = () => {
 
     const [error, setError] = useState(null);
 
+    const lastFetchRef = React.useRef(0);
+    const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutos
+
     useEffect(() => {
-        fetchDashboardData();
+        const now = Date.now();
+        if (now - lastFetchRef.current > FETCH_COOLDOWN) {
+            fetchDashboardData();
+        }
     }, []);
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (force = false) => {
+        const now = Date.now();
+        if (!force && now - lastFetchRef.current < FETCH_COOLDOWN && originatorId) {
+            return;
+        }
+
         setLoading(true);
         try {
+            lastFetchRef.current = now;
             // 1. Get User Session
             const { data: { session } } = await supabase.auth.getSession();
             const email = session?.user?.email;

@@ -36,16 +36,28 @@ const SupplierDashboard = () => {
     // Active Tab (Status Filter)
     const [activeTab, setActiveTab] = useState('all');
 
+    const lastFetchRef = React.useRef(0);
+    const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutos
+
     useEffect(() => {
         if (user) {
-            fetchSupplierData();
+            const now = Date.now();
+            if (now - lastFetchRef.current > FETCH_COOLDOWN) {
+                fetchSupplierData();
+            }
         }
     }, [user]);
 
-    const fetchSupplierData = async () => {
+    const fetchSupplierData = async (force = false) => {
+        const now = Date.now();
+        if (!force && now - lastFetchRef.current < FETCH_COOLDOWN && usinas.length > 0) {
+            return;
+        }
+
         setLoading(true);
         try {
             if (!user) return;
+            lastFetchRef.current = now;
 
             // 1. Fetch Supplier - Try user_id first (safer), then email
             let { data: supplier, error: suppError } = await supabase

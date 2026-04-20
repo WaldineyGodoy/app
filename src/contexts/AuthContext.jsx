@@ -13,19 +13,35 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Check active sessions and sets the user
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (currentUser) {
+                fetchProfile(currentUser.id);
             } else {
                 setLoading(false);
             }
         });
 
-        // Listen for changes on auth state (logged in, signed out, etc.)
+        // Listen for changes on auth state
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                fetchProfile(session.user.id);
+            const newUser = session?.user ?? null;
+            
+            // Only update if the user ID has changed or if it's a significant event
+            // This prevents re-renders when Supabase refreshes the token on tab focus
+            setUser(prevUser => {
+                if (prevUser?.id === newUser?.id && event !== 'SIGNED_OUT') {
+                    return prevUser;
+                }
+                return newUser;
+            });
+
+            if (newUser) {
+                // Avoid re-fetching profile if it's already the same user
+                setProfile(prevProfile => {
+                    if (prevProfile?.id === newUser.id) return prevProfile;
+                    fetchProfile(newUser.id);
+                    return prevProfile;
+                });
             } else {
                 setProfile(null);
                 setLoading(false);
