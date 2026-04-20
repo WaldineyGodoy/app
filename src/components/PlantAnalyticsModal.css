@@ -1,15 +1,69 @@
 .modal-content.analytics-modal {
     background: var(--bg-app) !important;
     width: 95%;
-    max-width: 1300px;
-    border-radius: 40px;
-    padding: 3.5rem;
+    max-width: 1200px;
+    border-radius: 24px;
+    padding: 2.5rem;
     position: relative;
     box-shadow: var(--shadow-modal);
     border: var(--border-glow);
     backdrop-filter: var(--blur-overlay);
-    max-height: 90vh;
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Header fixed, content scrolls */
+}
+
+.analytics-header {
+    flex-shrink: 0;
+    margin-bottom: 2rem !important;
+}
+
+.analytics-grid {
+    flex-grow: 1;
     overflow-y: auto;
+    padding-right: 0.75rem;
+    padding-bottom: 1rem;
+}
+
+/* Custom Scrollbar for Analytics */
+.analytics-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.analytics-grid::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.analytics-grid::-webkit-scrollbar-thumb {
+    background: var(--border-ui);
+    border-radius: 10px;
+}
+
+.modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-ui);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
+}
+
+.modal-close:hover {
+    background: var(--error-bg);
+    color: var(--error-base);
+    border-color: var(--error-base);
+    transform: rotate(90deg);
 }
 
 .analytics-header h2 {
@@ -21,30 +75,31 @@
 .stat-card.top {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-ui) !important;
-    border-radius: 24px !important;
-    padding: 1.75rem !important;
+    border-radius: 20px !important;
+    padding: 1.25rem !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .stat-card.top h4 {
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
     color: var(--text-muted) !important;
     font-weight: 800 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.05em !important;
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
 }
 
 .stat-main span {
     color: var(--text-main) !important;
     letter-spacing: -0.02em !important;
+    font-size: 1.5rem !important;
 }
 
 .chart-container {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-ui) !important;
-    border-radius: 30px !important;
-    padding: 2.5rem !important;
+    border-radius: 24px !important;
+    padding: 1.5rem !important;
     box-shadow: var(--shadow-sm) !important;
 }
 
@@ -52,6 +107,7 @@
     color: var(--text-main);
     font-weight: 800;
     letter-spacing: -0.01em;
+    font-size: 1.1rem;
 }
 
 .side-values .big-val {
@@ -79,7 +135,7 @@
     background: var(--bg-card) !important;
     border: 1px solid var(--border-ui) !important;
     border-radius: 20px !important;
-    padding: 1.5rem !important;
+    padding: 1.25rem !important;
     transition: all 0.3s ease !important;
 }
 
@@ -91,7 +147,7 @@
 
 .donut-center-text strong {
     color: var(--text-main) !important;
-    font-size: 1.75rem !important;
+    font-size: 1.5rem !important;
     font-weight: 800 !important;
 }
 
@@ -106,7 +162,7 @@
 
 @media (max-width: 768px) {
     .modal-content.analytics-modal {
-        padding: 2rem 1.5rem;
+        padding: 1.5rem;
         border-radius: 0;
         width: 100%;
         height: 100%;

@@ -150,6 +150,31 @@ body {
   border: var(--border-glow);
   overflow: hidden;
   animation: fadeIn 0.3s ease-out;
+  position: relative;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-ui);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+
+.modal-close:hover {
+  background: var(--error-bg);
+  color: var(--error-base);
+  border-color: var(--error-base);
 }
 
 /* Form Components */
