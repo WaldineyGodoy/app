@@ -72,6 +72,40 @@
     letter-spacing: -0.03em;
 }
 
+.range-selector {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-card);
+    padding: 0.4rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-ui);
+    box-shadow: var(--shadow-sm);
+}
+
+.range-btn {
+    background: transparent;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.range-btn:hover {
+    color: var(--primary);
+    background: rgba(var(--primary-glow), 0.05);
+}
+
+.range-btn.active {
+    background: var(--primary);
+    color: white;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
 .stat-card.top {
     background: var(--bg-card) !important;
     border: 1px solid var(--border-ui) !important;

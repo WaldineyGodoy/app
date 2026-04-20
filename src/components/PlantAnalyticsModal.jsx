@@ -10,6 +10,7 @@ import './PlantAnalyticsModal.css';
 
 const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
     const [loading, setLoading] = useState(true);
+    const [selectedRange, setSelectedRange] = useState(12); // 3, 6, 12 months
     const [metrics, setMetrics] = useState({
         totalUCs: 0,
         generationLastMonth: 0,
@@ -27,21 +28,21 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
         if (isOpen && usina) {
             fetchAnalytics();
         }
-    }, [isOpen, usina]);
+    }, [isOpen, usina, selectedRange]);
 
     const fetchAnalytics = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Generation History (Last 12 months)
+            // 1. Fetch Generation History (Based on selectedRange)
             const today = new Date();
-            const lastYear = new Date();
-            lastYear.setFullYear(today.getFullYear() - 1);
+            const lastPeriod = new Date();
+            lastPeriod.setMonth(today.getMonth() - selectedRange);
 
             const { data: genHistory, error: genError } = await supabase
                 .from('generation_production')
                 .select('geracao_mensal_kwh, fechamento')
                 .eq('usina_id', usina.id)
-                .gte('fechamento', lastYear.toISOString())
+                .gte('fechamento', lastPeriod.toISOString())
                 .order('fechamento', { ascending: true });
 
             if (genError) throw genError;
@@ -62,14 +63,14 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                     .from('invoices')
                     .select('consumo_kwh, valor_a_pagar, mes_referencia')
                     .in('uc_id', ucIds)
-                    .gte('mes_referencia', `${lastYear.getFullYear()}-${lastYear.getMonth() + 1}-01`);
+                    .gte('mes_referencia', `${lastPeriod.getFullYear()}-${lastPeriod.getMonth() + 1}-01`);
                 invHistory = invoices || [];
             }
 
             // 3. Process Chart Data
             const processedData = [];
-            for (let i = 0; i < 12; i++) {
-                const d = new Date(today.getFullYear(), today.getMonth() - 11 + i, 1);
+            for (let i = 0; i < selectedRange; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() - (selectedRange - 1) + i, 1);
                 const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
                 const monthName = d.toLocaleDateString('pt-BR', { month: 'short' });
 
@@ -172,7 +173,19 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                         <div className="analytics-header row mb-4 align-items-center">
                             <div className="col">
                                 <h2 className="mb-0">Painel de Análise - {usina.name}</h2>
-                                <span className="badge bg-primary mt-1">Últimos 12 Meses</span>
+                            </div>
+                            <div className="col-auto">
+                                <div className="range-selector">
+                                    {[3, 6, 12].map(range => (
+                                        <button
+                                            key={range}
+                                            className={`range-btn ${selectedRange === range ? 'active' : ''}`}
+                                            onClick={() => setSelectedRange(range)}
+                                        >
+                                            {range} meses
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
