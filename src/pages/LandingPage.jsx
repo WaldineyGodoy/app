@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { fetchAddressByCep, fetchOfferData } from '../lib/api';
 import { supabase } from '../services/supabaseClient';
+import { Zap, Shield, TrendingUp, Check, Play, AppWindow, Smartphone, MessageCircle, Menu, Verified, CheckCircle } from 'lucide-react';
+import './LandingPage.css';
 
 export default function LandingPage() {
     const [searchParams] = useSearchParams();
@@ -129,13 +131,6 @@ export default function LandingPage() {
 
                 if (originator && originator.phone) {
                     const msg = `${formData.name} recebeu seu convite e simulou o desconto.\nAgora é hora de reforçar a adesão.`;
-                    // Send to Originator (using imported sendWhatsapp? Need to import it if not present)
-                    // We assume sendWhatsapp is available or we import it. 
-                    // Wait, LandingPage imports fetchAddressByCep... I need to add sendWhatsapp to imports first.
-                    // Doing dynamic import or assuming I added it. 
-                    // I will need to update Imports in a separate block or use global if available (unlikely).
-                    // I WILL UPDATE IMPORTS IN NEXT STEP TO BE SAFE.
-                    // effectively: await sendWhatsapp(originator.phone, msg);
                     await import('../lib/api').then(mod => mod.sendWhatsapp(originator.phone, msg));
                 }
             }
@@ -151,22 +146,22 @@ export default function LandingPage() {
     };
 
     return (
-        <div className="bg-background-light text-slate-900 font-display">
+        <div className="landing-wrapper">
             {/* Nav */}
-            <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-20">
-                        <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/20">
-                                <span className="material-symbols-outlined text-white text-2xl">solar_power</span>
+            <nav className="landing-page-nav">
+                <div className="max-w-7xl mx-auto px-6 sm:px-8">
+                    <div className="flex justify-between items-center h-24">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                <Zap className="text-white" size={28} />
                             </div>
                             <span className="text-2xl font-extrabold tracking-tight text-secondary">B2W <span className="text-primary font-normal">ENERGIA</span></span>
                         </div>
-                        <div className="hidden md:flex items-center space-x-8">
-                            <a className="text-sm font-semibold text-secondary hover:text-primary transition-colors" href="#como-funciona">Como Funciona</a>
-                            <a className="text-sm font-semibold text-secondary hover:text-primary transition-colors" href="#vantagens">Vantagens</a>
-                            <a className="text-sm font-semibold text-secondary hover:text-primary transition-colors" href="#faq">Dúvidas</a>
-                            <button className="bg-primary hover:bg-orange-600 text-white px-6 py-2.5 rounded-full font-bold text-sm transition-all shadow-lg shadow-orange-500/20 active:scale-95">
+                        <div className="hidden md:flex items-center space-x-10">
+                            <a className="text-sm font-bold text-secondary hover:text-primary transition-all" href="#como-funciona">Como Funciona</a>
+                            <a className="text-sm font-bold text-secondary hover:text-primary transition-all" href="#vantagens">Vantagens</a>
+                            <a className="text-sm font-bold text-secondary hover:text-primary transition-all" href="#faq">Dúvidas</a>
+                            <button className="landing-button" style={{ width: 'auto', padding: '0.75rem 2rem', fontSize: '0.85rem' }}>
                                 SIMULAR AGORA
                             </button>
                         </div>
@@ -175,62 +170,59 @@ export default function LandingPage() {
             </nav>
 
             {/* Hero Section */}
-            <section className="relative py-16 lg:py-24 overflow-hidden bg-white">
-                <div className="absolute inset-0 opacity-5 pointer-events-none">
-                    <img alt="Solar Farm background" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1ZR90QSwA-5AOqcTc32C5Wwzu291cxNUqo8Nzw8Xp_roCv2Sc8eguUyvRZE92QlTbA_xK5raBVnqd7t-9YC3aRDIsc__Co-n9VqbuCGbOP8_GyqV5CCfK72bibx4JiLO1Z14hJaFqIeGChlWfHtU3Me_tMl6jFkiILIX9YfYQ8U4KOJw85b8mz3-D-YxI7jZKVjHultkwvlj9D_OkjUa86IaulKxmXJ93-sO1fBSwkRvg3zB0KU0apNH2Z2-owiPiRLMO2jQYiirb" />
-                </div>
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <section className="landing-hero">
+                <div className="max-w-7xl mx-auto px-6 sm:px-8 relative z-10">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
                         <div>
-                            <div className="inline-flex items-center gap-2 bg-orange-50 text-primary border border-orange-100 px-4 py-1.5 rounded-full text-xs font-bold tracking-wider mb-6">
-                                <span className="material-symbols-outlined text-sm">verified</span> CONVITE EXCLUSIVO
+                            <div className="feature-tag">
+                                <Verified size={14} /> CONVITE EXCLUSIVO
                             </div>
-                            <h1 className="text-4xl lg:text-5xl font-extrabold text-secondary leading-tight mb-6">
+                            <h1 className="text-5xl lg:text-6xl font-extrabold text-secondary leading-tight mb-8">
                                 <span className="text-primary">{embaixadorParams}</span> acredita que você merece economizar.
                             </h1>
-                            <p className="text-xl text-slate-600 mb-8 max-w-xl leading-relaxed">
+                            <p className="text-xl text-slate-600 mb-10 max-w-xl leading-relaxed font-medium">
                                 {headline}
                             </p>
-                            <div className="flex flex-wrap gap-4 mb-10">
-                                <div className="flex items-center gap-2 text-slate-700">
-                                    <span className="material-symbols-outlined text-primary">check_circle</span>
-                                    <span className="text-sm font-semibold">Sem Custo de Adesão</span>
+                            <div className="flex flex-wrap gap-6 mb-12">
+                                <div className="flex items-center gap-3 text-slate-700 font-bold">
+                                    <CheckCircle size={20} className="text-primary" />
+                                    <span className="text-sm">Sem Custo de Adesão</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-slate-700">
-                                    <span className="material-symbols-outlined text-primary">check_circle</span>
-                                    <span className="text-sm font-semibold">Sem Fidelidade</span>
+                                <div className="flex items-center gap-3 text-slate-700 font-bold">
+                                    <CheckCircle size={20} className="text-primary" />
+                                    <span className="text-sm">Sem Fidelidade</span>
                                 </div>
-                                <div className="flex items-center gap-2 text-slate-700">
-                                    <span className="material-symbols-outlined text-primary">check_circle</span>
-                                    <span className="text-sm font-semibold">Desconto Garantido</span>
+                                <div className="flex items-center gap-3 text-slate-700 font-bold">
+                                    <CheckCircle size={20} className="text-primary" />
+                                    <span className="text-sm">Desconto Garantido</span>
                                 </div>
                             </div>
                         </div>
-                        <div className="bg-white rounded-3xl p-8 shadow-[0_32px_64px_-16px_rgba(0,51,102,0.12)] border border-slate-100">
-                            <h3 className="text-2xl font-bold mb-6 text-center text-secondary">Simule sua Economia</h3>
-                            <form className="space-y-4" onSubmit={handleSubmit}>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="landing-card">
+                            <h3 className="text-2xl font-extrabold mb-8 text-center text-secondary tracking-tight">Simule sua Economia</h3>
+                            <form className="space-y-6" onSubmit={handleSubmit}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Seu CEP</label>
+                                        <label className="block text-xs font-extrabold text-slate-400 uppercase mb-2 ml-1">Seu CEP</label>
                                         <input
                                             name="cep"
                                             value={formData.cep}
                                             onChange={handleInputChange}
                                             onBlur={handleCepBlur}
-                                            className="w-full px-4 py-3 rounded-xl border-slate-200 bg-slate-50 focus:ring-primary focus:border-primary transition-all"
+                                            className="landing-input"
                                             placeholder="00000-000"
                                             type="text"
                                         />
-                                        {loadingCep && <span className="text-xs text-primary">Buscando...</span>}
-                                        {address && <span className="text-xs text-green-600 block">{address.cidade}-{address.uf}</span>}
+                                        {loadingCep && <span className="text-xs text-primary mt-2 block font-bold">Buscando...</span>}
+                                        {address && <span className="text-xs text-green-600 mt-2 block font-bold">{address.cidade}-{address.uf}</span>}
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Sua Concessionária</label>
+                                        <label className="block text-xs font-extrabold text-slate-400 uppercase mb-2 ml-1">Sua Concessionária</label>
                                         <select
                                             name="concessionaria"
                                             value={formData.concessionaria}
                                             onChange={handleInputChange}
-                                            className="w-full px-4 py-3 rounded-xl border-slate-200 bg-slate-50 focus:ring-primary focus:border-primary transition-all"
+                                            className="landing-input"
                                         >
                                             <option value="">Selecione...</option>
                                             {offer ? (
@@ -247,45 +239,45 @@ export default function LandingPage() {
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Nome Completo</label>
+                                    <label className="block text-xs font-extrabold text-slate-400 uppercase mb-2 ml-1">Nome Completo</label>
                                     <input
                                         name="name"
                                         value={formData.name}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-xl border-slate-200 bg-slate-50 focus:ring-primary focus:border-primary transition-all"
+                                        className="landing-input"
                                         placeholder="Como devemos te chamar?"
                                         type="text"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">E-mail</label>
+                                    <label className="block text-xs font-extrabold text-slate-400 uppercase mb-2 ml-1">E-mail</label>
                                     <input
                                         name="email"
                                         value={formData.email}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-xl border-slate-200 bg-slate-50 focus:ring-primary focus:border-primary transition-all"
+                                        className="landing-input"
                                         placeholder="exemplo@email.com"
                                         type="email"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Telefone</label>
+                                    <label className="block text-xs font-extrabold text-slate-400 uppercase mb-2 ml-1">Telefone</label>
                                     <input
                                         name="phone"
                                         value={formData.phone}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 rounded-xl border-slate-200 bg-slate-50 focus:ring-primary focus:border-primary transition-all"
+                                        className="landing-input"
                                         placeholder="(00) 00000-0000"
                                         type="tel"
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2 ml-1 flex justify-between">
+                                    <label className="block text-xs font-extrabold text-slate-400 uppercase mb-3 ml-1 flex justify-between">
                                         <span>Gasto médio mensal</span>
-                                        <span className="text-primary font-bold">
+                                        <span className="text-primary font-black">
                                             {Number(formData.gasto_medio).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                         </span>
                                     </label>
@@ -299,23 +291,23 @@ export default function LandingPage() {
                                         onChange={handleInputChange}
                                         className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary"
                                     />
-                                    <div className="flex justify-between text-[10px] text-slate-400 mt-1 uppercase font-bold">
+                                    <div className="flex justify-between text-[10px] text-slate-400 mt-2 uppercase font-black tracking-widest">
                                         <span>R$ 150</span>
                                         <span>R$ 5.000+</span>
                                     </div>
                                 </div>
 
                                 {offer && (
-                                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
-                                        <p className="text-green-800 font-bold mb-1">🎉 Oferta Disponível!</p>
-                                        <p className="text-sm text-green-700">
-                                            Desconto estimado de <span className="font-bold">{(offer['Desconto Assinante'] * 100).toFixed(0)}%</span> na sua fatura.
+                                    <div className="bg-green-50 border border-green-200 rounded-2xl p-5 text-center">
+                                        <p className="text-green-800 font-black mb-1">🎉 Oferta Disponível!</p>
+                                        <p className="text-sm text-green-700 font-bold">
+                                            Desconto estimado de <span className="font-black text-green-800">{(offer['Desconto Assinante'] * 100).toFixed(0)}%</span> na sua fatura.
                                         </p>
                                     </div>
                                 )}
 
                                 <button
-                                    className="w-full bg-primary hover:bg-orange-600 text-white font-extrabold py-4 rounded-xl transition-all shadow-xl shadow-orange-500/30 text-lg uppercase tracking-wider relative disabled:opacity-70"
+                                    className="landing-button"
                                     type="submit"
                                     disabled={submitting}
                                 >
@@ -329,100 +321,79 @@ export default function LandingPage() {
 
             {/* ... Rest of sections (kept as static HTML converted to JSX) ... */}
             <section className="py-24 bg-slate-50 overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                <div className="max-w-7xl mx-auto px-6 sm:px-8">
+                    <div className="grid lg:grid-cols-2 gap-24 items-center">
                         <div className="order-2 lg:order-1 relative flex justify-center">
-                            <div className="relative w-[280px] h-[580px] bg-white rounded-[3rem] border-[10px] border-secondary shadow-2xl phone-mockup-shadow overflow-hidden">
-                                <div className="h-full w-full bg-white text-slate-900 p-6 pt-12">
-                                    <div className="flex justify-between items-center mb-8">
-                                        <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-white text-sm">solar_power</span>
+                            <div className="phone-mockup">
+                                <div className="phone-screen">
+                                    <div className="h-full w-full bg-white text-slate-900 p-8 pt-16">
+                                        <div className="flex justify-between items-center mb-10">
+                                            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                                <Zap className="text-white" size={20} />
+                                            </div>
+                                            <Smartphone className="text-slate-300" size={24} />
                                         </div>
-                                        <span className="material-symbols-outlined text-slate-400">notifications</span>
-                                    </div>
-                                    <div className="mb-8">
-                                        <p className="text-xs text-slate-400 mb-1">Olá, {formData.name || 'João'}!</p>
-                                        <h4 className="text-xl font-bold text-secondary">Sua economia este mês</h4>
-                                        <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Total Economizado</p>
-                                            <p className="text-3xl font-extrabold text-primary">R$ {((formData.gasto_medio || 500) * (offer ? offer['Desconto Assinante'] : 0.15)).toFixed(2).replace('.', ',')}</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-4">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ações rápidas</p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                                <span className="material-symbols-outlined text-primary mb-2">analytics</span>
-                                                <p className="text-[10px] font-bold text-secondary">Consumo</p>
-                                            </div>
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                                <span className="material-symbols-outlined text-primary mb-2">receipt_long</span>
-                                                <p className="text-[10px] font-bold text-secondary">Faturas</p>
-                                            </div>
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                                <span className="material-symbols-outlined text-primary mb-2">support_agent</span>
-                                                <p className="text-[10px] font-bold text-secondary">Suporte</p>
-                                            </div>
-                                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                                                <span className="material-symbols-outlined text-primary mb-2">share</span>
-                                                <p className="text-[10px] font-bold text-secondary">Indicar</p>
+                                        <div className="mb-10">
+                                            <p className="text-xs text-slate-400 mb-2 font-bold uppercase tracking-widest">Olá, {formData.name || 'João'}!</p>
+                                            <h4 className="text-2xl font-black text-secondary leading-tight">Sua economia este mês</h4>
+                                            <div className="mt-6 p-6 bg-slate-50 rounded-3xl border border-slate-100 shadow-sm">
+                                                <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-2 font-black">Total Economizado</p>
+                                                <p className="text-4xl font-black text-primary">R$ {((formData.gasto_medio || 500) * (offer ? offer['Desconto Assinante'] : 0.15)).toFixed(2).replace('.', ',')}</p>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="mt-8">
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Em Tempo Real</p>
-                                        <div className="flex items-end gap-2 h-16">
-                                            <div className="flex-1 bg-slate-100 rounded-t h-[40%]"></div>
-                                            <div className="flex-1 bg-slate-100 rounded-t h-[60%]"></div>
-                                            <div className="flex-1 bg-primary rounded-t h-[90%]"></div>
-                                            <div className="flex-1 bg-slate-100 rounded-t h-[50%]"></div>
-                                            <div className="flex-1 bg-slate-100 rounded-t h-[75%]"></div>
+                                        <div className="space-y-6">
+                                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Ações rápidas</p>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 text-center transition-all hover:border-primary">
+                                                    <TrendingUp className="text-primary mb-3 mx-auto" size={24} />
+                                                    <p className="text-[10px] font-black text-secondary uppercase">Consumo</p>
+                                                </div>
+                                                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-100 text-center transition-all hover:border-primary">
+                                                    <Shield className="text-primary mb-3 mx-auto" size={24} />
+                                                    <p className="text-[10px] font-black text-secondary uppercase">Faturas</p>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-secondary rounded-b-2xl"></div>
                             </div>
                         </div>
                         <div className="order-1 lg:order-2">
-                            <h2 className="text-4xl lg:text-5xl font-extrabold text-secondary mb-8 leading-tight">
+                            <h2 className="text-5xl lg:text-6xl font-extrabold text-secondary mb-8 leading-tight">
                                 Tudo 100% Digital no seu <span className="text-primary">Super App</span>
                             </h2>
-                            <p className="text-xl text-slate-600 mb-12 leading-relaxed">
+                            <p className="text-xl text-slate-600 mb-12 leading-relaxed font-medium">
                                 Gerencie sua energia com a mesma facilidade que você cuida das suas finanças. Uma experiência intuitiva e transparente na palma da sua mão.
                             </p>
-                            <ul className="space-y-8">
-                                <li className="flex items-start gap-5">
-                                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100">
-                                        <span className="material-symbols-outlined text-primary text-2xl">monitoring</span>
+                            <ul className="space-y-10">
+                                <li className="flex items-start gap-6">
+                                    <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm">
+                                        <TrendingUp className="text-primary" size={28} />
                                     </div>
                                     <div>
                                         <h4 className="text-xl font-bold text-secondary mb-2">Acompanhe seu consumo em tempo real</h4>
-                                        <p className="text-slate-500">Tenha visibilidade total de quanto você está consumindo e economizando a cada minuto.</p>
+                                        <p className="text-slate-500 font-medium">Tenha visibilidade total de quanto você está consumindo e economizando a cada minuto.</p>
                                     </div>
                                 </li>
-                                <li className="flex items-start gap-5">
-                                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100">
-                                        <span className="material-symbols-outlined text-primary text-2xl">history_edu</span>
+                                <li className="flex items-start gap-6">
+                                    <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm">
+                                        <Shield className="text-primary" size={28} />
                                     </div>
                                     <div>
                                         <h4 className="text-xl font-bold text-secondary mb-2">Faturas digitais e histórico completo</h4>
-                                        <p className="text-slate-500">Acesse todas as suas contas, comprovantes e histórico de pagamentos de forma organizada.</p>
+                                        <p className="text-slate-500 font-medium">Acesse todas as suas contas, comprovantes e histórico de pagamentos de forma organizada.</p>
                                     </div>
                                 </li>
-                                <li className="flex items-start gap-5">
-                                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center border border-orange-100">
-                                        <span className="material-symbols-outlined text-primary text-2xl">chat</span>
+                                <li className="flex items-start gap-6">
+                                    <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-sm">
+                                        <MessageCircle className="text-primary" size={28} />
                                     </div>
                                     <div>
                                         <h4 className="text-xl font-bold text-secondary mb-2">Atendimento rápido e digital</h4>
-                                        <p className="text-slate-500">Suporte especializado para resolver qualquer questão sem filas ou burocracia, direto pelo chat.</p>
+                                        <p className="text-slate-500 font-medium">Suporte especializado para resolver qualquer questão sem filas ou burocracia, direto pelo chat.</p>
                                     </div>
                                 </li>
                             </ul>
-                            <div className="mt-12 flex flex-wrap gap-4">
-                                <img alt="App Store" className="h-10 hover:scale-105 transition-transform cursor-pointer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCebZgz8nMQO512hGFV17qeZow_l5ND11G5NPnlqal816ADi1b6MvZ2HgSRBDK9DFrgeRbb0HeUOJj1hdHVLyZHxxFlbhrK3-BZml-CeVNn4Zhhd4r6YHLAGKUVOeAp_f5LmdUVlpKTG9yN4JjXxKREECx0tpM4bW0lFwytOpKcK8pL5Oe5gakNQHc6M2GdY_X6DYGSHIpmWQsdwzxyuivrTF_gc9bGA_SpLhZmiptGaCCAn1W-seVUOf8nZd0mXGAst7amoq7ROq9p" />
-                                <img alt="Google Play" className="h-10 hover:scale-105 transition-transform cursor-pointer" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxB5xl2ZoO7hqXAQ-OAFODFtaKzXAVM34k1WOrik9G-VFzHTNr4GMatDVwnLHrXbyHi1lhrWgySFxwWDEcfwOqs1VbmLOotFrjbeEOpu-IrDjfi9usGdiEoe8PwRDtccsz4pmQfgwzFzKZNk_ZKYzX8XavvNEL4Hc2TKchVmislx1dVfvxGWPUI0WtFiqXoTzYfjAX1EGXWEfaeeyxd4PihsO2IytqHAiqsUX_kbbSsVvMpvPcPVUuy5zywp26kn7gbYe8tLim8GRu" />
-                            </div>
                         </div>
                     </div>
                 </div>

@@ -288,63 +288,46 @@ const AmbassadorDashboard = () => {
 
                     {/* 2. Main Profile Card */}
                     <div className="profile-card-container">
-                        <div className="profile-header">
-                            <div className="profile-info">
-                                <div className="profile-avatar">
-                                    {/* Could use an actual image here if available in profile */}
-                                    <div className="profile-avatar-placeholder">
-                                        {originatorName ? originatorName.charAt(0) : 'E'}
-                                    </div>
+                        <div className="profile-info">
+                            <div className="profile-avatar">
+                                <div className="profile-avatar-placeholder">
+                                    {originatorName ? originatorName.charAt(0) : 'E'}
                                 </div>
-                                <div className="profile-details">
-                                    <h2>{originatorName || 'Embaixador'}</h2>
+                            </div>
+                            <div className="profile-details">
+                                <h2>{originatorName || 'Embaixador'}</h2>
 
-                                    {/* Link de Indicação UI Area */}
-                                    <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                        <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Seu Link de Indicação:</span>
+                                {/* Link de Indicação UI Area */}
+                                <div className="invite-link-wrapper">
+                                    <span className="invite-label">Seu Link de Indicação:</span>
 
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                            <div style={{
-                                                background: '#f1f5f9',
-                                                padding: '0.5rem 0.8rem',
-                                                borderRadius: '6px',
-                                                fontSize: '0.85rem',
-                                                color: '#334155',
-                                                border: '1px solid #cbd5e1',
-                                                whiteSpace: 'nowrap',
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                maxWidth: '300px'
-                                            }}>
-                                                {inviteLink}
-                                            </div>
-
-                                            <button
-                                                onClick={handleCopyLink}
-                                                style={{
-                                                    background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '0.5rem',
-                                                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', color: '#475569'
-                                                }}
-                                                title="Copiar Link"
-                                            >
-                                                {copied ? <Check size={16} color="green" /> : <Copy size={16} />}
-                                            </button>
+                                    <div className="invite-input-group">
+                                        <div className="invite-link-box">
+                                            {inviteLink}
                                         </div>
+
+                                        <button
+                                            onClick={handleCopyLink}
+                                            className="copy-btn-mini"
+                                            title="Copiar Link"
+                                        >
+                                            {copied ? <Check size={16} color="var(--success-base)" /> : <Copy size={16} />}
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div className="header-actions">
-                            <button className="action-btn" style={{ background: '#16a34a', color: 'white', border: 'none' }} onClick={handleAddLead}>
-                                Enviar Convite
+                            <button className="action-btn whatsapp" onClick={handleAddLead}>
+                                <MessageCircle size={18} /> Enviar Convite
                             </button>
-                            <button className="action-btn" onClick={handleLogout} title="Sair do Sistema">
-                                <span style={{ color: '#e74c3c' }}>Sair</span>
+                            <button className="action-btn logout" onClick={handleLogout} title="Sair do Sistema">
+                                <span>Sair</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* 3. Content: Leads Table (Tabs are inside LeadsTable for now) */}
+                    {/* 3. Content: Leads Table */}
                     <div className="dashboard-content-wrapper">
                         <LeadsTable
                             leads={leads}
@@ -355,46 +338,39 @@ const AmbassadorDashboard = () => {
                         />
 
                         {/* [NEW] Financial Statement Section */}
-                        <div className="statement-section" style={{ marginTop: '2rem', background: 'white', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                            <h3 style={{ marginBottom: '1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <DollarSign size={20} /> Extrato Financeiro
+                        <div className="statement-section">
+                            <h3 className="section-title">
+                                <DollarSign size={24} /> Extrato Financeiro
                             </h3>
                             <div className="table-responsive">
-                                <table className="statement-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                <table className="statement-table">
                                     <thead>
-                                        <tr style={{ background: '#f8fafc', textAlign: 'left' }}>
-                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>Data</th>
-                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>Descrição</th>
-                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0' }}>Tipo</th>
-                                            <th style={{ padding: '0.75rem', borderBottom: '1px solid #e2e8f0', textAlign: 'right' }}>Valor</th>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Descrição</th>
+                                            <th>Tipo</th>
+                                            <th style={{ textAlign: 'right' }}>Valor</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {ledgerEntries.length > 0 ? (
                                             ledgerEntries.map(entry => (
-                                                <tr key={entry.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                    <td style={{ padding: '0.75rem' }}>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</td>
-                                                    <td style={{ padding: '0.75rem' }}>{entry.description || 'Movimentação'}</td>
-                                                    <td style={{ padding: '0.75rem' }}>
-                                                        <span style={{
-                                                            padding: '0.25rem 0.5rem',
-                                                            borderRadius: '4px',
-                                                            background: entry.type === 'credit' ? '#dcfce7' : '#fee2e2',
-                                                            color: entry.type === 'credit' ? '#166534' : '#991b1b',
-                                                            fontSize: '0.8rem',
-                                                            fontWeight: '600'
-                                                        }}>
+                                                <tr key={entry.id}>
+                                                    <td>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</td>
+                                                    <td>{entry.description || 'Movimentação'}</td>
+                                                    <td>
+                                                        <span className={`type-badge ${entry.type === 'credit' ? 'credit' : 'debit'}`}>
                                                             {entry.type === 'credit' ? 'CRÉDITO' : 'DÉBITO'}
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: '0.75rem', textAlign: 'right', fontWeight: 'bold', color: entry.type === 'credit' ? '#16a34a' : '#ef4444' }}>
+                                                    <td className={`text-right ${entry.type === 'credit' ? 'text-success' : 'text-danger'}`} style={{ textAlign: 'right' }}>
                                                         {entry.type === 'debit' ? '-' : '+'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.amount)}
                                                     </td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="4" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Nenhuma movimentação encontrada.</td>
+                                                <td colSpan="4" className="empty-row" style={{ textAlign: 'center', padding: '3rem' }}>Nenhuma movimentação encontrada.</td>
                                             </tr>
                                         )}
                                     </tbody>

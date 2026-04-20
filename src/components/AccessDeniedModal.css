@@ -4,128 +4,104 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.4);
-    /* Slightly lighter overlay */
-    backdrop-filter: blur(2px);
+    background: var(--bg-overlay);
+    backdrop-filter: var(--blur-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1100;
-    /* Higher than other modals if needed */
-    animation: fadeIn 0.2s ease-out;
+    z-index: 2000;
     padding: 1rem;
 }
 
 .denied-modal {
-    background: white;
+    background: var(--bg-modal);
     width: 100%;
-    max-width: 400px;
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    max-width: 440px;
+    border-radius: 30px;
+    padding: 3rem 2rem;
+    box-shadow: var(--shadow-modal);
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     position: relative;
-    animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border: var(--border-glow);
 }
 
 .denied-close-btn {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: none;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: var(--bg-app);
     border: none;
-    color: #95a5a6;
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 0.5rem;
     border-radius: 50%;
-    transition: all 0.2s;
+    transition: all 0.25s ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .denied-close-btn:hover {
-    background: #f8f9fa;
-    color: #e74c3c;
+    background: var(--error-bg);
+    color: var(--error-base);
+    transform: rotate(90deg);
 }
 
 .denied-icon-wrapper {
-    width: 70px;
-    height: 70px;
-    background: rgba(255, 102, 0, 0.1);
-    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    background: rgba(var(--primary-glow), 0.1);
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.5rem;
-}
-
-.denied-content {
     margin-bottom: 2rem;
+    color: var(--primary);
+    box-shadow: 0 10px 20px rgba(var(--primary-glow), 0.1);
 }
 
 .denied-content h3 {
-    font-size: 1.25rem;
-    color: #003366;
-    /* Brand Navy */
+    font-size: 1.5rem;
+    color: var(--text-main);
     margin: 0 0 0.75rem 0;
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .denied-content p {
     font-size: 1rem;
-    color: #555;
-    line-height: 1.5;
-    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 2.5rem 0;
+    font-weight: 500;
 }
 
 .denied-actions {
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
 }
 
 .register-btn {
-    background: #FF6600;
-    /* Brand Orange */
+    background: var(--btn-primary-gradient);
     color: white;
     border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 10px;
+    padding: 1rem 2rem;
+    border-radius: 16px;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 100%;
+    box-shadow: var(--shadow-btn);
 }
 
 .register-btn:hover {
-    background: #e65c00;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 102, 0, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 25px -5px rgba(37, 99, 235, 0.4);
 }
 
-.cancel-btn {
-    background: none;
-    border: none;
-    color: #95a5a6;
-    padding: 0.5rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-@keyframes scaleIn {
-    from {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
+.register-btn:active {
+    transform: scale(0.98);
 }

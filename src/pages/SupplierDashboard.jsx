@@ -120,24 +120,9 @@ const SupplierDashboard = () => {
                 const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
                 const ucIds = ucs?.map(u => u.id) || [];
 
-                // Fetch Invoices for the latest available month
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = now.getMonth() + 1;
-                const startOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`;
-                const endOfMonth = `${year}-${month.toString().padStart(2, '0')}-31`;
-
-                let plantReceivable = 0;
-                if (ucIds.length > 0) {
-                    const { data: invData } = await supabase
-                        .from('invoices')
-                        .select('valor_a_pagar')
-                        .in('uc_id', ucIds)
-                        .gte('mes_referencia', startOfMonth)
-                        .lte('mes_referencia', endOfMonth);
-
-                    plantReceivable = invData?.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0) || 0;
-                }
+                // [UPDATED] Fetch balance from Ledger per Usina
+                const usinaLedger = await ledgerService.getUsinaBalance(usina.id);
+                const plantReceivable = usinaLedger.balance || 0;
 
                 // Calculate Percentages based on ACTUAL generation
                 const occupation = generation > 0 ? (committedCapacity / generation) * 100 : 0;
@@ -209,81 +194,72 @@ const SupplierDashboard = () => {
 
     return (
         <div className="supplier-dashboard">
-            <motion.header
-                className="dashboard-header"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-            >
-                <div className="header-content container">
-                    <h1>Olá, {supplierName || 'Parceiro'}!</h1>
-                    <p>Visão geral de suas usinas e geração.</p>
+            <div className="profile-header">
+                <div className="profile-info">
+                    <div className="profile-avatar">
+                        <Factory size={32} />
+                    </div>
+                    <div className="profile-details">
+                        <h1>Olá, {supplierName || 'Parceiro'}!</h1>
+                        <p>Visão geral de suas usinas e geração de energia.</p>
+                    </div>
                 </div>
-            </motion.header>
+            </div>
 
             {loading ? (
                 <div className="loading-state">
-                    <div className="spinner-border text-primary" role="status">
-                        <span className="visually-hidden">Carregando...</span>
-                    </div>
+                    <div className="spinner"></div>
+                    <p>Carregando dados da usina...</p>
                 </div>
             ) : (
                 <motion.div
-                    className="dashboard-content container"
+                    className="dashboard-content"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
                     {/* KPIs */}
-                    <div className="row g-4 mb-5">
-                        <div className="col-12 col-md-6 col-lg-3">
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                <KPICard
-                                    title="Total a Receber"
-                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
-                                    icon={Coins}
-                                />
-                            </motion.div>
-                        </div>
-                        <div className="col-12 col-md-6 col-lg-3">
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                <KPICard
-                                    title="Total de Usinas"
-                                    value={stats.totalUsinas}
-                                    icon={Factory}
-                                    onClick={() => setShowPlantsModal(true)}
-                                />
-                            </motion.div>
-                        </div>
-                        <div className="col-12 col-md-6 col-lg-3">
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                <KPICard
-                                    title="Total de UCs"
-                                    value={stats.totalUCs}
-                                    icon={Users}
-                                    onClick={() => {
-                                        setSelectedUsina(null);
-                                        setShowUCsModal(true);
-                                    }}
-                                />
-                            </motion.div>
-                        </div>
-                        <div className="col-12 col-md-6 col-lg-3">
-                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                <KPICard
-                                    title="Geração (Último Mês)"
-                                    value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
-                                    icon={Zap}
-                                />
-                            </motion.div>
-                        </div>
+                    <div className="kpi-grid">
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <KPICard
+                                title="Total a Receber"
+                                value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
+                                icon={Coins}
+                            />
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <KPICard
+                                title="Total de Usinas"
+                                value={stats.totalUsinas}
+                                icon={Factory}
+                                onClick={() => setShowPlantsModal(true)}
+                            />
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <KPICard
+                                title="Total de UCs"
+                                value={stats.totalUCs}
+                                icon={Users}
+                                onClick={() => {
+                                    setSelectedUsina(null);
+                                    setShowUCsModal(true);
+                                }}
+                            />
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                            <KPICard
+                                title="Geração (Último Mês)"
+                                value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
+                                icon={Zap}
+                            />
+                        </motion.div>
                     </div>
 
                     {/* Filters & Grid */}
                     <section className="usinas-section">
-                        <div className="section-header-row mb-4">
+                        <div className="section-header-row">
                             <h2>Suas Usinas</h2>
-                            <div className="status-tabs btn-group" role="group">
+                            <div className="status-tabs">
                                 {[
                                     { id: 'all', label: 'Todas' },
                                     { id: 'active', label: 'Ativas' },
@@ -292,7 +268,7 @@ const SupplierDashboard = () => {
                                 ].map(tab => (
                                     <button
                                         key={tab.id}
-                                        className={`btn btn-outline-primary ${activeTab === tab.id ? 'active' : ''}`}
+                                        className={`tab-pill ${activeTab === tab.id ? 'active' : ''}`}
                                         onClick={() => setActiveTab(tab.id)}
                                     >
                                         {tab.label}
@@ -304,7 +280,7 @@ const SupplierDashboard = () => {
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
-                                className="row g-4"
+                                className="plants-grid"
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
@@ -312,20 +288,18 @@ const SupplierDashboard = () => {
                             >
                                 {filteredUsinas.length > 0 ? (
                                     filteredUsinas.map(usina => (
-                                        <div key={usina.id} className="col-12 col-md-6 col-lg-4">
-                                            <motion.div whileHover={{ y: -5 }}>
-                                                <PlantCard
-                                                    usina={usina}
-                                                    onOpenGraphs={handleOpenPerformance}
-                                                    onOpenInvoices={handleOpenInvoices}
-                                                    onOpenUCs={() => handleOpenUCs(usina)} // [NEW]
-                                                />
-                                            </motion.div>
-                                        </div>
+                                        <motion.div key={usina.id} whileHover={{ y: -5 }}>
+                                            <PlantCard
+                                                usina={usina}
+                                                onOpenGraphs={handleOpenPerformance}
+                                                onOpenInvoices={handleOpenInvoices}
+                                                onOpenUCs={() => handleOpenUCs(usina)}
+                                            />
+                                        </motion.div>
                                     ))
                                 ) : (
-                                    <div className="col-12">
-                                        <p className="no-data alert alert-info text-center">Nenhuma usina encontrada com este status.</p>
+                                    <div className="no-data-full">
+                                        <p>Nenhuma usina encontrada com este status.</p>
                                     </div>
                                 )}
                             </motion.div>

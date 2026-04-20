@@ -27,35 +27,33 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs }) => {
                 <div className="plant-stat mb-3">
                     <span className="stat-label">Geração (Último Mês)</span>
                     <div className="stat-value-row">
-                        <Zap size={18} color="#FF6600" />
+                        <Zap size={20} className="orange-text" />
                         <span className="stat-value">{formatNumber(usina.generation)} kWh</span>
                     </div>
-                    {/* [NEW] Valor a receber */}
-                    <div className="stat-subtext orange-text fw-bold mt-1">
-                        Valor a receber: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(usina.plantReceivable || 0)}
+                    <div className="stat-subtext orange-text fw-bold">
+                        Recebível: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(usina.plantReceivable || 0)}
                     </div>
                 </div>
 
                 <div className="plant-stat clickable mb-3" onClick={onOpenUCs} title="Ver lista de UCs">
                     <span className="stat-label">UCs Vinculadas</span>
                     <div className="stat-value-row">
-                        <Users size={18} color="#003366" />
-                        <span className="stat-value">{usina.ucCount}</span>
+                        <Users size={20} style={{ color: 'var(--primary)' }} />
+                        <span className="stat-value">{usina.ucCount} unidades</span>
                     </div>
                 </div>
 
                 <div className="plant-stat">
-                    <span className="stat-label">Capacidade Comprometida</span>
+                    <span className="stat-label">Capacidade</span>
                     <div className="stat-value-row">
-                        <Zap size={18} color="#7f8c8d" />
+                        <Activity size={20} style={{ color: 'var(--text-muted)' }} />
                         <span className="stat-value secondary">{formatNumber(usina.committedCapacity)} kWh</span>
                     </div>
-                    {/* [NEW] Ocupação e Vacância */}
-                    <div className="mt-2">
-                        <div className="stat-subtext orange-text fw-semibold">
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem' }}>
+                        <div className="stat-subtext orange-text">
                             Ocupação: {Math.round(usina.occupation || 0)}%
                         </div>
-                        <div className="stat-subtext text-muted">
+                        <div className="stat-subtext" style={{ color: 'var(--text-muted)' }}>
                             Vacância: {Math.round(usina.vacancy || 0)}%
                         </div>
                     </div>

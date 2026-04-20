@@ -44,6 +44,25 @@ export const ledgerService = {
     },
 
     /**
+     * Busca o saldo real da conta de uma usina específica.
+     * @param {string} usinaId 
+     */
+    async getUsinaBalance(usinaId) {
+        try {
+            const { data, error } = await supabase
+                .rpc('get_usina_financial_balance', {
+                    p_usina_id: usinaId
+                });
+
+            if (error) throw error;
+            return { balance: Number(data) || 0, id: usinaId };
+        } catch (err) {
+            console.error('Erro ao buscar saldo da usina:', err);
+            return { balance: 0, id: null };
+        }
+    },
+
+    /**
      * Busca o extrato de movimentações de uma conta.
      * @param {string} entityId (Account ID ou Owner ID dependendo do contexto, aqui vamos usar Entity ID)
      * @param {string} type 'originator' ou 'supplier' (Adicionado para suportar nova lógica)

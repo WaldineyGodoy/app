@@ -1,101 +1,102 @@
 .supplier-dashboard {
     min-height: 100vh;
-    background-color: #f8f9fa;
-    padding: 2rem;
+    background: var(--bg-app);
+    padding: 2.5rem;
+    color: var(--text-main);
+    font-family: 'Inter', sans-serif;
 }
 
 .section-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2.5rem;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .usinas-section h2 {
     margin: 0;
-    color: #003366;
-    font-size: 1.25rem;
+    color: var(--text-main);
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .status-tabs {
     display: flex;
     gap: 0.5rem;
+    padding: 0.4rem;
+    background: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border-ui);
+    box-shadow: var(--shadow-sm);
 }
 
 .tab-pill {
-    background: white;
-    border: 1px solid #e0e0e0;
-    padding: 0.4rem 1rem;
-    border-radius: 20px;
+    background: transparent;
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 0.85rem;
-    color: #7f8c8d;
-    transition: all 0.2s;
+    font-weight: 600;
+    color: var(--text-muted);
+    transition: all 0.25s ease;
 }
 
 .tab-pill:hover {
-    border-color: #003366;
-    color: #003366;
+    color: var(--primary);
+    background: rgba(var(--primary-glow), 0.05);
 }
 
 .tab-pill.active {
-    background: #003366;
+    background: var(--primary);
     color: white;
-    border-color: #003366;
-    font-weight: 600;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Logout Button */
+.logout-btn {
+    position: fixed;
+    bottom: 2.5rem;
+    right: 2.5rem;
+    background: var(--bg-card);
+    color: var(--error-base);
+    border: 1px solid var(--error-bg);
+    padding: 0.85rem 1.5rem;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-modal);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.logout-btn:hover {
+    background: var(--error-base);
+    color: white;
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(231, 76, 60, 0.3);
 }
 
 @media (max-width: 768px) {
     .supplier-dashboard {
-        padding: 1rem;
+        padding: 1.5rem;
     }
 
     .section-header-row {
         flex-direction: column;
         align-items: flex-start;
     }
-}
-
-/* Logout Button - Fixed bottom right */
-.logout-btn {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: white;
-    color: #e74c3c;
-    /* Red for Logout */
-    border: 1px solid #ffcccc;
-    padding: 0.75rem 1.25rem;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.15);
-    transition: all 0.3s ease;
-    z-index: 1000;
-}
-
-.logout-btn:hover {
-    background: #e74c3c;
-    color: white;
-    border-color: #e74c3c;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.25);
-}
-
-.logout-btn:active {
-    transform: translateY(0);
-}
-
-@media (max-width: 768px) {
+    
     .logout-btn {
-        bottom: 1rem;
-        right: 1rem;
-        padding: 0.6rem 1rem;
+        bottom: 1.5rem;
+        right: 1.5rem;
     }
 }

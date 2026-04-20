@@ -326,24 +326,29 @@ const SubscriberDashboard = () => {
 
     return (
         <div className="dashboard-container">
-            <header className="dashboard-header">
-                <div className="header-content">
-                    <div className="title-wrapper">
-                        <h1>Olá, {subscriberName || 'Assinante'}</h1>
-                        {subscriberStatus && (
-                            <span className={`subscriber-status-badge ${subscriberStatus.toLowerCase()}`}>
-                                {subscriberStatus}
-                            </span>
-                        )}
+            <div className="profile-header">
+                <div className="profile-info">
+                    <div className="profile-avatar">
+                        <FileText size={32} />
                     </div>
-                    <p>Bem-vindo ao seu painel de energia.</p>
+                    <div className="profile-details">
+                        <div className="title-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <h1>Olá, {subscriberName || 'Assinante'}</h1>
+                            {subscriberStatus && (
+                                <span className={`subscriber-status-badge ${subscriberStatus.toLowerCase()}`}>
+                                    {subscriberStatus}
+                                </span>
+                            )}
+                        </div>
+                        <p>Bem-vindo ao seu painel de monitoramento de energia.</p>
+                    </div>
                 </div>
 
                 <div className="header-actions">
                     <div className="billing-info-badge">
-                        <span className="info-label">Opção de faturamento:</span>
+                        <span className="info-label">Faturamento</span>
                         <span className={`info-value ${billingMode}`}>
-                            {billingMode === 'consolidada' ? 'Consolidada' : 'Individualizada'}
+                            {billingMode === 'consolidada' ? 'Consolidado' : 'Individualizado'}
                         </span>
                     </div>
 
@@ -353,12 +358,12 @@ const SubscriberDashboard = () => {
                             onClick={handleDownloadConsolidated}
                             disabled={isGenerating}
                         >
-                            <FileText size={18} />
-                            Emitir Fatura Consolidada
+                            <Download size={20} />
+                            <span>Baixar Fatura</span>
                         </button>
                     )}
                 </div>
-            </header>
+            </div>
 
             {
                 loading ? (

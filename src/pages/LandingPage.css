@@ -1,0 +1,118 @@
+.landing-page-nav {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-ui);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.landing-hero {
+    position: relative;
+    padding: 8rem 0;
+    background: radial-gradient(circle at top right, rgba(var(--primary-glow), 0.05), transparent),
+                radial-gradient(circle at bottom left, rgba(var(--secondary-glow), 0.05), transparent);
+    overflow: hidden;
+}
+
+.landing-hero::before {
+    content: '';
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(var(--primary-glow), 0.1) 0%, transparent 70%);
+    filter: blur(60px);
+    z-index: -1;
+}
+
+.landing-card {
+    background: var(--bg-card);
+    border-radius: 40px;
+    padding: 3rem;
+    box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-ui);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.landing-card:hover {
+    transform: translateY(-10px);
+}
+
+.landing-input {
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-ui);
+    background: var(--bg-app);
+    color: var(--text-main);
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.landing-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(var(--primary-glow), 0.1);
+    outline: none;
+    background: white;
+}
+
+.landing-button {
+    background: var(--btn-primary-gradient);
+    color: white;
+    padding: 1.25rem;
+    border-radius: 18px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-btn);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+}
+
+.landing-button:hover:not(:disabled) {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.4);
+}
+
+.landing-button:active {
+    transform: scale(0.98);
+}
+
+.phone-mockup {
+    width: 300px;
+    height: 620px;
+    background: var(--text-main);
+    border-radius: 50px;
+    padding: 12px;
+    position: relative;
+    box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.3);
+}
+
+.phone-screen {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-app);
+    border-radius: 40px;
+    overflow: hidden;
+    position: relative;
+}
+
+.feature-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(var(--primary-glow), 0.1);
+    color: var(--primary);
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 2rem;
+}

@@ -1,53 +1,60 @@
 .plants-dashboard-modal {
     width: 95% !important;
-    max-width: 1100px !important;
-    height: auto;
+    max-width: 1200px !important;
+    border-radius: 40px !important;
+    padding: 3.5rem !important;
+    background: var(--bg-app) !important;
+    box-shadow: var(--shadow-modal) !important;
+    border: var(--border-glow) !important;
     max-height: 90vh;
-    padding: 2.5rem !important;
-    background: #f8fbfd !important;
     overflow-y: auto;
 }
 
-.dashboard-header {
-    margin-bottom: 2rem;
-}
-
 .header-info h2 {
-    color: #003366;
-    font-size: 1.8rem;
+    color: var(--text-main);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
     margin-bottom: 0.5rem;
 }
 
 .header-info p {
-    color: #7f8c8d;
-    font-size: 1rem;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    font-weight: 500;
 }
 
 .summary-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .mini-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 16px;
+    background: var(--bg-card);
+    padding: 1.75rem;
+    border-radius: 24px;
     display: flex;
     align-items: center;
-    gap: 1.25rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    gap: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-ui);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mini-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1);
 }
 
 .mini-card.highlight {
-    background: linear-gradient(135deg, #003366 0%, #004d99 100%);
-    color: white;
+    background: var(--btn-primary-gradient);
+    border: none;
 }
 
 .mini-card.highlight .label {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.8);
 }
 
 .mini-card.highlight .value {
@@ -55,118 +62,121 @@
 }
 
 .mini-card.highlight svg {
-    color: #FF6600;
-}
-
-.mini-card-content {
-    display: flex;
-    flex-direction: column;
+    color: white;
 }
 
 .mini-card-content .label {
-    font-size: 0.85rem;
-    color: #7f8c8d;
-    font-weight: 500;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
 }
 
 .mini-card-content .value {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #003366;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
 }
 
 .main-content-row {
     display: grid;
-    grid-template-columns: 1fr 350px;
-    gap: 1.5rem;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
 }
 
 .chart-section,
 .plants-mini-list {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: var(--bg-card);
+    padding: 2.5rem;
+    border-radius: 30px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-ui);
 }
 
 .section-header h3 {
-    font-size: 1.1rem;
-    color: #003366;
-    margin-bottom: 1.5rem;
-    position: relative;
-    padding-left: 12px;
+    font-size: 1.25rem;
+    color: var(--text-main);
+    font-weight: 800;
+    margin-bottom: 2rem;
+    letter-spacing: -0.01em;
 }
 
 .section-header h3::before {
     content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 18px;
-    background: #FF6600;
-    border-radius: 2px;
-}
-
-.chart-container {
-    margin-top: 1rem;
+    display: inline-block;
+    width: 6px;
+    height: 1.2em;
+    background: var(--primary);
+    border-radius: 3px;
+    margin-right: 12px;
+    vertical-align: middle;
 }
 
 .list-container {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .plant-item-row {
     display: flex;
     align-items: center;
-    padding: 0.75rem;
-    border-radius: 12px;
-    background: #f8f9fa;
-    transition: background 0.2s;
+    padding: 1rem 1.25rem;
+    border-radius: 18px;
+    background: var(--bg-app);
+    border: 1px solid var(--border-ui);
+    transition: all 0.25s ease;
 }
 
 .plant-item-row:hover {
-    background: #f1f3f5;
+    transform: translateX(8px);
+    border-color: var(--primary);
 }
 
 .plant-dot {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     margin-right: 1rem;
+    box-shadow: 0 0 10px currentColor;
 }
 
 .plant-text {
     flex: 1;
-    display: flex;
-    flex-direction: column;
 }
 
 .p-name {
-    font-weight: 600;
-    font-size: 0.9rem;
-    color: #2c3e50;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--text-main);
+    display: block;
 }
 
 .p-status {
-    font-size: 0.75rem;
-    color: #95a5a6;
-    text-transform: capitalize;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
 }
 
 .plant-val {
-    font-weight: 700;
-    font-size: 0.9rem;
-    color: #003366;
+    font-weight: 800;
+    font-size: 1rem;
+    color: var(--primary);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
     .main-content-row {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .plants-dashboard-modal {
+        padding: 2rem !important;
+        border-radius: 0 !important;
     }
 
     .summary-row {

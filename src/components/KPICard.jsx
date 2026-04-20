@@ -19,14 +19,14 @@ const KPICard = ({ title, value, icon: Icon, trend, onClick }) => {
             onClick={onClick}
         >
             <div className="kpi-icon-wrapper">
-                <Icon size={24} color="#FF6600" />
+                <Icon size={28} />
             </div>
             <div className="kpi-content">
                 <span className="kpi-title">{title}</span>
                 <div className="kpi-value-row">
                     <span className="kpi-value">{value}</span>
                     {trend !== undefined && (
-                        <span className="kpi-trend" style={{ color: getTrendColor() }}>
+                        <span className={`kpi-trend ${trend > 0 ? 'positive' : 'negative'}`}>
                             {getTrendIcon()}
                             {Math.abs(trend)}%
                         </span>

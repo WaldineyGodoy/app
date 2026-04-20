@@ -251,18 +251,21 @@ export default function Login() {
 
             {/* Signup Modal */}
             {showSignupModal && (
-                <div style={signupModalStyles.modalOverlay}>
+                <div className="auth-modal-overlay">
                     <motion.div
-                        style={signupModalStyles.modalContent}
+                        className="auth-modal-container"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                     >
-                        <button onClick={() => setShowSignupModal(false)} style={signupModalStyles.closeButton}>
-                            <X size={24} />
+                        <button onClick={() => setShowSignupModal(false)} className="auth-modal-close">
+                            <X size={20} />
                         </button>
-                        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: '#003366', textAlign: 'center', marginBottom: '1.5rem' }}>Criar Nova Conta</h2>
+                        <div className="login-header">
+                            <h1>Criar Nova Conta</h1>
+                            <p>B2W Energia Solar</p>
+                        </div>
 
-                        <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <form onSubmit={handleSignup} className="login-form">
                             <div>
                                 <label className="form-label">Nome Completo</label>
                                 <input
@@ -270,6 +273,7 @@ export default function Login() {
                                     value={signupData.name}
                                     onChange={e => setSignupData({ ...signupData, name: e.target.value })}
                                     className="login-input"
+                                    placeholder="Seu nome"
                                 />
                             </div>
                             <div>
@@ -290,6 +294,7 @@ export default function Login() {
                                     value={signupData.email}
                                     onChange={e => setSignupData({ ...signupData, email: e.target.value })}
                                     className="login-input"
+                                    placeholder="seu@email.com"
                                 />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -314,6 +319,7 @@ export default function Login() {
                                         onChange={e => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                                         className="login-input"
                                         minLength={6}
+                                        placeholder="Confirmar"
                                     />
                                 </div>
                             </div>
@@ -322,7 +328,7 @@ export default function Login() {
                                 type="submit"
                                 disabled={signupLoading}
                                 className="btn-primary-b2w"
-                                style={{ marginTop: '0.5rem' }}
+                                style={{ marginTop: '1rem' }}
                             >
                                 {signupLoading ? 'Criando Conta...' : 'Cadastrar'}
                             </button>
@@ -333,19 +339,20 @@ export default function Login() {
 
             {/* Verification Modal */}
             {showVerificationModal && (
-                <div style={signupModalStyles.modalOverlay}>
+                <div className="auth-modal-overlay">
                     <motion.div
-                        style={{ ...signupModalStyles.modalContent, textAlign: 'center', maxWidth: '400px' }}
+                        className="auth-modal-container"
+                        style={{ textAlign: 'center', maxWidth: '440px' }}
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                     >
-                        <div style={{ margin: '0 auto 1.5rem', color: '#10b981' }}>
+                        <div style={{ margin: '0 auto 1.5rem', color: 'var(--success-base)', display: 'flex', justifyContent: 'center' }}>
                             <CheckCircle size={64} />
                         </div>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#111827', marginBottom: '1rem' }}>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--text-main)', marginBottom: '1rem' }}>
                             Verifique seu E-mail
                         </h2>
-                        <p style={{ color: '#6b7280', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.6', fontSize: '1rem' }}>
                             Enviamos um link de confirmação para <strong>{signupData.email}</strong>.<br />
                             Por favor, confirme seu e-mail para ativar sua conta.
                         </p>
@@ -364,17 +371,3 @@ export default function Login() {
         </div>
     );
 }
-
-const signupModalStyles = {
-    modalOverlay: {
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-    },
-    modalContent: {
-        backgroundColor: 'white', padding: '2rem', borderRadius: '24px',
-        width: '90%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', position: 'relative'
-    },
-    closeButton: {
-        position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af'
-    }
-};

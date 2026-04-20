@@ -1,15 +1,21 @@
 .uc-card-enhanced {
-    background: #ffffff;
+    background: var(--bg-card);
     border-radius: 20px;
-    padding: 1.25rem;
-    box-shadow: 0 10px 25px rgba(0, 51, 102, 0.08);
-    border: 1px solid rgba(0, 51, 102, 0.05);
+    padding: 1.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border-ui);
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
     position: relative;
     overflow: hidden;
     height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.uc-card-enhanced:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.08);
 }
 
 .uc-card-enhanced::before {
@@ -19,8 +25,7 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: #FF6600;
-    /* B2W Orange accent */
+    background: var(--primary);
     border-radius: 4px 0 0 4px;
 }
 
@@ -33,40 +38,38 @@
 .uc-main-info {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.4rem;
 }
 
 .uc-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 102, 0, 0.1);
+    background: var(--info-bg);
     padding: 0.35rem 0.75rem;
     border-radius: 12px;
-    color: #003366;
+    color: var(--info-text);
     font-weight: 700;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .uc-identification-text {
-    font-size: 0.85rem;
-    color: #003366;
+    font-size: 1rem;
+    color: var(--text-main);
     font-weight: 700;
     margin-top: 4px;
-    padding-left: 0.5rem;
 }
 
 .uc-concessionaire-text {
     font-size: 0.85rem;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 500;
-    padding-left: 0.5rem;
 }
 
 .status-badges-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: flex-end;
 }
 
@@ -79,35 +82,36 @@
 .badge-wrapper small {
     font-size: 0.65rem;
     text-transform: uppercase;
-    color: #94a3b8;
-    margin-bottom: 2px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
     font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .status-dot {
-    padding: 2px 10px;
-    border-radius: 6px;
+    padding: 4px 12px;
+    border-radius: 8px;
     color: white;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 700;
 }
 
 .status-dot-outline {
-    padding: 1px 8px;
-    border-radius: 6px;
-    border: 1px solid;
-    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 8px;
+    border: 1.5px solid;
+    font-size: 0.75rem;
     font-weight: 700;
-    background: rgba(255, 255, 255, 0.8);
+    background: transparent;
 }
 
 .card-metrics-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    padding: 1rem 0;
-    border-top: 1px solid #f1f5f9;
-    border-bottom: 1px solid #f1f5f9;
+    gap: 1.25rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--border-ui);
+    border-bottom: 1px solid var(--border-ui);
 }
 
 .metric-item {
@@ -117,68 +121,69 @@
 }
 
 .metric-item.highlight {
-    background: #f8fafc;
-    padding: 0.75rem;
-    border-radius: 12px;
-    border: 1px dashed #e2e8f0;
+    background-color: var(--bg-app);
+    padding: 1rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-ui);
 }
 
 .metric-label {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-size: 0.75rem;
-    color: #64748b;
+    color: var(--text-secondary);
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.4rem;
 }
 
 .metric-value {
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     font-weight: 800;
-    color: #003366;
+    color: var(--text-main);
 }
 
 .metric-value small {
-    font-size: 0.8rem;
-    color: #94a3b8;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
 }
 
 .metric-value-large {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
     font-weight: 800;
-    color: #FF6600;
+    color: var(--primary);
 }
 
 .metric-sub-label {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
-    color: #94a3b8;
-    margin-top: 4px;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 6px;
 }
 
 .pay-now-btn {
-    margin-top: 0.75rem;
-    background: #FF6600;
+    margin-top: 1rem;
+    background: var(--btn-save-gradient);
     color: white;
     text-decoration: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
+    gap: 0.6rem;
+    padding: 0.6rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
     font-weight: 700;
-    transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(255, 102, 0, 0.2);
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-btn);
 }
 
 .pay-now-btn:hover {
-    background: #e65c00;
-    transform: scale(1.02);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -3px rgba(37, 99, 235, 0.4);
     color: white;
 }
 
@@ -189,35 +194,48 @@
 
 .details-button {
     width: 100%;
-    background: #003366;
-    color: white;
-    border: none;
-    padding: 0.75rem;
-    border-radius: 10px;
-    font-weight: 600;
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    padding: 0.8rem;
+    border-radius: 14px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
 }
 
 .details-button:hover {
-    background: #002244;
+    background: var(--info-bg);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+
+/* Dark mode specific adjustments for the card if needed */
+:root.dark .uc-card-enhanced {
+    background: var(--bg-card);
+    border-color: var(--border-ui);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+:root.dark .metric-item.highlight {
+    background-color: rgba(255, 255, 255, 0.03);
 }
 
 /* Mobile adjustments */
 @media (max-width: 480px) {
     .uc-card-enhanced {
-        padding: 1rem;
+        padding: 1.25rem;
     }
 
     .metric-value {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
     }
 
     .metric-value-large {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
     }
 }

@@ -4,6 +4,9 @@ import { fetchAddressByCep } from '../lib/api';
 import { useUI } from '../contexts/UIContext';
 import { useNavigate } from 'react-router-dom';
 
+import { Eye, EyeOff, CheckCircle2, UserPlus, MapPin, Briefcase, CreditCard } from 'lucide-react';
+import './OriginatorSignup.css';
+
 class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
@@ -22,7 +25,7 @@ class ErrorBoundary extends React.Component {
     render() {
         if (this.state.hasError) {
             return (
-                <div style={{ padding: '2rem', color: 'red', backgroundColor: '#fee2e2', border: '1px solid red', borderRadius: '8px', margin: '2rem' }}>
+                <div className="error-boundary-container">
                     <h2>Algo deu errado.</h2>
                     <details style={{ whiteSpace: 'pre-wrap' }}>
                         {this.state.error && this.state.error.toString()}
@@ -68,14 +71,6 @@ function OriginatorSignupContent() {
 
     const [showPassword, setShowPassword] = useState(false);
 
-    // Icons
-    const EyeIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-    );
-    const EyeOffIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-    );
-
     const handleCepBlur = async () => {
         const rawCep = form.cep.replace(/\D/g, '');
         if (rawCep.length === 8) {
@@ -109,7 +104,7 @@ function OriginatorSignupContent() {
                     data: {
                         name: form.name,
                         phone: form.phone,
-                        role: 'originator' // Explicitly set role request
+                        role: 'originator'
                     }
                 }
             });
@@ -118,8 +113,6 @@ function OriginatorSignupContent() {
 
             if (data?.user) {
                 setUserId(data.user.id);
-                // If auto-confirm is on/off, we handle step 2.
-                // Assuming email confirmation might be needed or we proceed to profile creation if user exists
                 setStep(2);
             }
 
@@ -136,10 +129,6 @@ function OriginatorSignupContent() {
         setLoading(true);
 
         try {
-            // Create Profile in 'originators_v2' implies we need to be sure user is created.
-            // Note: If RLS prevents Insert without being logged in, this might fail if session isn't established.
-            // Supabase SignUp often logs in automatically if email confirm is off.
-
             const payload = {
                 id: userId,
                 name: form.name,
@@ -161,14 +150,8 @@ function OriginatorSignupContent() {
             };
 
             const { error } = await supabase.from('originators_v2').insert(payload);
-
             if (error) throw error;
-
-            // Also ensure we update the main 'profiles' table role if needed via trigger or manual
-            // But let's assume originators_v2 is the main source for this role.
-
             setStep(3);
-
         } catch (error) {
             console.error('Error saving profile:', error);
             showAlert(error.message || 'Erro ao salvar perfil.', 'error');
@@ -177,92 +160,37 @@ function OriginatorSignupContent() {
         }
     };
 
-    // Styling
-    const colors = {
-        primary: '#003366',
-        accent: '#FF6600',
-        inputBg: '#f8fafc',
-    };
-
-    const styles = {
-        pageContainer: {
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%)',
-            padding: '2rem'
-        },
-        wrapper: {
-            backgroundColor: 'white',
-            borderRadius: '24px',
-            border: '1px solid #f1f5f9',
-            padding: '2rem',
-            boxShadow: '0 32px 64px -16px rgba(0, 51, 102, 0.12)',
-            maxWidth: '42rem',
-            width: '100%',
-            fontFamily: 'Inter, sans-serif'
-        },
-        header: {
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            marginBottom: '2rem',
-            color: colors.primary
-        },
-        formSpace: {
-            display: 'flex', flexDirection: 'column', gap: '1.5rem'
-        },
-        grid: {
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem'
-        },
-        label: {
-            display: 'block', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase',
-            color: '#6b7280', marginBottom: '0.25rem'
-        },
-        input: {
-            width: '100%', padding: '0.75rem 1rem', borderRadius: '0.75rem',
-            border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', outline: 'none',
-            transition: 'all 0.2s', fontSize: '1rem'
-        },
-        button: {
-            width: '100%', padding: '1rem', marginTop: '1.5rem', borderRadius: '0.75rem',
-            fontWeight: '800', color: 'white', textTransform: 'uppercase', fontSize: '1.125rem',
-            letterSpacing: '0.025em', border: 'none', cursor: loading ? 'wait' : 'pointer',
-            opacity: loading ? 0.7 : 1, backgroundColor: colors.accent,
-            boxShadow: '0 4px 14px 0 rgba(255, 102, 0, 0.39)', transition: 'opacity 0.2s'
-        }
-    };
-
     if (step === 1) {
         return (
-            <div style={styles.pageContainer}>
-                <div style={styles.wrapper}>
-                    <h2 style={styles.header}>Seja um Parceiro B2W</h2>
-                    <form onSubmit={handleSignUp} style={styles.formSpace}>
+            <div className="signup-page-container">
+                <div className="signup-wrapper">
+                    <h2 className="signup-header">Seja um Parceiro B2W</h2>
+                    <form onSubmit={handleSignUp} className="signup-form-space">
                         <div>
-                            <label style={styles.label}>Nome Completo</label>
+                            <label className="signup-label">Nome Completo</label>
                             <input
                                 type="text"
                                 value={form.name}
                                 onChange={e => setForm({ ...form, name: e.target.value })}
-                                style={styles.input}
+                                className="signup-input"
                                 required
+                                placeholder="Seu nome completo"
                             />
                         </div>
-                        <div style={styles.grid}>
+                        <div className="signup-grid">
                             <div>
-                                <label style={styles.label}>E-mail</label>
+                                <label className="signup-label">E-mail</label>
                                 <input
                                     type="email"
                                     value={form.email}
                                     onChange={e => setForm({ ...form, email: e.target.value })}
-                                    style={styles.input}
+                                    className="signup-input"
                                     required
+                                    placeholder="seu@email.com"
                                 />
                             </div>
                             <div>
-                                <label style={styles.label}>WhatsApp</label>
+                                <label className="signup-label">WhatsApp</label>
                                 <input
                                     type="tel"
                                     maxLength="15"
@@ -273,45 +201,48 @@ function OriginatorSignupContent() {
                                         v = v.replace(/(\d)(\d{4})$/, '$1-$2');
                                         setForm({ ...form, phone: v });
                                     }}
-                                    style={styles.input}
+                                    className="signup-input"
                                     required
+                                    placeholder="(00) 00000-0000"
                                 />
                             </div>
                         </div>
                         <div style={{ position: 'relative' }}>
-                            <label style={styles.label}>Senha</label>
+                            <label className="signup-label">Senha</label>
                             <input
                                 type={showPassword ? "text" : "password"}
                                 value={form.password}
                                 onChange={e => setForm({ ...form, password: e.target.value })}
-                                style={{ ...styles.input, paddingRight: '2.5rem' }}
+                                className="signup-input"
+                                style={{ paddingRight: '3.5rem' }}
                                 required
                                 minLength={6}
+                                placeholder="No mínimo 6 caracteres"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 style={{
                                     position: 'absolute',
-                                    right: '0.75rem',
-                                    top: '1.75rem',
+                                    right: '1.25rem',
+                                    top: '2.4rem',
                                     background: 'none',
                                     border: 'none',
                                     cursor: 'pointer',
-                                    color: '#6b7280',
+                                    color: 'var(--text-muted)',
                                     display: 'flex',
                                     alignItems: 'center'
                                 }}
                             >
-                                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
-                        <button type="submit" disabled={loading} style={styles.button}>
+                        <button type="submit" disabled={loading} className="signup-button">
                             {loading ? 'Cadastrando...' : 'Quero ser Parceiro'}
                         </button>
-                        <div style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.9rem' }}>
-                            <span style={{ color: '#666' }}>Já tem conta? </span>
-                            <a href="/login" style={{ color: colors.primary, fontWeight: 'bold', textDecoration: 'none' }}>Fazer Login</a>
+                        <div className="signup-footer">
+                            <span>Já tem conta?</span>
+                            <a href="/login">Fazer Login</a>
                         </div>
                     </form>
                 </div>
@@ -320,16 +251,15 @@ function OriginatorSignupContent() {
     }
 
     return (
-        <div style={styles.pageContainer}>
-            {/* Modal Wrapper for Step 2/3 */}
-            <div style={styles.wrapper}>
+        <div className="signup-page-container">
+            <div className="signup-wrapper">
                 {step === 2 && (
-                    <form onSubmit={handleProfileSubmit} style={styles.formSpace}>
-                        <h3 style={{ ...styles.header, marginBottom: '1rem', fontSize: '1.25rem' }}>Complete seu Perfil</h3>
+                    <form onSubmit={handleProfileSubmit} className="signup-form-space">
+                        <h3 className="signup-header" style={{ marginBottom: '1.5rem', fontSize: '1.5rem', textAlign: 'left' }}>Complete seu Perfil</h3>
 
-                        <div style={styles.grid}>
+                        <div className="signup-grid">
                             <div style={{ gridColumn: '1 / -1' }}>
-                                <label style={styles.label}>CEP</label>
+                                <label className="signup-label">CEP</label>
                                 <input
                                     type="text"
                                     maxLength="9"
@@ -340,66 +270,68 @@ function OriginatorSignupContent() {
                                         setForm({ ...form, cep: v });
                                     }}
                                     onBlur={handleCepBlur}
-                                    style={styles.input}
+                                    className="signup-input"
                                     required
+                                    placeholder="00000-000"
                                 />
                             </div>
                         </div>
 
-                        <div style={styles.grid}>
+                        <div className="signup-grid">
                             <div style={{ gridColumn: '1 / -1' }}>
-                                <label style={styles.label}>Rua</label>
-                                <input value={form.street} style={styles.input} readOnly />
+                                <label className="signup-label">Rua</label>
+                                <input value={form.street} className="signup-input" readOnly />
                             </div>
 
                             <div>
-                                <label style={styles.label}>Bairro</label>
-                                <input value={form.neighborhood} style={styles.input} readOnly />
+                                <label className="signup-label">Bairro</label>
+                                <input value={form.neighborhood} className="signup-input" readOnly />
                             </div>
 
                             <div>
-                                <label style={styles.label}>Cidade / UF</label>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <input value={form.city} style={{ ...styles.input, flex: 2 }} readOnly />
-                                    <input value={form.uf} style={{ ...styles.input, flex: 1 }} readOnly />
+                                <label className="signup-label">Cidade / UF</label>
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <input value={form.city} className="signup-input" style={{ flex: 2 }} readOnly />
+                                    <input value={form.uf} className="signup-input" style={{ flex: 1 }} readOnly />
                                 </div>
                             </div>
 
                             <div>
-                                <label style={styles.label}>Número</label>
+                                <label className="signup-label">Número</label>
                                 <input
                                     value={form.number}
                                     onChange={e => setForm({ ...form, number: e.target.value })}
-                                    style={styles.input}
+                                    className="signup-input"
                                     required
+                                    placeholder="123"
                                 />
                             </div>
                             <div>
-                                <label style={styles.label}>Complemento</label>
+                                <label className="signup-label">Complemento</label>
                                 <input
                                     value={form.complement}
                                     onChange={e => setForm({ ...form, complement: e.target.value })}
-                                    style={styles.input}
+                                    className="signup-input"
                                     placeholder="Ap 101, Bloco B"
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label style={styles.label}>Profissão</label>
+                            <label className="signup-label">Profissão</label>
                             <input
                                 type="text"
                                 value={form.profession}
                                 onChange={e => setForm({ ...form, profession: e.target.value })}
-                                style={styles.input}
+                                className="signup-input"
                                 required
-                                placeholder="Corretor de Seguros, Consorcios e Contador"
+                                placeholder="Ex: Corretor de Seguros, Contador..."
                             />
                         </div>
 
-                        <div style={styles.grid}>
+                        <div className="signup-grid">
                             <div>
-                                <label style={styles.label}>CPF (Chave PIX)</label>
+                                <label className="signup-label">CPF (Chave PIX)</label>
                                 <input
                                     type="text"
                                     value={form.cpf}
@@ -416,13 +348,13 @@ function OriginatorSignupContent() {
                                             pix_key: prev.pix_key_type === 'cpf' ? v : prev.pix_key
                                         }));
                                     }}
-                                    style={styles.input}
+                                    className="signup-input"
                                     required
                                     placeholder="000.000.000-00"
                                 />
                             </div>
                             <div>
-                                <label style={styles.label}>Tipo Chave PIX</label>
+                                <label className="signup-label">Tipo Chave PIX</label>
                                 <select
                                     value={form.pix_key_type}
                                     onChange={e => {
@@ -433,7 +365,7 @@ function OriginatorSignupContent() {
                                             pix_key: newType === 'cpf' ? prev.cpf : ''
                                         }));
                                     }}
-                                    style={styles.input}
+                                    className="signup-input"
                                 >
                                     <option value="cpf">CPF</option>
                                     <option value="email">E-mail</option>
@@ -445,17 +377,18 @@ function OriginatorSignupContent() {
 
                         {form.pix_key_type !== 'cpf' && (
                             <div>
-                                <label style={styles.label}>Chave PIX</label>
+                                <label className="signup-label">Chave PIX</label>
                                 <input
                                     value={form.pix_key}
                                     onChange={e => setForm({ ...form, pix_key: e.target.value })}
-                                    style={styles.input}
+                                    className="signup-input"
                                     required
+                                    placeholder="Sua chave PIX"
                                 />
                             </div>
                         )}
 
-                        <button type="submit" disabled={loading} style={styles.button}>
+                        <button type="submit" disabled={loading} className="signup-button">
                             {loading ? 'Salvando...' : 'Finalizar Cadastro'}
                         </button>
                     </form>
@@ -463,16 +396,16 @@ function OriginatorSignupContent() {
 
                 {step === 3 && (
                     <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-                        <svg style={{ width: '64px', height: '64px', color: '#16a34a', margin: '0 auto 1rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <h3 style={{ ...styles.header, marginBottom: '0.5rem' }}>Cadastro Realizado!</h3>
-                        <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-                            Seu cadastro foi realizado com sucesso.
+                        <div className="signup-success-icon">
+                            <CheckCircle2 size={48} />
+                        </div>
+                        <h3 className="signup-header" style={{ marginBottom: '1rem' }}>Cadastro Realizado!</h3>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: '2.5rem', fontWeight: 500 }}>
+                            Seu cadastro foi realizado com sucesso. Agora você já pode acessar sua conta.
                         </p>
                         <button
                             onClick={() => navigate('/login')}
-                            style={styles.button}
+                            className="signup-button"
                         >
                             Ir para Login
                         </button>

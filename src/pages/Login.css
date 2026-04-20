@@ -3,14 +3,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--bg-app);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(var(--primary-glow), 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(var(--primary-glow), 0.03) 0px, transparent 50%);
     padding: 1.5rem;
-    font-family: 'Inter', sans-serif;
 }
 
 .login-content {
     width: 100%;
-    max-width: 420px;
+    max-width: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -18,9 +20,7 @@
 }
 
 .login-logo-wrapper {
-    margin-bottom: -30px;
-    /* Overlap effect */
-    z-index: 1;
+    margin-bottom: 2rem;
 }
 
 .brand-logo-login {
@@ -30,139 +30,170 @@
 }
 
 .login-card {
-    background: white;
-    padding: 2.5rem 2rem;
-    border-radius: 24px;
-    box-shadow: 0 15px 35px rgba(0, 51, 102, 0.1);
+    background: var(--bg-card);
+    padding: 3rem 2.5rem;
+    border-radius: 30px;
+    box-shadow: var(--shadow-modal);
     width: 100%;
-    z-index: 2;
-    border: 1px solid rgba(0, 51, 102, 0.05);
+    border: 1px solid var(--border-ui);
+    backdrop-filter: blur(10px);
 }
 
 .login-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .login-header h1 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     font-weight: 800;
-    color: #003366;
-    /* Azul B2W */
+    color: var(--text-main);
     margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
 }
 
 .login-header p {
-    color: #64748b;
-    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
 }
 
-.form-group {
-    margin-bottom: 1.25rem;
-}
-
-.form-label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 0.5rem;
-}
-
-.input-wrapper {
-    position: relative;
+.login-form {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
 .login-input {
     width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 12px;
-    border: 1.5px solid #e2e8f0;
+    padding: 0.9rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid var(--border-ui);
+    background: var(--bg-app);
     font-size: 1rem;
-    transition: all 0.3s ease;
-    outline: none;
+    color: var(--text-main);
+    transition: all 0.25s ease;
 }
 
 .login-input:focus {
-    border-color: #FF6600;
-    /* Laranja B2W */
-    box-shadow: 0 0 0 4px rgba(255, 102, 0, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    background: var(--bg-card);
 }
 
 .btn-primary-b2w {
     width: 100%;
-    padding: 0.9rem;
-    border-radius: 12px;
-    background-color: #FF6600;
-    /* Laranja B2W */
+    padding: 1rem;
+    border-radius: 14px;
+    background: var(--btn-primary-gradient);
     color: white;
     font-weight: 700;
     font-size: 1rem;
     border: none;
     cursor: pointer;
-    box-shadow: 0 6px 15px rgba(255, 102, 0, 0.3);
-    transition: all 0.3s ease;
+    box-shadow: var(--shadow-btn);
+    transition: all 0.25s ease;
 }
 
 .btn-primary-b2w:hover:not(:disabled) {
-    background-color: #e65c00;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(255, 102, 0, 0.4);
+    box-shadow: 0 12px 20px -5px rgba(37, 99, 235, 0.5);
 }
 
 .btn-primary-b2w:disabled {
-    opacity: 0.7;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
 .forgot-password {
     background: none;
     border: none;
-    color: #003366;
-    font-size: 0.8rem;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 700;
     padding: 0;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.2s;
 }
 
 .forgot-password:hover {
-    color: #FF6600;
-    text-decoration: underline;
+    color: var(--primary-dark);
+    text-decoration: none;
+    opacity: 0.8;
 }
 
 .signup-prompt {
     margin-top: 1.5rem;
     text-align: center;
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .signup-link {
     background: none;
     border: none;
-    color: #FF6600;
-    font-weight: 700;
+    color: var(--primary);
+    font-weight: 800;
     cursor: pointer;
     padding-left: 0.25rem;
+    transition: all 0.2s;
 }
 
 .signup-link:hover {
     text-decoration: underline;
 }
 
+/* Modals Refactor in JS will use these */
+.auth-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: var(--blur-overlay);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.auth-modal-container {
+    background: var(--bg-modal);
+    padding: 3rem;
+    border-radius: 30px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: var(--shadow-modal);
+    border: var(--border-glow);
+}
+
+.auth-modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: var(--bg-app);
+    border: none;
+    padding: 0.5rem;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.auth-modal-close:hover {
+    background: var(--error-bg);
+    color: var(--error-base);
+    transform: rotate(90deg);
+}
+
 /* Responsividade */
 @media (max-width: 480px) {
     .login-card {
         padding: 2rem 1.5rem;
-    }
-
-    .login-logo-wrapper {
-        margin-bottom: -20px;
-    }
-
-    .brand-logo-login {
-        max-width: 140px;
+        border-radius: 20px;
     }
 }

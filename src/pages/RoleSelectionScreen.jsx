@@ -89,30 +89,30 @@ const RoleSelectionScreen = () => {
             desc: "Consulte suas UCs, relatórios de consumo e faturas.",
             icon: "bi-house-heart",
             img: SubsImg,
-            color: "#FF6600", // Laranja B2W
             path: "/assinantes",
             role: "subscriber",
-            btn: "Acessar Área do Assinante"
+            btn: "Acessar Área do Assinante",
+            gradient: "var(--btn-primary-gradient)"
         },
         {
-            title: "Embaixadores / Originadores",
+            title: "Embaixadores",
             desc: "Gerencie seus leads e acompanhe suas comissões.",
             icon: "bi-people-fill",
             img: AmbImg,
-            color: "#003366", // Azul B2W
             path: "/originadores",
             role: "originator",
-            btn: "Acessar Painel do Embaixador"
+            btn: "Acessar Painel do Embaixador",
+            gradient: "linear-gradient(135deg, #003366 0%, #001f3f 100%)" // Dark Blue for ambassadors
         },
         {
             title: "Donos de Usinas",
             desc: "Visualize a geração e performance de suas usinas.",
             icon: "bi-building-up",
             img: SuppImg,
-            color: "#FF6600", // Laranja B2W
             path: "/fornecedores",
             role: "supplier",
-            btn: "Acessar Painel do Fornecedor"
+            btn: "Acessar Painel do Fornecedor",
+            gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" // Amber for suppliers
         }
     ];
 
@@ -135,7 +135,8 @@ const RoleSelectionScreen = () => {
                         }}
                     />
                     <motion.h1
-                        className="display-5 fw-bold text-dark"
+                        className="display-5 fw-bold"
+                        style={{ color: 'var(--text-main)', letterSpacing: '-0.02em' }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
@@ -143,7 +144,8 @@ const RoleSelectionScreen = () => {
                         Bem-vindo ao Portal
                     </motion.h1>
                     <motion.p
-                        className="lead text-muted"
+                        className="lead"
+                        style={{ color: 'var(--text-secondary)', fontWeight: 500 }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
@@ -164,16 +166,16 @@ const RoleSelectionScreen = () => {
                             >
                                 <div className="card-image-wrapper">
                                     <img src={item.img} alt={item.title} className="card-top-img" />
-                                    <div className="card-icon-float" style={{ backgroundColor: item.color }}>
+                                    <div className="card-icon-float" style={{ background: item.gradient }}>
                                         <i className={`bi ${item.icon} text-white fs-4`}></i>
                                     </div>
                                 </div>
                                 <div className="card-content p-4 text-center">
-                                    <h3 className="h4 fw-bold mb-3">{item.title}</h3>
-                                    <p className="text-muted mb-4">{item.desc}</p>
+                                    <h3>{item.title}</h3>
+                                    <p>{item.desc}</p>
                                     <motion.button
-                                        className="btn w-100 py-2 fw-bold text-white shadow-sm"
-                                        style={{ backgroundColor: item.color, border: 'none' }}
+                                        className="role-btn text-white"
+                                        style={{ background: item.gradient }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => handleRoleSelect(item.path, item.role)}
                                     >

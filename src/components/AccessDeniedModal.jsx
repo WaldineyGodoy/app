@@ -13,7 +13,7 @@ const AccessDeniedModal = ({ isOpen, onClose, onAction, title, message, actionTe
                 </button>
 
                 <div className="denied-icon-wrapper">
-                    <AlertCircle size={40} color="#FF6600" />
+                    <AlertCircle size={40} />
                 </div>
 
                 <div className="denied-content">

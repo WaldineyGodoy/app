@@ -150,41 +150,43 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                             const statusInfo = statusMap[uc.status] || { label: uc.status, class: 'bg-light text-dark' };
 
                             return (
-                                <div key={uc.id} className="uc-item-card d-flex align-items-center mb-3 p-3 border rounded shadow-sm">
-                                    <div className="uc-index-circle me-3">
+                                <div key={uc.id} className="uc-item-card">
+                                    <div className="uc-index-circle">
                                         <span>{index + 1}</span>
                                     </div>
-                                    <div className="flex-grow-1">
-                                        <div className="d-flex justify-content-between align-items-start">
-                                            <div>
-                                                <h4 className="h6 mb-1 fw-bold">
+                                    <div className="uc-card-content">
+                                        <div className="uc-card-main">
+                                            <div className="uc-info-primary">
+                                                <h4 className="uc-number">
                                                     {uc.numero_uc}
-                                                    <span className={`badge ${uc.tipo_unidade === 'geradora' ? 'bg-warning text-dark' : 'bg-info text-dark'} small ms-2`} style={{ fontSize: '0.65rem', textTransform: 'capitalize' }}>
+                                                    <span className={`uc-badge type-${uc.tipo_unidade === 'geradora' ? 'generator' : 'beneficiary'}`}>
                                                         {uc.tipo_unidade || 'Beneficiária'}
                                                     </span>
-                                                    <span className={`badge ${statusInfo.class} small ms-2`} style={{ fontSize: '0.65rem' }}>
+                                                    <span className={`uc-badge status-${uc.status}`}>
                                                         {statusInfo.label}
                                                     </span>
                                                 </h4>
-                                                <div className="small text-muted mb-1">{(uc.usina || uc.usinas)?.name}</div>
-                                                <div className="small fw-semibold mt-1">Titular: <span className="text-dark">{uc.titular_conta || (uc.subscriber || uc.subscribers)?.name}</span></div>
-                                                <div className="small text-muted">CPF/CNPJ: {(uc.subscriber || uc.subscribers)?.cpf_cnpj || uc.cpf_cnpj_fatura || '---'}</div>
+                                                <div className="uc-usina-name">{(uc.usina || uc.usinas)?.name}</div>
+                                                <div className="uc-titular">
+                                                    <User size={14} />
+                                                    <span>{uc.titular_conta || (uc.subscriber || uc.subscribers)?.name}</span>
+                                                </div>
+                                                <div className="uc-document">{(uc.subscriber || uc.subscribers)?.cpf_cnpj || uc.cpf_cnpj_fatura || '---'}</div>
                                             </div>
-                                            <div className="text-end">
-                                                <div className="small text-muted">{uc.concessionaria || 'Neoenergia Cosern'}</div>
-                                                <div className="h5 mb-0 fw-bold text-success">{formatNumber(uc.franquia)} kWh</div>
-                                                <div className="small fw-bold text-success">{generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : '0.00'}%</div>
-                                                <div className="small text-muted" style={{ fontSize: '0.7rem' }}>Saldo R.: {uc.saldo_remanescente ? 'Sim' : 'Não'}</div>
+                                            <div className="uc-stats-secondary">
+                                                <div className="uc-concessionaria">{uc.concessionaria || 'Neoenergia Cosern'}</div>
+                                                <div className="uc-franquia-value">{formatNumber(uc.franquia)} kWh</div>
+                                                <div className="uc-franquia-percent">{generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : '0.00'}%</div>
+                                                <div className="uc-remanescente">Saldo R.: {uc.saldo_remanescente ? 'Sim' : 'Não'}</div>
                                             </div>
                                         </div>
                                     </div>
                                     <button
-                                        className="action-icon-btn ms-3 border-0 bg-transparent"
+                                        className="uc-view-btn"
                                         title="Ver Detalhes"
                                         onClick={() => setSelectedUcDetails(uc)}
-                                        style={{ color: '#fd7e14' }}
                                     >
-                                        <i className="bi bi-eye-fill" style={{ fontSize: '1.25rem' }}></i>
+                                        <Eye size={20} />
                                     </button>
                                 </div>
                             );
