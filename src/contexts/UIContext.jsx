@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle, HelpCircle, Info } from 'lucide-react';
 
 const UIContext = createContext();
@@ -12,6 +12,11 @@ export const useUI = () => {
 };
 
 export const UIProvider = ({ children }) => {
+    const [theme, setTheme] = useState(() => {
+        const saved = localStorage.getItem('app-theme');
+        return saved || 'light';
+    });
+
     const [dialog, setDialog] = useState({
         isOpen: false,
         type: 'alert', // 'alert' | 'confirm'
@@ -25,6 +30,15 @@ export const UIProvider = ({ children }) => {
     });
 
     const confirmResolver = useRef(null);
+
+    useEffect(() => {
+        document.documentElement.className = theme;
+        localStorage.setItem('app-theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prev => prev === 'light' ? 'dark' : 'light');
+    };
 
     const closeDialog = () => {
         setDialog(prev => ({ ...prev, isOpen: false }));
@@ -92,7 +106,7 @@ export const UIProvider = ({ children }) => {
     };
 
     return (
-        <UIContext.Provider value={{ showAlert, showConfirm }}>
+        <UIContext.Provider value={{ showAlert, showConfirm, theme, toggleTheme }}>
             {children}
             {dialog.isOpen && (
                 <div style={{
@@ -102,7 +116,7 @@ export const UIProvider = ({ children }) => {
                     animation: 'fadeIn 0.2s ease-out'
                 }}>
                     <div style={{
-                        background: 'white',
+                        background: theme === 'dark' ? '#0f172a' : 'white',
                         borderRadius: '12px',
                         padding: '24px',
                         width: '90%',
@@ -111,7 +125,8 @@ export const UIProvider = ({ children }) => {
                         animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '16px'
+                        gap: '16px',
+                        border: theme === 'dark' ? '1px solid #1e293b' : 'none'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -124,14 +139,14 @@ export const UIProvider = ({ children }) => {
                                 }}>
                                     {getIcon()}
                                 </div>
-                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600', color: '#1f2937' }}>{dialog.title}</h3>
+                                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '600', color: theme === 'dark' ? '#f8fafc' : '#1f2937' }}>{dialog.title}</h3>
                             </div>
                             <button onClick={closeDialog} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <p style={{ margin: 0, color: '#4b5563', fontSize: '1rem', lineHeight: '1.5' }}>
+                        <p style={{ margin: 0, color: theme === 'dark' ? '#94a3b8' : '#4b5563', fontSize: '1rem', lineHeight: '1.5' }}>
                             {dialog.message}
                         </p>
 
@@ -143,14 +158,12 @@ export const UIProvider = ({ children }) => {
                                         padding: '8px 16px',
                                         borderRadius: '6px',
                                         border: '1px solid #e5e7eb',
-                                        background: 'white',
-                                        color: '#374151',
+                                        background: theme === 'dark' ? '#1e293b' : 'white',
+                                        color: theme === 'dark' ? '#f8fafc' : '#374151',
                                         fontWeight: '500',
                                         cursor: 'pointer',
                                         transition: 'background 0.2s'
                                     }}
-                                    onMouseOver={e => e.currentTarget.style.background = '#f9fafb'}
-                                    onMouseOut={e => e.currentTarget.style.background = 'white'}
                                 >
                                     {dialog.cancelText}
                                 </button>
@@ -161,15 +174,13 @@ export const UIProvider = ({ children }) => {
                                     padding: '8px 16px',
                                     borderRadius: '6px',
                                     border: 'none',
-                                    background: dialog.variant === 'error' ? '#dc2626' : '#003366',
+                                    background: dialog.variant === 'error' ? '#dc2626' : '#3b82f6',
                                     color: 'white',
                                     fontWeight: '500',
                                     cursor: 'pointer',
                                     boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
                                     transition: 'filter 0.2s'
                                 }}
-                                onMouseOver={e => e.currentTarget.style.filter = 'brightness(0.9)'}
-                                onMouseOut={e => e.currentTarget.style.filter = 'brightness(1)'}
                             >
                                 {dialog.confirmText}
                             </button>

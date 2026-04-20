@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { maskPhone } from '../lib/validators';
 import { Eye, EyeOff, X, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import ThemeToggle from '../components/ThemeToggle';
 import './Login.css';
 
 const BRAND_LOGO = 'https://abbysvxnnhwvvzhftoms.supabase.co/storage/v1/object/public/branding/logos/logo_1772342503927.png';
@@ -368,6 +369,7 @@ export default function Login() {
                     </motion.div>
                 </div>
             )}
+            <ThemeToggle />
         </div>
     );
 }

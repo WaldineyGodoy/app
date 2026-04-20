@@ -5,6 +5,7 @@ import { useUI } from '../contexts/UIContext';
 import { useNavigate } from 'react-router-dom';
 
 import { Eye, EyeOff, CheckCircle2, UserPlus, MapPin, Briefcase, CreditCard } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
 import './OriginatorSignup.css';
 
 class ErrorBoundary extends React.Component {
@@ -246,6 +247,7 @@ function OriginatorSignupContent() {
                         </div>
                     </form>
                 </div>
+                <ThemeToggle />
             </div>
         );
     }
@@ -412,6 +414,7 @@ function OriginatorSignupContent() {
                     </div>
                 )}
             </div>
+            <ThemeToggle />
         </div>
     );
 }

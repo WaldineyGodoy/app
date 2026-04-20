@@ -7,7 +7,8 @@ import PlantInvoicesModal from '../components/PlantInvoicesModal';
 import PlantAnalyticsModal from '../components/PlantAnalyticsModal';
 import SupplierPlantsModal from '../components/SupplierPlantsModal';
 import SupplierUCsModal from '../components/SupplierUCsModal';
-import { Factory, Zap, Users, Coins, LogOut } from 'lucide-react';
+import ThemeToggle from '../components/ThemeToggle';
+import { Factory, Zap, Users, Coins, LogOut, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './SupplierDashboard.css';
 
@@ -194,119 +195,123 @@ const SupplierDashboard = () => {
 
     return (
         <div className="supplier-dashboard">
-            <div className="profile-header">
-                <div className="profile-info">
-                    <div className="profile-avatar">
-                        <Factory size={32} />
-                    </div>
-                    <div className="profile-details">
-                        <h1>Olá, {supplierName || 'Parceiro'}!</h1>
-                        <p>Visão geral de suas usinas e geração de energia.</p>
+            <div className="dashboard-container">
+                <div className="profile-header">
+                    <div className="profile-info">
+                        <div className="profile-avatar">
+                            <Factory size={32} />
+                        </div>
+                        <div className="profile-details">
+                            <h1>Olá, {supplierName || 'Parceiro'}!</h1>
+                            <p>Visão geral de suas usinas e geração de energia.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {loading ? (
-                <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Carregando dados da usina...</p>
-                </div>
-            ) : (
-                <motion.div
-                    className="dashboard-content"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                    {/* KPIs */}
-                    <div className="kpi-grid">
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <KPICard
-                                title="Total a Receber"
-                                value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
-                                icon={Coins}
-                            />
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <KPICard
-                                title="Total de Usinas"
-                                value={stats.totalUsinas}
-                                icon={Factory}
-                                onClick={() => setShowPlantsModal(true)}
-                            />
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <KPICard
-                                title="Total de UCs"
-                                value={stats.totalUCs}
-                                icon={Users}
-                                onClick={() => {
-                                    setSelectedUsina(null);
-                                    setShowUCsModal(true);
-                                }}
-                            />
-                        </motion.div>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <KPICard
-                                title="Geração (Último Mês)"
-                                value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
-                                icon={Zap}
-                            />
-                        </motion.div>
+                {loading ? (
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Carregando dados da usina...</p>
                     </div>
-
-                    {/* Filters & Grid */}
-                    <section className="usinas-section">
-                        <div className="section-header-row">
-                            <h2>Suas Usinas</h2>
-                            <div className="status-tabs">
-                                {[
-                                    { id: 'all', label: 'Todas' },
-                                    { id: 'active', label: 'Ativas' },
-                                    { id: 'generating', label: 'Gerando' },
-                                    { id: 'maintenance', label: 'Manutenção' }
-                                ].map(tab => (
-                                    <button
-                                        key={tab.id}
-                                        className={`tab-pill ${activeTab === tab.id ? 'active' : ''}`}
-                                        onClick={() => setActiveTab(tab.id)}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
+                ) : (
+                    <motion.div
+                        className="dashboard-content"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
+                        {/* KPIs */}
+                        <div className="kpi-grid">
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Total a Receber"
+                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
+                                    icon={Coins}
+                                />
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Total de Usinas"
+                                    value={stats.totalUsinas}
+                                    icon={Factory}
+                                    onClick={() => setShowPlantsModal(true)}
+                                />
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Total de UCs"
+                                    value={stats.totalUCs}
+                                    icon={Users}
+                                    onClick={() => {
+                                        setSelectedUsina(null);
+                                        setShowUCsModal(true);
+                                    }}
+                                />
+                            </motion.div>
+                            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <KPICard
+                                    title="Geração (Último Mês)"
+                                    value={`${new Intl.NumberFormat('pt-BR').format(stats.totalGeneration)} kWh`}
+                                    icon={Zap}
+                                />
+                            </motion.div>
                         </div>
 
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={activeTab}
-                                className="plants-grid"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                {filteredUsinas.length > 0 ? (
-                                    filteredUsinas.map(usina => (
-                                        <motion.div key={usina.id} whileHover={{ y: -5 }}>
-                                            <PlantCard
-                                                usina={usina}
-                                                onOpenGraphs={handleOpenPerformance}
-                                                onOpenInvoices={handleOpenInvoices}
-                                                onOpenUCs={() => handleOpenUCs(usina)}
-                                            />
-                                        </motion.div>
-                                    ))
-                                ) : (
-                                    <div className="no-data-full">
-                                        <p>Nenhuma usina encontrada com este status.</p>
-                                    </div>
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
-                    </section>
-                </motion.div>
-            )}
+                        {/* Filters & Grid */}
+                        <section className="usinas-section">
+                            <div className="section-header-row">
+                                <h2>Suas Usinas</h2>
+                                <div className="status-tabs">
+                                    {[
+                                        { id: 'all', label: 'Todas' },
+                                        { id: 'active', label: 'Ativas' },
+                                        { id: 'generating', label: 'Gerando' },
+                                        { id: 'maintenance', label: 'Manutenção' }
+                                    ].map(tab => (
+                                        <button
+                                            key={tab.id}
+                                            className={`tab-pill ${activeTab === tab.id ? 'active' : ''}`}
+                                            onClick={() => setActiveTab(tab.id)}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={activeTab}
+                                    className="plants-grid"
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    {filteredUsinas.length > 0 ? (
+                                        filteredUsinas.map(usina => (
+                                            <motion.div key={usina.id} whileHover={{ y: -5 }}>
+                                                <PlantCard
+                                                    usina={usina}
+                                                    onOpenGraphs={handleOpenPerformance}
+                                                    onOpenInvoices={handleOpenInvoices}
+                                                    onOpenUCs={() => handleOpenUCs(usina)}
+                                                />
+                                            </motion.div>
+                                        ))
+                                    ) : (
+                                        <div className="no-data-full">
+                                            <p>Nenhuma usina encontrada com este status.</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        </section>
+                    </motion.div>
+                )}
+            </div>
+
+            <ThemeToggle />
 
             {/* Modals */}
             <PlantInvoicesModal

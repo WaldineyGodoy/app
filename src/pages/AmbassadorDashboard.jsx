@@ -6,6 +6,7 @@ import { Users, DollarSign, TrendingUp, Copy, Check, MessageCircle, Send } from 
 import LeadCreateModal from '../components/LeadCreateModal';
 import { sendWhatsapp } from '../lib/api'; // [NEW] Import API
 import { ledgerService } from '../services/ledgerService'; // [NEW] Ledger Service
+import ThemeToggle from '../components/ThemeToggle';
 import './AmbassadorDashboard.css';
 
 const AmbassadorDashboard = () => {
@@ -238,159 +239,164 @@ const AmbassadorDashboard = () => {
 
     return (
         <div className="ambassador-dashboard">
-            {loading ? (
-                <div className="loading-state">
-                    <div className="spinner"></div>
-                    <p>Carregando dados...</p>
-                </div>
-            ) : error ? (
-                <div className="error-state">
-                    <p>{error}</p>
-                    <button className="action-btn primary" onClick={fetchDashboardData}>Tentar Novamente</button>
-                    <button className="action-btn" onClick={handleLogout} style={{ marginTop: '1rem', color: '#666' }}>Sair</button>
-                </div>
-            ) : (
-                <>
-                    {/* 1. Top Bar: Welcome + Stats */}
-                    <div className="top-bar">
-                        <div className="welcome-text">
-                            <h1>Bem-vindo, {originatorName || 'Embaixador'}!</h1>
-                            <p>Você tem {stats.totalLeads} indicados e {leads.filter(l => l.isNew).length} novas atualizações.</p>
-                        </div>
-
-                        <div className="top-stats">
-                            <div className="stat-item">
-                                <span className="stat-value">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.ledgerBalance)}
-                                    <span className="stat-trend" style={{ color: '#2ecc71' }}>▲ Disponível</span>
-                                </span>
-                                <span className="stat-label">Saldo em Conta (Real)</span>
-                            </div>
-
-                            {/* [NEW] Comissões Pagas */}
-                            <div className="stat-item">
-                                <span className="stat-value">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.paid)}
-                                    <span className="stat-trend" style={{ color: '#10b981' }}>✔</span>
-                                </span>
-                                <span className="stat-label">Comissões Pagas</span>
-                            </div>
-
-                            <div className="stat-item">
-                                <span className="stat-value">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
-                                    <span className="stat-trend" style={{ color: '#0ea5e9' }}>• Est.</span>
-                                </span>
-                                <span className="stat-label">Comissões Estimadas</span>
-                            </div>
-                        </div>
+            <div className="dashboard-container">
+                {loading ? (
+                    <div className="loading-state">
+                        <div className="spinner"></div>
+                        <p>Carregando dados...</p>
                     </div>
-
-                    {/* 2. Main Profile Card */}
-                    <div className="profile-card-container">
-                        <div className="profile-info">
-                            <div className="profile-avatar">
-                                <div className="profile-avatar-placeholder">
-                                    {originatorName ? originatorName.charAt(0) : 'E'}
-                                </div>
+                ) : error ? (
+                    <div className="error-state">
+                        <p>{error}</p>
+                        <button className="action-btn primary" onClick={fetchDashboardData}>Tentar Novamente</button>
+                        <button className="action-btn" onClick={handleLogout} style={{ marginTop: '1rem', color: '#666' }}>Sair</button>
+                    </div>
+                ) : (
+                    <>
+                        {/* 1. Top Bar: Welcome + Stats */}
+                        <div className="top-bar">
+                            <div className="welcome-text">
+                                <h1>Bem-vindo, {originatorName || 'Embaixador'}!</h1>
+                                <p>Você tem {stats.totalLeads} indicados e {leads.filter(l => l.isNew).length} novas atualizações.</p>
                             </div>
-                            <div className="profile-details">
-                                <h2>{originatorName || 'Embaixador'}</h2>
 
-                                {/* Link de Indicação UI Area */}
-                                <div className="invite-link-wrapper">
-                                    <span className="invite-label">Seu Link de Indicação:</span>
+                            <div className="kpi-grid">
+                                <KPICard
+                                    title="Saldo em Conta (Real)"
+                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.ledgerBalance)}
+                                    icon={DollarSign}
+                                    trend="▲ Disponível"
+                                    trendPositive={true}
+                                />
+                                <KPICard
+                                    title="Comissões Pagas"
+                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.paid)}
+                                    icon={Check}
+                                    trend="✔ Pago"
+                                    trendPositive={true}
+                                />
+                                <KPICard
+                                    title="Comissões Estimadas"
+                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalValue)}
+                                    icon={TrendingUp}
+                                    trend="• Est."
+                                    trendPositive={true}
+                                />
+                                <KPICard
+                                    title="Total de Indicados"
+                                    value={stats.totalLeads}
+                                    icon={Users}
+                                />
+                            </div>
+                        </div>
 
-                                    <div className="invite-input-group">
-                                        <div className="invite-link-box">
-                                            {inviteLink}
+                        {/* 2. Main Profile Card */}
+                        <div className="profile-card-container">
+                            <div className="profile-info">
+                                <div className="profile-avatar">
+                                    <div className="profile-avatar-placeholder">
+                                        {originatorName ? originatorName.charAt(0) : 'E'}
+                                    </div>
+                                </div>
+                                <div className="profile-details">
+                                    <h2>{originatorName || 'Embaixador'}</h2>
+
+                                    {/* Link de Indicação UI Area */}
+                                    <div className="invite-link-wrapper">
+                                        <span className="invite-label">Seu Link de Indicação:</span>
+
+                                        <div className="invite-input-group">
+                                            <div className="invite-link-box">
+                                                {inviteLink}
+                                            </div>
+
+                                            <button
+                                                onClick={handleCopyLink}
+                                                className="copy-btn-mini"
+                                                title="Copiar Link"
+                                            >
+                                                {copied ? <Check size={16} color="var(--success-base)" /> : <Copy size={16} />}
+                                            </button>
                                         </div>
-
-                                        <button
-                                            onClick={handleCopyLink}
-                                            className="copy-btn-mini"
-                                            title="Copiar Link"
-                                        >
-                                            {copied ? <Check size={16} color="var(--success-base)" /> : <Copy size={16} />}
-                                        </button>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className="header-actions">
-                            <button className="action-btn whatsapp" onClick={handleAddLead}>
-                                <MessageCircle size={18} /> Enviar Convite
-                            </button>
-                            <button className="action-btn logout" onClick={handleLogout} title="Sair do Sistema">
-                                <span>Sair</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 3. Content: Leads Table */}
-                    <div className="dashboard-content-wrapper">
-                        <LeadsTable
-                            leads={leads}
-                            onAddLead={handleAddLead}
-                            onEditLead={handleEditLead}
-                            onDeleteLead={handleDeleteLead}
-                            onToggleFavorite={handleToggleFavorite}
-                        />
-
-                        {/* [NEW] Financial Statement Section */}
-                        <div className="statement-section">
-                            <h3 className="section-title">
-                                <DollarSign size={24} /> Extrato Financeiro
-                            </h3>
-                            <div className="table-responsive">
-                                <table className="statement-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Data</th>
-                                            <th>Descrição</th>
-                                            <th>Tipo</th>
-                                            <th style={{ textAlign: 'right' }}>Valor</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {ledgerEntries.length > 0 ? (
-                                            ledgerEntries.map(entry => (
-                                                <tr key={entry.id}>
-                                                    <td>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</td>
-                                                    <td>{entry.description || 'Movimentação'}</td>
-                                                    <td>
-                                                        <span className={`type-badge ${entry.type === 'credit' ? 'credit' : 'debit'}`}>
-                                                            {entry.type === 'credit' ? 'CRÉDITO' : 'DÉBITO'}
-                                                        </span>
-                                                    </td>
-                                                    <td className={`text-right ${entry.type === 'credit' ? 'text-success' : 'text-danger'}`} style={{ textAlign: 'right' }}>
-                                                        {entry.type === 'debit' ? '-' : '+'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.amount)}
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="4" className="empty-row" style={{ textAlign: 'center', padding: '3rem' }}>Nenhuma movimentação encontrada.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                            <div className="header-actions">
+                                <button className="action-btn whatsapp" onClick={handleAddLead}>
+                                    <MessageCircle size={18} /> Enviar Convite
+                                </button>
+                                <button className="action-btn logout" onClick={handleLogout} title="Sair do Sistema">
+                                    <span>Sair</span>
+                                </button>
                             </div>
                         </div>
-                    </div>
+
+                        {/* 3. Content: Leads Table */}
+                        <div className="dashboard-content-wrapper">
+                            <LeadsTable
+                                leads={leads}
+                                onAddLead={handleAddLead}
+                                onEditLead={handleEditLead}
+                                onDeleteLead={handleDeleteLead}
+                                onToggleFavorite={handleToggleFavorite}
+                            />
+
+                            {/* [NEW] Financial Statement Section */}
+                            <div className="statement-section">
+                                <h3 className="section-title">
+                                    <DollarSign size={24} /> Extrato Financeiro
+                                </h3>
+                                <div className="table-responsive">
+                                    <table className="statement-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Data</th>
+                                                <th>Descrição</th>
+                                                <th>Tipo</th>
+                                                <th style={{ textAlign: 'right' }}>Valor</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {ledgerEntries.length > 0 ? (
+                                                ledgerEntries.map(entry => (
+                                                    <tr key={entry.id}>
+                                                        <td>{new Date(entry.created_at).toLocaleDateString('pt-BR')}</td>
+                                                        <td>{entry.description || 'Movimentação'}</td>
+                                                        <td>
+                                                            <span className={`type-badge ${entry.type === 'credit' ? 'credit' : 'debit'}`}>
+                                                                {entry.type === 'credit' ? 'CRÉDITO' : 'DÉBITO'}
+                                                            </span>
+                                                        </td>
+                                                        <td className={`text-right ${entry.type === 'credit' ? 'text-success' : 'text-danger'}`} style={{ textAlign: 'right' }}>
+                                                            {entry.type === 'debit' ? '-' : '+'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.amount)}
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="4" className="empty-row" style={{ textAlign: 'center', padding: '3rem' }}>Nenhuma movimentação encontrada.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
 
 
-                    <LeadCreateModal
-                        isOpen={isLeadModalOpen}
-                        onClose={() => setIsLeadModalOpen(false)}
-                        originatorId={originatorId}
-                        originatorName={originatorName}
-                        companyName={originatorCompany}
-                        onSuccess={handleLeadCreated}
-                    />
+                        <LeadCreateModal
+                            isOpen={isLeadModalOpen}
+                            onClose={() => setIsLeadModalOpen(false)}
+                            originatorId={originatorId}
+                            originatorName={originatorName}
+                            companyName={originatorCompany}
+                            onSuccess={handleLeadCreated}
+                        />
 
-                </>
-            )}
+                    </>
+                )}
+            </div>
+            <ThemeToggle />
         </div>
     );
 };

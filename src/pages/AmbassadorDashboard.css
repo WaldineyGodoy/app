@@ -9,8 +9,7 @@
 /* Top Bar: Welcome + Summary Stats */
 .top-bar {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+    flex-direction: column;
     margin-bottom: 3rem;
     gap: 2rem;
 }
@@ -30,17 +29,7 @@
     font-weight: 500;
 }
 
-.top-stats {
-    display: flex;
-    gap: 2.5rem;
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-}
-
+/* KPIs in grid (using global .kpi-grid) */
 .stat-value {
     font-size: 1.75rem;
     font-weight: 900;
@@ -153,7 +142,7 @@
 }
 
 .copy-btn-mini {
-    background: white;
+    background: var(--bg-card);
     border: 1px solid var(--border-ui);
     border-radius: 12px;
     padding: 0.75rem;
@@ -283,28 +272,34 @@
 }
 
 /* Mobile */
-@media (max-width: 1024px) {
-    .top-bar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .top-stats {
-        width: 100%;
-        justify-content: space-between;
-    }
-}
-
 @media (max-width: 768px) {
     .ambassador-dashboard {
-        padding: 1rem;
+        padding: 1.5rem;
     }
     .profile-card-container {
         flex-direction: column;
         align-items: flex-start;
         gap: 2rem;
+        padding: 1.5rem;
     }
-    .top-stats {
-        flex-wrap: wrap;
-        gap: 1.5rem;
+    .profile-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    .invite-input-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .invite-link-box {
+        max-width: 100%;
+    }
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    .action-btn {
+        width: 100%;
+        justify-content: center;
     }
 }

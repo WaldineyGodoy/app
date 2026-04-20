@@ -1,4 +1,4 @@
-.dashboard-container {
+.subscriber-dashboard {
     min-height: 100vh;
     background: var(--bg-app);
     background-image: 
@@ -141,9 +141,7 @@
 }
 
 .ucs-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 2rem;
+    /* Use global kpi-grid rules */
 }
 
 .charts-section {
@@ -188,7 +186,7 @@
 }
 
 @media (max-width: 768px) {
-    .dashboard-container {
+    .subscriber-dashboard {
         padding: 1.5rem;
     }
 

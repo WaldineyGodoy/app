@@ -9,6 +9,7 @@ import html2canvas from 'html2canvas';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, FileText, LogOut } from 'lucide-react';
 import { mergePdf } from '../lib/api';
+import ThemeToggle from '../components/ThemeToggle';
 import './SubscriberDashboard.css';
 
 const SubscriberDashboard = () => {
@@ -325,7 +326,8 @@ const SubscriberDashboard = () => {
     };
 
     return (
-        <div className="dashboard-container">
+        <div className="subscriber-dashboard">
+            <div className="dashboard-container">
             <div className="profile-header">
                 <div className="profile-info">
                     <div className="profile-avatar">
@@ -380,7 +382,7 @@ const SubscriberDashboard = () => {
                         {/* section: UC Cards */}
                         <section className="ucs-section">
                             <h2>Suas Unidades Consumidoras</h2>
-                            <div className="ucs-grid">
+                            <div className="ucs-grid kpi-grid">
                                 {ucs.length > 0 ? (
                                     ucs.map(uc => (
                                         <UCCard
@@ -406,7 +408,7 @@ const SubscriberDashboard = () => {
 
                         {/* section: Charts */}
                         {chartData.length > 0 && (
-                            <>
+                            <div className="plants-grid">
                                 <section className="charts-section">
                                     <SavingsChart data={chartData} />
                                 </section>
@@ -414,7 +416,7 @@ const SubscriberDashboard = () => {
                                 <section className="charts-section">
                                     <ConsumptionChart data={chartData} />
                                 </section>
-                            </>
+                            </div>
                         )}
                     </div>
                 )
@@ -436,6 +438,8 @@ const SubscriberDashboard = () => {
                 </button>
                 <p>&copy; {new Date().getFullYear()} {branding?.company_name || 'B2W Energia'} - Todos os direitos reservados</p>
             </footer>
+
+            <ThemeToggle />
 
             {/* Hidden area for capture */}
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
@@ -481,7 +485,8 @@ const SubscriberDashboard = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div >
+        </div>
+    </div>
     );
 };
 
