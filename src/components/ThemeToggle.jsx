@@ -17,8 +17,8 @@ const ThemeToggle = () => {
             <style>{`
                 .theme-toggle-btn {
                     position: fixed;
-                    bottom: 2.5rem;
-                    left: 2.5rem;
+                    top: 2.5rem;
+                    right: 2.5rem;
                     background: var(--bg-card);
                     color: var(--text-main);
                     border: 1px solid var(--border-ui);
@@ -32,7 +32,7 @@ const ThemeToggle = () => {
                     cursor: pointer;
                     box-shadow: var(--shadow-modal);
                     transition: all 0.3s ease;
-                    z-index: 1000;
+                    z-index: 2000;
                 }
 
                 .theme-toggle-btn:hover {
@@ -43,9 +43,9 @@ const ThemeToggle = () => {
 
                 @media (max-width: 768px) {
                     .theme-toggle-btn {
-                        bottom: 1.5rem;
-                        left: 1.5rem;
-                        padding: 0.85rem 1rem;
+                        top: 1.5rem;
+                        right: 1.5rem;
+                        padding: 0.85rem;
                     }
                     .theme-toggle-btn span {
                         display: none;
