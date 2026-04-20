@@ -7,8 +7,9 @@ import PlantInvoicesModal from '../components/PlantInvoicesModal';
 import PlantAnalyticsModal from '../components/PlantAnalyticsModal';
 import SupplierPlantsModal from '../components/SupplierPlantsModal';
 import SupplierUCsModal from '../components/SupplierUCsModal';
+import SupplierProfileModal from '../components/SupplierProfileModal';
 import ThemeToggle from '../components/ThemeToggle';
-import { Factory, Zap, Users, Coins, LogOut, ChevronRight } from 'lucide-react';
+import { Factory, Zap, Users, Coins, LogOut, ChevronRight, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './SupplierDashboard.css';
 
@@ -17,7 +18,7 @@ import { useAuth } from '../contexts/AuthContext';
 const SupplierDashboard = () => {
     const { user, signOut, loading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
-    const [supplierName, setSupplierName] = useState('');
+    const [supplierData, setSupplierData] = useState(null);
     const [usinas, setUsinas] = useState([]);
     const [stats, setStats] = useState({
         totalUsinas: 0,
@@ -32,6 +33,7 @@ const SupplierDashboard = () => {
     const [showAnalyticsModal, setShowAnalyticsModal] = useState(false);
     const [showPlantsModal, setShowPlantsModal] = useState(false);
     const [showUCsModal, setShowUCsModal] = useState(false);
+    const [showProfileModal, setShowProfileModal] = useState(false);
 
     // Active Tab (Status Filter)
     const [activeTab, setActiveTab] = useState('all');
@@ -62,7 +64,7 @@ const SupplierDashboard = () => {
             // 1. Fetch Supplier - Try user_id first (safer), then email
             let { data: supplier, error: suppError } = await supabase
                 .from('suppliers')
-                .select('id, name, user_id')
+                .select('*')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
@@ -70,7 +72,7 @@ const SupplierDashboard = () => {
                 // Fallback to email search
                 const { data: byEmail, error: emailError } = await supabase
                     .from('suppliers')
-                    .select('id, name, user_id')
+                    .select('*')
                     .eq('email', user.email)
                     .limit(1)
                     .maybeSingle();
@@ -93,7 +95,7 @@ const SupplierDashboard = () => {
                 return;
             }
 
-            setSupplierName(supplier.name);
+            setSupplierData(supplier);
 
             // 3. Fetch Usinas linked to Supplier
             const { data: usinasData, error: usinasError } = await supabase
@@ -214,9 +216,15 @@ const SupplierDashboard = () => {
                             <Factory size={32} />
                         </div>
                         <div className="profile-details">
-                            <h1>Olá, {supplierName || 'Parceiro'}!</h1>
+                            <h1>Olá, {supplierData?.name || 'Parceiro'}!</h1>
                             <p>Visão geral de suas usinas e geração de energia.</p>
                         </div>
+                    </div>
+                    <div className="header-actions-main">
+                        <button className="profile-btn" onClick={() => setShowProfileModal(true)}>
+                            <User size={18} />
+                            <span>Meu Perfil</span>
+                        </button>
                     </div>
                 </div>
 
@@ -348,6 +356,12 @@ const SupplierDashboard = () => {
                 isOpen={showUCsModal}
                 onClose={() => setShowUCsModal(false)}
                 usinaIds={selectedUsina ? [selectedUsina.id] : (usinas || []).map(u => u.id)}
+            />
+
+            <SupplierProfileModal
+                isOpen={showProfileModal}
+                onClose={() => setShowProfileModal(false)}
+                supplier={supplierData}
             />
 
             <button className="logout-btn" onClick={handleLogout} title="Sair do Sistema">

@@ -57,6 +57,33 @@
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
+.profile-btn {
+    background: var(--bg-card);
+    color: var(--primary-base);
+    border: 1px solid var(--border-light);
+    padding: 0.75rem 1.25rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.profile-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-base);
+    transform: translateY(-2px);
+}
+
+.header-actions-main {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
 /* Logout Button */
 .logout-btn {
     position: fixed;
@@ -98,5 +125,15 @@
     .logout-btn {
         bottom: 1.5rem;
         right: 1.5rem;
+    }
+
+    .header-actions-main {
+        width: 100%;
+        margin-top: 1rem;
+    }
+
+    .profile-btn {
+        flex: 1;
+        justify-content: center;
     }
 }
