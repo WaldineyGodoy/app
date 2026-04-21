@@ -479,7 +479,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                     </div>
                                                     <small className="text-muted d-block mt-2">Geração Média Estimada - Cap. Comprometida</small>
                                                 </div>
-                                            </div>                 </div>
+                                            </div>
 
                                             {/* PROFITABILITY */}
                                             <div className="col-12">
