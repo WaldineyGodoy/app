@@ -49,8 +49,9 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
             // 1. Get UCs linked to this Usina
             const { data: ucs, error: ucsError } = await supabase
                 .from('consumer_units')
-                .select('id, numero_uc, subscriber_id')
-                .eq('usina_id', usina.id);
+                .select('id, numero_uc, subscriber_id, tipo_unidade')
+                .eq('usina_id', usina.id)
+                .eq('tipo_unidade', 'beneficiaria');
 
             if (ucsError) throw ucsError;
 
@@ -282,53 +283,71 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                     {loading ? (
                         <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando...</div>
                     ) : (
-                        <table className="invoices-table">
+                        <>
+                            {invoices.length > 0 && (
+                                <div className="invoices-totals-panel" style={{ display: 'flex', gap: '24px', padding: '16px 24px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', justifyContent: 'flex-start' }}>
+                                    <div className="total-item">
+                                        <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Energia Compensada</span>
+                                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#1e293b' }}>
+                                            {invoices.reduce((acc, inv) => {
+                                                const tarifa = parseFloat(inv.tarifa_concessionaria || 1);
+                                                const totalKwh = parseFloat(inv.consumo_kwh || 0);
+                                                const tarifaMinimaRs = parseFloat(inv.tarifa_minima || 0);
+                                                const tarifaMinimaKwh = tarifaMinimaRs / (tarifa > 0 ? tarifa : 1);
+                                                return acc + (totalKwh - tarifaMinimaKwh);
+                                            }, 0).toFixed(0)} kWh
+                                        </span>
+                                    </div>
+                                    <div className="total-item">
+                                        <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Total a Receber</span>
+                                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>
+                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                                invoices.reduce((acc, inv) => acc + parseFloat(inv.valor_a_pagar || 0), 0)
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            <table className="invoices-table">
                             <thead>
                                 <tr>
                                     <th>UC</th>
                                     <th>Cliente</th>
-                                    <th>Valor</th>
+                                    <th>Energia Compensada</th>
+                                    <th>Saldo</th>
                                     <th>Status</th>
-                                    <th align="right">Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {invoices.length > 0 ? (
-                                    invoices.map(inv => (
-                                        <tr key={inv.id}>
-                                            <td>{inv.consumer_units?.numero_uc || 'N/A'}</td>
-                                            <td>{inv.consumer_units?.subscriber?.name || 'Cliente'}</td>
-                                            <td className="value-col">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor_a_pagar)}
-                                            </td>
-                                            <td>
-                                                <span className={`status-badge ${inv.status === 'pago' ? 'green' :
-                                                    (inv.status === 'atrasado' ? 'red' : 'yellow')
-                                                    }`}>
-                                                    {inv.status === 'pago' ? 'Pago' :
-                                                        (inv.status === 'atrasado' ? 'Atrasado' : 'A Vencer')}
-                                                </span>
-                                            </td>
-                                            <td align="right">
-                                                {inv.asaas_boleto_url ? (
-                                                    <button
-                                                        onClick={() => handleDownloadCombined(inv)}
-                                                        className="download-btn"
-                                                        title="Baixar Detalhamento + Boleto"
-                                                        disabled={isGenerating}
-                                                    >
-                                                        {isGenerating && invoiceToDownload?.id === inv.id ? (
-                                                            <Loader2 size={16} className="spin-animation" />
-                                                        ) : (
-                                                            <Download size={16} />
-                                                        )}
-                                                    </button>
-                                                ) : (
-                                                    <span style={{ color: '#ccc' }}>-</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    ))
+                                    invoices.map(inv => {
+                                        const tarifa = parseFloat(inv.tarifa_concessionaria || 1);
+                                        const totalKwh = parseFloat(inv.consumo_kwh || 0);
+                                        const tarifaMinimaRs = parseFloat(inv.tarifa_minima || 0);
+                                        const tarifaMinimaKwh = tarifaMinimaRs / (tarifa > 0 ? tarifa : 1);
+                                        const consumoCompensadoKwh = totalKwh - tarifaMinimaKwh;
+
+                                        return (
+                                            <tr key={inv.id}>
+                                                <td>{inv.consumer_units?.numero_uc || 'N/A'}</td>
+                                                <td>{inv.consumer_units?.subscriber?.name || 'Cliente'}</td>
+                                                <td>
+                                                    {consumoCompensadoKwh.toFixed(0)} kWh
+                                                </td>
+                                                <td className="value-col">
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor_a_pagar)}
+                                                </td>
+                                                <td>
+                                                    <span className={`status-badge ${inv.status === 'pago' ? 'green' :
+                                                        (inv.status === 'atrasado' ? 'red' : 'yellow')
+                                                        }`}>
+                                                        {inv.status === 'pago' ? 'Pago' :
+                                                            (inv.status === 'atrasado' ? 'Atrasado' : 'A Vencer')}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>Nenhuma fatura encontrada.</td>
@@ -336,6 +355,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                 )}
                             </tbody>
                         </table>
+                        </>
                     )}
                 </div>
             </div>
