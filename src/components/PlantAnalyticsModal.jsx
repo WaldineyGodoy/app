@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle, Calendar, ChevronLeft, ChevronRight, Sun } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
