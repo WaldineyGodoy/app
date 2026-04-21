@@ -86,18 +86,18 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 invHistory = invoices || [];
             }
 
-            // Fetch Ledger Balance (Global for the Usina)
+            // Fetch Ledger Balance (Global for the Supplier)
             const { data: ledgerData } = await supabase
                 .from('view_ledger_enriched')
                 .select('amount')
-                .eq('reference_id', usina.id)
+                .eq('reference_id', usina.supplier_id || usina.id)
                 .eq('account_code', '2.1.1');
             const netBalance = ledgerData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
             const balanceToReceive = Math.abs(netBalance);
 
             // Fetch Usina Details (Investimento, IBGE e Potência)
             const { data: usinaDetails } = await supabase.from('usinas')
-                .select('valor_investido, ibge_code, potencia_kwp')
+                .select('valor_investido, ibge_code, potencia_kwp, supplier_id')
                 .eq('id', usina.id).single();
             const ibgeCode = usinaDetails?.ibge_code || usina.ibge_code;
             const potenciaKwp = parseFloat(usinaDetails?.potencia_kwp || usina.potencia_kwp || 0);
@@ -164,11 +164,21 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
             setChartData(processedData);
 
-            // 4. Metrics Helper (Syncing with selectedMonth)
-            const currentMonthData = processedData[processedData.length - 1] || { Geracao: 0, Consumo: 0, Revenue: 0 };
-            const generationLastMonth = currentMonthData.Geracao;
-            const consumptionLastMonth = currentMonthData.Consumo;
-            const revenueLastMonth = currentMonthData.Revenue;
+            // 4. Metrics Helper (Syncing with selectedMonth or Period)
+            let generationLastMonth = 0;
+            let consumptionLastMonth = 0;
+            let revenueLastMonth = 0;
+
+            if (selectedRange === 1) {
+                const currentMonthData = processedData[processedData.length - 1] || { Geracao: 0, Consumo: 0, Revenue: 0 };
+                generationLastMonth = currentMonthData.Geracao;
+                consumptionLastMonth = currentMonthData.Consumo;
+                revenueLastMonth = currentMonthData.Revenue;
+            } else {
+                generationLastMonth = processedData.reduce((acc, curr) => acc + curr.Geracao, 0);
+                consumptionLastMonth = processedData.reduce((acc, curr) => acc + curr.Consumo, 0);
+                revenueLastMonth = processedData.reduce((acc, curr) => acc + curr.Revenue, 0);
+            }
 
             const vacancyKwh = Math.max(0, generationLastMonth - consumptionLastMonth);
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
