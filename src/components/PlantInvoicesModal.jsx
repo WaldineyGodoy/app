@@ -302,7 +302,10 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                         <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Total a Receber</span>
                                         <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                                                invoices.reduce((acc, inv) => acc + parseFloat(inv.valor_a_pagar || 0), 0)
+                                                invoices.reduce((acc, inv) => {
+                                                    const saldo = parseFloat(inv.valor_a_pagar || 0) - parseFloat(inv.valor_concessionaria || 0);
+                                                    return acc + Math.max(0, saldo); // Prevent negative balance if value is somehow higher
+                                                }, 0)
                                             )}
                                         </span>
                                     </div>
@@ -326,6 +329,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                         const tarifaMinimaRs = parseFloat(inv.tarifa_minima || 0);
                                         const tarifaMinimaKwh = tarifaMinimaRs / (tarifa > 0 ? tarifa : 1);
                                         const consumoCompensadoKwh = totalKwh - tarifaMinimaKwh;
+                                        const saldoReal = parseFloat(inv.valor_a_pagar || 0) - parseFloat(inv.valor_concessionaria || 0);
 
                                         return (
                                             <tr key={inv.id}>
@@ -335,7 +339,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                                     {consumoCompensadoKwh.toFixed(0)} kWh
                                                 </td>
                                                 <td className="value-col">
-                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(inv.valor_a_pagar)}
+                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.max(0, saldoReal))}
                                                 </td>
                                                 <td>
                                                     <span className={`status-badge ${inv.status === 'pago' ? 'green' :
