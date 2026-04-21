@@ -28,15 +28,17 @@ export const ledgerService = {
      */
     async getSupplierBalance(supplierId) {
         try {
-            // Usa a função RPC de backend para cálculo real
+            // Updated to match PlantLedgerModal logic directly from view_ledger_enriched
             const { data, error } = await supabase
-                .rpc('get_financial_balance', {
-                    p_entity_id: supplierId,
-                    p_entity_type: 'supplier'
-                });
+                .from('view_ledger_enriched')
+                .select('amount')
+                .eq('reference_id', supplierId)
+                .eq('account_code', '2.1.1');
 
             if (error) throw error;
-            return { balance: Number(data) || 0, id: supplierId };
+            
+            const balance = data?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+            return { balance: Math.abs(balance), id: supplierId };
         } catch (err) {
             console.error('Erro ao buscar saldo do fornecedor:', err);
             return { balance: 0, id: null };
@@ -50,12 +52,15 @@ export const ledgerService = {
     async getUsinaBalance(usinaId) {
         try {
             const { data, error } = await supabase
-                .rpc('get_usina_financial_balance', {
-                    p_usina_id: usinaId
-                });
+                .from('view_ledger_enriched')
+                .select('amount')
+                .eq('usina_id', usinaId)
+                .eq('account_code', '2.1.1');
 
             if (error) throw error;
-            return { balance: Number(data) || 0, id: usinaId };
+            
+            const balance = data?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+            return { balance: Math.abs(balance), id: usinaId };
         } catch (err) {
             console.error('Erro ao buscar saldo da usina:', err);
             return { balance: 0, id: null };

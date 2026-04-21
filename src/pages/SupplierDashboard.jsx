@@ -122,7 +122,8 @@ const SupplierDashboard = () => {
                     .from('generation_production')
                     .select('geracao_mensal_kwh')
                     .eq('usina_id', usina.id)
-                    .order('fechamento', { ascending: false }) // Assuming date column
+                    .gt('geracao_mensal_kwh', 0) // [FIX] Get the last valid generation
+                    .order('fechamento', { ascending: false })
                     .limit(1)
                     .maybeSingle();
 
