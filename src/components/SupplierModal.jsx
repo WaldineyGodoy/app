@@ -1,13 +1,31 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
-import { fetchCpfCnpjData } from '../lib/api';
-import { maskCpfCnpj, maskPhone, validateDocument, validatePhone } from '../lib/validators';
+import { fetchCpfCnpjData, fetchAddressByCep } from '../lib/api';
+import { maskCpfCnpj, maskPhone, validateDocument, validatePhone, cleanDigits } from '../lib/validators';
+import { 
+    History, User, MapPin, Wallet, X, Save, Trash2, 
+    CheckCircle, AlertCircle, Search, ArrowUpDown, ArrowUpRight, ArrowDownLeft, Copy
+} from 'lucide-react';
+import HistoryTimeline from './HistoryTimeline';
 
-export default function SupplierModal({ supplier, onClose, onSave, onDelete, userId }) {
+export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
+    const { profile } = useAuth();
     const { showAlert, showConfirm } = useUI();
     const [loading, setLoading] = useState(false);
-    const [usinas, setUsinas] = useState([]); // To display linked usinas
+    const [searchingCep, setSearchingCep] = useState(false);
+    const [activeTab, setActiveTab] = useState('geral');
+    const [usinas, setUsinas] = useState([]);
+    const [ledgerEntries, setLedgerEntries] = useState([]);
+    const [ledgerLoading, setLedgerLoading] = useState(false);
+    const [expandedTx, setExpandedTx] = useState(null);
+    const [txDetails, setTxDetails] = useState([]);
+    const [txLoading, setTxLoading] = useState(false);
+    const [paying, setPaying] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState(0);
+    const [isPartial, setIsPartial] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -50,14 +68,149 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
                 uf: supplier.address?.uf || ''
             });
 
-            // Fetch linked usinas
             fetchLinkedUsinas(supplier.id);
+            fetchLedgerStatement();
         }
     }, [supplier]);
 
     const fetchLinkedUsinas = async (supplierId) => {
         const { data } = await supabase.from('usinas').select('id, name, status').eq('supplier_id', supplierId);
         setUsinas(data || []);
+    };
+
+    const fetchLedgerStatement = async () => {
+        if (!supplier?.id) return;
+        setLedgerLoading(true);
+        try {
+            // Fetch entries where the supplier is the reference_id and account is 2.1.1
+            const { data, error } = await supabase
+                .from('view_ledger_enriched')
+                .select('*')
+                .eq('account_code', '2.1.1')
+                .eq('reference_id', supplier.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setLedgerEntries(data || []);
+        } catch (err) {
+            console.error('Error fetching ledger:', err);
+        } finally {
+            setLedgerLoading(false);
+        }
+    };
+
+    const fetchTransactionDetails = async (transactionId) => {
+        if (expandedTx === transactionId) {
+            setExpandedTx(null);
+            return;
+        }
+
+        setExpandedTx(transactionId);
+        setTxLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('view_ledger_enriched')
+                .select('*')
+                .eq('transaction_id', transactionId)
+                .order('amount', { ascending: false });
+
+            if (error) throw error;
+            setTxDetails(data || []);
+        } catch (err) {
+            console.error('Error fetching tx details:', err);
+        } finally {
+            setTxLoading(false);
+        }
+    };
+
+    const handlePayPix = async () => {
+        if (!supplier?.id) return;
+        
+        const canPay = ['superadmin', 'admin', 'gerente'].includes(profile?.role);
+        if (!canPay) {
+            showAlert('Você não tem permissão para realizar pagamentos.', 'error');
+            return;
+        }
+
+        // Only enable if we owe money (ledgerBalance < 0 in passivo account 2.1.1)
+        if (ledgerBalance >= 0) {
+            showAlert('Não há saldo devedor para este fornecedor.', 'info');
+            return;
+        }
+
+        if (!formData.pix_key || !formData.pix_key_type) {
+            showAlert('Chave PIX não cadastrada para este fornecedor.', 'warning');
+            return;
+        }
+
+        const absBalance = Math.abs(ledgerBalance);
+        setPaymentAmount(absBalance);
+        setIsPartial(false);
+        setShowPaymentModal(true);
+    };
+
+    const confirmPixPayment = async () => {
+        const amountToPay = Number(paymentAmount);
+        const absBalance = Math.abs(ledgerBalance);
+
+        if (amountToPay <= 0) {
+            showAlert('O valor do pagamento deve ser maior que zero.', 'warning');
+            return;
+        }
+
+        if (amountToPay > absBalance) {
+            showAlert('O valor do pagamento não pode ser superior ao saldo devedor.', 'warning');
+            return;
+        }
+
+        setPaying(true);
+        setShowPaymentModal(false);
+        
+        try {
+            const { data, error } = await supabase.functions.invoke('transfer-asaas-pix', {
+                body: {
+                    value: amountToPay,
+                    pix_key: formData.pix_key,
+                    pix_key_type: formData.pix_key_type,
+                    description: `Pagamento Fornecedor: ${formData.name}`,
+                    operationType: 'PIX'
+                }
+            });
+
+            if (error) throw error;
+            if (data && data.success === false) throw new Error(data.error);
+
+            showAlert('Pagamento PIX solicitado com sucesso! Aguardando confirmação.', 'success');
+            
+            await addHistory('supplier', supplier.id, 'payment_requested', {
+                amount: amountToPay,
+                type: 'PIX',
+                asaas_id: data?.data?.id
+            }, `Solicitado pagamento de ${formatCurrency(amountToPay)} via PIX`);
+
+            // Refresh ledger
+            fetchLedgerStatement();
+        } catch (err) {
+            console.error('Erro no pagamento:', err);
+            showAlert('Erro ao processar pagamento: ' + err.message, 'error');
+        } finally {
+            setPaying(false);
+        }
+    };
+
+    const addHistory = async (type, id, action, details = {}, customContent = null) => {
+        if (!id) return;
+        try {
+            await supabase.from('crm_history').insert({
+                entity_type: type,
+                entity_id: id,
+                content: customContent || `${action}: ${details.type || ''}`,
+                metadata: details,
+                created_by: profile?.id
+            });
+        } catch (error) {
+            console.error('Error adding history:', error);
+        }
     };
 
     const handleCnpjBlur = async () => {
@@ -74,7 +227,6 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
                         phone: data.telefone || prev.phone,
                         legal_partner_name: data.legal_partner?.nome || prev.legal_partner_name,
                         legal_partner_cpf: data.legal_partner?.cpf || prev.legal_partner_cpf,
-                        // Address
                         cep: data.address?.cep || prev.cep,
                         rua: data.address?.logradouro || prev.rua,
                         numero: data.address?.numero || prev.numero,
@@ -89,6 +241,29 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
                 showAlert('Erro ao buscar CNPJ. Verifique se o número está correto.', 'error');
             } finally {
                 setLoading(false);
+            }
+        }
+    };
+
+    const handleCepBlur = async () => {
+        const cep = cleanDigits(formData.cep);
+        if (cep.length === 8) {
+            setSearchingCep(true);
+            try {
+                const data = await fetchAddressByCep(cep);
+                if (data && !data.erro) {
+                    setFormData(prev => ({
+                        ...prev,
+                        rua: data.logradouro || prev.rua,
+                        bairro: data.bairro || prev.bairro,
+                        cidade: data.localidade || prev.cidade,
+                        uf: data.uf || prev.uf
+                    }));
+                }
+            } catch (error) {
+                console.error('Erro CEP:', error);
+            } finally {
+                setSearchingCep(false);
             }
         }
     };
@@ -124,7 +299,6 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validate using correct field names
         if (formData.cnpj && !validateDocument(formData.cnpj)) {
             showAlert('CNPJ inválido!', 'warning');
             return;
@@ -134,7 +308,6 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
             return;
         }
 
-
         setLoading(true);
 
         try {
@@ -142,7 +315,7 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
                 name: formData.name,
                 cnpj: formData.cnpj,
                 email: formData.email,
-                phone: formData.phone,
+                phone: formData.phone ? formData.phone.replace(/\D/g, '') : '',
                 status: formData.status,
                 legal_partner_name: formData.legal_partner_name,
                 legal_partner_cpf: formData.legal_partner_cpf,
@@ -161,11 +334,6 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
                 }
             };
 
-            // If userId is provided (Self-Signup), force the ID
-            if (userId && !supplier?.id) {
-                payload.id = userId;
-            }
-
             let result;
             if (supplier?.id) {
                 result = await supabase.from('suppliers').update(payload).eq('id', supplier.id).select().single();
@@ -174,6 +342,19 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
             }
 
             if (result.error) throw result.error;
+
+            if (supplier?.id) {
+                await addHistory('supplier', supplier.id, 'supplier_updated', {
+                    name: formData.name,
+                    status: 'updated'
+                }, 'Dados do fornecedor atualizados');
+            } else if (result.data) {
+                await addHistory('supplier', result.data.id, 'supplier_created', {
+                    name: formData.name,
+                    status: 'created'
+                }, 'Novo fornecedor cadastrado');
+            }
+
             onSave(result.data);
             onClose();
         } catch (error) {
@@ -212,204 +393,830 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete, use
         }
     };
 
+    const inputStyle = {
+        width: '100%',
+        padding: '0.8rem 1rem',
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        fontSize: '0.95rem',
+        transition: 'all 0.2s',
+        backgroundColor: '#f8fafc',
+        outline: 'none'
+    };
+
+    const labelStyle = {
+        display: 'block',
+        fontSize: '0.85rem',
+        fontWeight: '700',
+        color: '#64748b',
+        marginBottom: '0.5rem',
+        textTransform: 'uppercase',
+        letterSpacing: '0.025em'
+    };
+
+    const sectionStyle = {
+        background: 'white',
+        padding: '1.5rem',
+        borderRadius: '20px',
+        border: '1px solid #f1f5f9',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+        marginBottom: '1.5rem'
+    };
+
+    const formatCurrency = (val) => {
+        return Math.abs(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
+    const formatDate = (dateStr) => {
+        return new Date(dateStr).toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        });
+    };
+
+    const ledgerBalance = ledgerEntries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+    const translateEntity = (name) => {
+        if (!name) return '';
+        const map = {
+            'SUPPLIER': 'Fornecedor',
+            'INVOICE': 'Fatura',
+            'MANAGEMENT': 'Gestão',
+            'MAINTENANCE': 'Manutenção',
+            'RENT': 'Aluguel',
+            'TAX': 'Taxa',
+            'SUBSCRIPTION': 'Assinatura',
+            'ADJUSTMENT': 'Ajuste',
+            'SUBSCRIBER': 'Assinante',
+            'PLANT': 'Usina',
+            'POWERPLANT': 'Usina'
+        };
+        return map[name.toUpperCase()] || name;
+    };
+
     return (
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+            backgroundColor: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
         }}>
-            <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '90%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginBottom: '1.5rem', borderBottom: '1px solid #eee', paddingBottom: '0.5rem' }}>
-                    {supplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}
-                </h3>
-
-                <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-
-                    <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>CNPJ * (Busca Automática)</label>
-                        <input
-                            value={formData.cnpj}
-                            onChange={e => setFormData({ ...formData, cnpj: e.target.value })}
-                            onBlur={handleCnpjBlur}
-                            placeholder="00.000.000/0000-00"
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', background: '#f8fafc' }}
-                        />
-                    </div>
-
-                    <div style={{ gridColumn: '1 / -1' }}>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Razão Social / Nome *</label>
-                        <input
-                            required
-                            value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-
+            <div style={{ 
+                background: '#f8fafc', 
+                borderRadius: '30px', 
+                width: '95%', 
+                maxWidth: '850px', 
+                maxHeight: '90vh', 
+                overflow: 'hidden',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                display: 'flex',
+                flexDirection: 'column'
+            }}>
+                {/* Premium Header */}
+                <div style={{
+                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
+                    padding: '1.5rem 2rem',
+                    color: 'white',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
                     <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Nome Sócio Adm</label>
-                        <input
-                            value={formData.legal_partner_name}
-                            onChange={e => setFormData({ ...formData, legal_partner_name: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
+                        <h3 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
+                            {supplier ? 'Editar Fornecedor' : 'Novo Fornecedor'}
+                        </h3>
+                        <p style={{ margin: 0, opacity: 0.8, fontSize: '0.9rem' }}>
+                            Gestão de parceiros e infraestrutura energética
+                        </p>
                     </div>
+                    <button 
+                        onClick={onClose}
+                        style={{
+                            background: 'rgba(255,255,255,0.1)',
+                            border: 'none',
+                            color: 'white',
+                            padding: '0.5rem',
+                            borderRadius: '12px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
 
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>CPF Sócio Adm</label>
-                        <input
-                            value={formData.legal_partner_cpf}
-                            onChange={e => setFormData({ ...formData, legal_partner_cpf: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-
-                    <div style={{ gridColumn: '1 / -1', fontWeight: 'bold', marginTop: '0.5rem', color: '#003366' }}>Contato e Financeiro</div>
-
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Telefone</label>
-                        <input
-                            value={formData.phone}
-                            onChange={e => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
-                            placeholder="(00) 00000-0000"
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Email</label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Tipo Chave Pix</label>
-                        <select
-                            value={formData.pix_key_type}
-                            onChange={handlePixTypeChange}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
+                {/* Horizontal Navigation */}
+                <div style={{
+                    display: 'flex',
+                    gap: '1rem',
+                    padding: '0.75rem 2rem',
+                    background: 'white',
+                    borderBottom: '1px solid #e2e8f0',
+                    overflowX: 'auto'
+                }}>
+                    {[
+                        { id: 'geral', label: 'Geral', icon: User },
+                        { id: 'endereco', label: 'Endereço', icon: MapPin },
+                        { id: 'financeiro', label: 'Financeiro', icon: Wallet },
+                        { id: 'extrato', label: 'Extrato', icon: ArrowUpDown },
+                        { id: 'historico', label: 'Histórico', icon: History }
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.6rem',
+                                padding: '0.6rem 1.2rem',
+                                borderRadius: '14px',
+                                border: 'none',
+                                background: activeTab === tab.id ? '#eff6ff' : 'transparent',
+                                color: activeTab === tab.id ? '#3b82f6' : '#64748b',
+                                fontWeight: activeTab === tab.id ? '700' : '500',
+                                fontSize: '0.9rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
+                            }}
                         >
-                            <option value="cpf">CPF</option>
-                            <option value="cnpj">CNPJ</option>
-                            <option value="email">Email</option>
-                            <option value="telefone">Telefone</option>
-                            <option value="aleatoria">Aleatória</option>
-                        </select>
-                    </div>
+                            <tab.icon size={18} />
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
 
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Chave Pix</label>
-                        <input
-                            value={formData.pix_key}
-                            onChange={e => setFormData({ ...formData, pix_key: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
+                <div style={{ padding: '2rem', overflowY: 'auto', flex: 1 }}>
+                    <form onSubmit={handleSubmit}>
+                        
+                        {activeTab === 'geral' && (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <User size={20} color="#3b82f6" /> Dados da Empresa
+                                    </h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label style={labelStyle}>CNPJ (Busca Automática)</label>
+                                            <input
+                                                style={{ ...inputStyle, borderStyle: 'dashed', borderWidth: '2px' }}
+                                                value={formData.cnpj}
+                                                onChange={e => setFormData({ ...formData, cnpj: maskCpfCnpj(e.target.value) })}
+                                                onBlur={handleCnpjBlur}
+                                                placeholder="00.000.000/0000-00"
+                                            />
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label style={labelStyle}>Razão Social / Nome Fantasia *</label>
+                                            <input
+                                                style={inputStyle}
+                                                required
+                                                value={formData.name}
+                                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Status</label>
-                        <select
-                            value={formData.status}
-                            onChange={e => setFormData({ ...formData, status: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        >
-                            <option value="ativacao">Em Ativação</option>
-                            <option value="ativo">Ativo</option>
-                            <option value="inativo">Inativo</option>
-                        </select>
-                    </div>
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <CheckCircle size={20} color="#34d399" /> Sócio Administrador
+                                    </h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div>
+                                            <label style={labelStyle}>Nome Completo</label>
+                                            <input
+                                                style={inputStyle}
+                                                value={formData.legal_partner_name}
+                                                onChange={e => setFormData({ ...formData, legal_partner_name: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>CPF</label>
+                                            <input
+                                                style={inputStyle}
+                                                value={formData.legal_partner_cpf}
+                                                onChange={e => setFormData({ ...formData, legal_partner_cpf: maskCpfCnpj(e.target.value) })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
-                    <div style={{ gridColumn: '1 / -1', fontWeight: 'bold', marginTop: '0.5rem', color: '#003366' }}>Endereço</div>
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <Search size={20} color="#3b82f6" /> Informações de Contato
+                                    </h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div>
+                                            <label style={labelStyle}>Email</label>
+                                            <input
+                                                style={inputStyle}
+                                                type="email"
+                                                value={formData.email}
+                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Telefone</label>
+                                            <input
+                                                style={inputStyle}
+                                                value={formData.phone}
+                                                onChange={e => setFormData({ ...formData, phone: maskPhone(e.target.value) })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>CEP</label>
-                        <input
-                            value={formData.cep}
-                            onChange={e => setFormData({ ...formData, cep: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Rua</label>
-                        <input
-                            value={formData.rua}
-                            onChange={e => setFormData({ ...formData, rua: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Número</label>
-                        <input
-                            value={formData.numero}
-                            onChange={e => setFormData({ ...formData, numero: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Complemento</label>
-                        <input
-                            value={formData.complemento}
-                            onChange={e => setFormData({ ...formData, complemento: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Bairro</label>
-                        <input
-                            value={formData.bairro}
-                            onChange={e => setFormData({ ...formData, bairro: e.target.value })}
-                            style={{ width: '100%', padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                        />
-                    </div>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '0.9rem', marginBottom: '0.3rem' }}>Cidade/Estado</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input
-                                value={formData.cidade}
-                                onChange={e => setFormData({ ...formData, cidade: e.target.value })}
-                                placeholder="Cidade"
-                                style={{ flex: 2, padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                            />
-                            <input
-                                value={formData.uf}
-                                onChange={e => setFormData({ ...formData, uf: e.target.value })}
-                                placeholder="UF"
-                                style={{ flex: 1, padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px' }}
-                            />
+                        {activeTab === 'endereco' && (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <MapPin size={20} color="#ef4444" /> Localização
+                                    </h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem' }}>
+                                            <div>
+                                                <label style={labelStyle}>CEP</label>
+                                                <input
+                                                    style={inputStyle}
+                                                    value={formData.cep}
+                                                    onChange={e => setFormData({ ...formData, cep: e.target.value })}
+                                                    onBlur={handleCepBlur}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={labelStyle}>Logradouro / Rua</label>
+                                                <input
+                                                    style={inputStyle}
+                                                    value={formData.rua}
+                                                    onChange={e => setFormData({ ...formData, rua: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Número</label>
+                                            <input
+                                                style={inputStyle}
+                                                value={formData.numero}
+                                                onChange={e => setFormData({ ...formData, numero: e.target.value })}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Bairro</label>
+                                            <input
+                                                style={inputStyle}
+                                                value={formData.bairro}
+                                                onChange={e => setFormData({ ...formData, bairro: e.target.value })}
+                                            />
+                                        </div>
+                                        <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+                                            <div>
+                                                <label style={labelStyle}>Cidade</label>
+                                                <input
+                                                    style={inputStyle}
+                                                    value={formData.cidade}
+                                                    onChange={e => setFormData({ ...formData, cidade: e.target.value })}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={labelStyle}>UF</label>
+                                                <input
+                                                    style={inputStyle}
+                                                    value={formData.uf}
+                                                    onChange={e => setFormData({ ...formData, uf: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'financeiro' && (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <Wallet size={20} color="#f59e0b" /> Dados Bancários e PIX
+                                    </h4>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <label style={labelStyle}>Chave PIX</label>
+                                            <div style={{ position: 'relative' }}>
+                                                <input
+                                                    style={{ ...inputStyle, paddingRight: '3.5rem' }}
+                                                    value={formData.pix_key}
+                                                    onChange={e => setFormData({ ...formData, pix_key: e.target.value })}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(formData.pix_key);
+                                                        showAlert('Chave PIX copiada!', 'success');
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        right: '8px',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        background: 'white',
+                                                        border: '1px solid #e2e8f0',
+                                                        borderRadius: '8px',
+                                                        padding: '0.4rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        color: '#64748b'
+                                                    }}
+                                                    title="Copiar Chave PIX"
+                                                >
+                                                    <Copy size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Tipo de Chave</label>
+                                            <select
+                                                style={inputStyle}
+                                                value={formData.pix_key_type}
+                                                onChange={handlePixTypeChange}
+                                            >
+                                                <option value="cpf">CPF</option>
+                                                <option value="cnpj">CNPJ</option>
+                                                <option value="email">Email</option>
+                                                <option value="telefone">Telefone</option>
+                                                <option value="aleatoria">Aleatória</option>
+                                            </select>
+                                        </div>
+                                        <div style={{ 
+                                            gridColumn: '1 / -1', 
+                                            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                            padding: '1.25rem',
+                                            borderRadius: '16px',
+                                            border: '1px solid #e2e8f0',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            marginBottom: '0.5rem'
+                                        }}>
+                                            <div>
+                                                <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '700', textTransform: 'uppercase' }}>Saldo Acumulado</div>
+                                                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: ledgerBalance >= 0 ? '#10b981' : '#ef4444' }}>
+                                                    {formatCurrency(ledgerBalance)}
+                                                </div>
+                                            </div>
+                                            <button 
+                                                type="button"
+                                                onClick={() => setActiveTab('extrato')}
+                                                style={{
+                                                    background: 'white',
+                                                    border: '1px solid #e2e8f0',
+                                                    padding: '0.5rem 1rem',
+                                                    borderRadius: '10px',
+                                                    fontSize: '0.8rem',
+                                                    fontWeight: '600',
+                                                    color: '#3b82f6',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Ver Detalhes
+                                            </button>
+                                        </div>
+
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label style={labelStyle}>Status Operacional</label>
+                                            <select
+                                                style={{ ...inputStyle, fontWeight: 'bold' }}
+                                                value={formData.status}
+                                                onChange={e => setFormData({ ...formData, status: e.target.value })}
+                                            >
+                                                <option value="ativacao">🟠 Em Ativação</option>
+                                                <option value="ativo">🟢 Ativo</option>
+                                                <option value="inativo">🔴 Inativo</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {supplier && usinas.length > 0 && (
+                                    <div style={{ ...sectionStyle, background: '#f0f9ff', border: '1px solid #bae6fd' }}>
+                                        <h4 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: '#0369a1' }}>Usinas Vinculadas</h4>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                                            {usinas.map(u => (
+                                                <div key={u.id} style={{
+                                                    background: 'white',
+                                                    padding: '0.6rem 1rem',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.85rem',
+                                                    border: '1px solid #e0f2fe',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '0.5rem'
+                                                }}>
+                                                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: u.status === 'ativo' ? '#10b981' : '#f59e0b' }}></div>
+                                                    <strong>{u.name}</strong>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'extrato' && (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                {/* Balance Card */}
+                                <div style={{
+                                    background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                                    padding: '2rem',
+                                    borderRadius: '24px',
+                                    color: 'white',
+                                    marginBottom: '2rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.4)'
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.9rem', opacity: 0.9, fontWeight: '500' }}>Saldo Acumulado</div>
+                                        <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{formatCurrency(ledgerBalance)}</div>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={handlePayPix}
+                                        disabled={paying || ledgerBalance >= 0 || !(['superadmin', 'admin', 'gerente'].includes(profile?.role))}
+                                        style={{ 
+                                            background: 'white', 
+                                            padding: '1rem 2rem', 
+                                            borderRadius: '20px',
+                                            border: 'none',
+                                            color: '#1d4ed8',
+                                            fontWeight: '800',
+                                            fontSize: '1rem',
+                                            cursor: (paying || ledgerBalance >= 0 || !(['superadmin', 'admin', 'gerente'].includes(profile?.role))) ? 'not-allowed' : 'pointer',
+                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            opacity: (paying || ledgerBalance >= 0 || !(['superadmin', 'admin', 'gerente'].includes(profile?.role))) ? 0.7 : 1,
+                                            transition: 'transform 0.2s'
+                                        }}
+                                        onMouseEnter={(e) => { 
+                                            if (!paying && ledgerBalance < 0 && ['superadmin', 'admin', 'gerente'].includes(profile?.role)) {
+                                                e.currentTarget.style.transform = 'scale(1.05)'; 
+                                            }
+                                        }}
+                                        onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                                    >
+                                        <Wallet size={20} />
+                                        {paying ? 'Processando...' : 'Pagar Agora'}
+                                    </button>
+                                </div>
+
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <Search size={20} color="#3b82f6" /> Lançamentos Recentes
+                                    </h4>
+                                    
+                                    {ledgerLoading ? (
+                                        <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Carregando extrato...</div>
+                                    ) : ledgerEntries.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: '16px' }}>
+                                            Nenhum lançamento encontrado para este fornecedor.
+                                        </div>
+                                    ) : (
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                                                <thead>
+                                                    <tr style={{ borderBottom: '2px solid #f1f5f9', textAlign: 'left' }}>
+                                                        <th style={{ padding: '1rem 0.5rem', color: '#64748b' }}>Data</th>
+                                                        <th style={{ padding: '1rem 0.5rem', color: '#64748b' }}>Entidade</th>
+                                                        <th style={{ padding: '1rem 0.5rem', color: '#64748b' }}>Descrição</th>
+                                                        <th style={{ padding: '1rem 0.5rem', color: '#64748b', textAlign: 'right' }}>Valor</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {ledgerEntries.map(entry => {
+                                                        // In the vision of the Supplier (Account 2.1.1 - Liability):
+                                                        // Credit (Negative amount) = Money they have to receive (Revenue/Positive for them)
+                                                        // Debit (Positive amount) = Money deducted from them (Expense/Negative for them)
+                                                        const isRevenue = entry.amount < 0;
+
+                                                        return (
+                                                            <React.Fragment key={entry.id}>
+                                                                <tr 
+                                                                    onClick={() => fetchTransactionDetails(entry.transaction_id)}
+                                                                    style={{ 
+                                                                        borderBottom: '1px solid #f1f5f9', 
+                                                                        cursor: 'pointer',
+                                                                        transition: 'background 0.2s'
+                                                                    }}
+                                                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
+                                                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                                >
+                                                                    <td style={{ padding: '1.25rem 0.5rem', whiteSpace: 'nowrap' }}>
+                                                                        <div style={{ color: '#64748b', fontWeight: '500' }}>{formatDate(entry.created_at)}</div>
+                                                                    </td>
+                                                                    <td style={{ padding: '1.25rem 0.5rem' }}>
+                                                                        <div style={{ fontWeight: '600', color: '#475569' }}>
+                                                                            {translateEntity(entry.entity_name || 'Sistema')}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style={{ padding: '1.25rem 0.5rem' }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                                                            <div style={{
+                                                                                width: '32px',
+                                                                                height: '32px',
+                                                                                borderRadius: '10px',
+                                                                                background: isRevenue ? '#f0fdf4' : '#fef2f2',
+                                                                                color: isRevenue ? '#10b981' : '#ef4444',
+                                                                                display: 'flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center'
+                                                                            }}>
+                                                                                {isRevenue ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+                                                                            </div>
+                                                                            <div>
+                                                                                <div style={{ fontWeight: '700', color: '#1e293b', fontSize: '0.95rem' }}>
+                                                                                    {entry.description}
+                                                                                </div>
+                                                                                <div style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                                                                                    {isRevenue ? 'Crédito / Receita' : 'Débito / Desconto'}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style={{ padding: '1.25rem 0.5rem', textAlign: 'right' }}>
+                                                                        <div style={{
+                                                                            fontWeight: '800',
+                                                                            fontSize: '1.05rem',
+                                                                            color: isRevenue ? '#10b981' : '#ef4444'
+                                                                        }}>
+                                                                            {isRevenue ? '+' : '-'}{formatCurrency(entry.amount)}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                
+                                                                {expandedTx === entry.transaction_id && (
+                                                                    <tr>
+                                                                        <td colSpan={4} style={{ padding: '0 0.5rem 1rem 0.5rem' }}>
+                                                                            <div style={{ 
+                                                                                background: '#f8fafc', 
+                                                                                borderRadius: '16px', 
+                                                                                padding: '1.5rem',
+                                                                                border: '1px solid #e2e8f0',
+                                                                                animation: 'fadeIn 0.2s ease-out'
+                                                                            }}>
+                                                                                <div style={{ fontSize: '0.75rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '1rem', letterSpacing: '0.05em' }}>
+                                                                                    Composição do Lançamento
+                                                                                </div>
+                                                                                {txLoading ? (
+                                                                                    <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Carregando detalhes...</div>
+                                                                                ) : (
+                                                                                    (() => {
+                                                                                        // Filter out the supplier's own account (2.1.1) to avoid confusing mirrored entries
+                                                                                        const filtered = txDetails.filter(d => d.account_code !== '2.1.1');
+                                                                                        
+                                                                                        // Group by description and entity to consolidate multiple entries (like taxes or splits)
+                                                                                        const grouped = filtered.reduce((acc, curr) => {
+                                                                                            const key = `${curr.description}-${curr.entity_name}`;
+                                                                                            if (!acc[key]) {
+                                                                                                acc[key] = { ...curr };
+                                                                                                // Invert sign because these are contra-entries (offsets) to the main line
+                                                                                                acc[key].amount = -curr.amount;
+                                                                                            } else {
+                                                                                                acc[key].amount -= curr.amount;
+                                                                                            }
+                                                                                            return acc;
+                                                                                        }, {});
+
+                                                                                        const finalDetails = Object.values(grouped);
+
+                                                                                        if (finalDetails.length === 0) {
+                                                                                            return <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Detalhes não disponíveis para esta visualização.</div>;
+                                                                                        }
+
+                                                                                        return (
+                                                                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                                                                                {finalDetails.map((detail, idx) => {
+                                                                                                    const isRevenue = detail.amount < 0; // Negative in Supplier view means "they receive"
+                                                                                                    return (
+                                                                                                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px dashed #e2e8f0' }}>
+                                                                                                            <div>
+                                                                                                                <div style={{ fontWeight: '600', color: '#334155', fontSize: '0.85rem' }}>
+                                                                                                                    {translateEntity(detail.entity_name || detail.account_name)}
+                                                                                                                </div>
+                                                                                                                <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{detail.description}</div>
+                                                                                                            </div>
+                                                                                                            <div style={{ fontWeight: '700', color: detail.amount < 0 ? '#10b981' : '#ef4444' }}>
+                                                                                                                {detail.amount < 0 ? '+' : '-'}{formatCurrency(detail.amount)}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    );
+                                                                                                })}
+                                                                                            </div>
+                                                                                        );
+                                                                                    })()
+                                                                                )}
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                )}
+                                                            </React.Fragment>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'historico' && supplier && (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={sectionStyle}>
+                                    <h4 style={{ margin: '0 0 1.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1e293b' }}>
+                                        <History size={20} color="#3b82f6" /> Timeline de Auditoria
+                                    </h4>
+                                    <HistoryTimeline 
+                                        entityType="supplier" 
+                                        entityId={supplier.id} 
+                                        limit={20}
+                                        showHeader={false}
+                                        isInline={true}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Modal Footer Actions */}
+                        <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            marginTop: '2rem',
+                            paddingTop: '2rem',
+                            borderTop: '1px solid #e2e8f0'
+                        }}>
+                            <div>
+                                {supplier && (
+                                    <button 
+                                        type="button" 
+                                        onClick={handleDelete}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            padding: '0.75rem 1.25rem',
+                                            background: '#fee2e2',
+                                            color: '#dc2626',
+                                            border: 'none',
+                                            borderRadius: '14px',
+                                            fontWeight: '700',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        <Trash2 size={18} /> Excluir
+                                    </button>
+                                )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem' }}>
+                                <button 
+                                    type="button" 
+                                    onClick={onClose}
+                                    style={{
+                                        padding: '0.75rem 1.5rem',
+                                        background: 'white',
+                                        color: '#64748b',
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '14px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        padding: '0.75rem 2rem',
+                                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '14px',
+                                        fontWeight: '800',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.3)',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {loading ? (
+                                        'Processando...'
+                                    ) : (
+                                        <><Save size={18} /> Salvar Alterações</>
+                                    )}
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    </form>
+                </div>
+            </div>
 
-                    {supplier && usinas.length > 0 && (
-                        <div style={{ gridColumn: '1 / -1', marginTop: '1rem', background: '#f0f9ff', padding: '1rem', borderRadius: '8px' }}>
-                            <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '0.5rem', color: '#0369a1' }}>Usinas Vinculadas</h4>
-                            <ul style={{ paddingLeft: '1.5rem', fontSize: '0.9rem' }}>
-                                {usinas.map(u => (
-                                    <li key={u.id}>{u.name} - <span style={{ opacity: 0.7 }}>{u.status}</span></li>
-                                ))}
-                            </ul>
+            <style>{`
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
+
+            {/* Custom Payment Modal */}
+            {showPaymentModal && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(4px)',
+                    zIndex: 2000, display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div style={{
+                        background: 'white', borderRadius: '24px', width: '90%', maxWidth: '400px',
+                        padding: '2rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+                        textAlign: 'center'
+                    }}>
+                        <div style={{ 
+                            width: '64px', height: '64px', borderRadius: '50%', background: '#eff6ff', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem',
+                            color: '#3b82f6'
+                        }}>
+                            <Wallet size={32} />
                         </div>
-                    )}
+                        <h4 style={{ margin: '0 0 1rem', fontSize: '1.25rem', color: '#1e293b', fontWeight: 800 }}>Confirmação</h4>
+                        
+                        {!isPartial ? (
+                            <p style={{ color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5', marginBottom: '2rem' }}>
+                                Deseja realizar o pagamento total de <strong style={{ color: '#1e293b' }}>{formatCurrency(paymentAmount)}</strong> via PIX para este fornecedor?
+                            </p>
+                        ) : (
+                            <div style={{ marginBottom: '2rem' }}>
+                                <label style={{ ...labelStyle, textAlign: 'left', marginBottom: '0.5rem' }}>Valor do Pagamento Parcial</label>
+                                <div style={{ position: 'relative' }}>
+                                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', color: '#64748b' }}>R$</span>
+                                    <input 
+                                        type="number"
+                                        style={{ ...inputStyle, paddingLeft: '3rem', fontWeight: '800', color: '#1e293b' }}
+                                        value={paymentAmount}
+                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                        autoFocus
+                                    />
+                                </div>
+                                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', textAlign: 'left' }}>
+                                    Limite máximo: {formatCurrency(Math.abs(ledgerBalance))}
+                                </p>
+                            </div>
+                        )}
 
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'space-between', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
-                        <div>
-                            {supplier && onDelete && (
-                                <button type="button" onClick={handleDelete} style={{ padding: '0.5rem 1rem', background: '#fee2e2', color: '#dc2626', borderRadius: '4px', border: '1px solid #fecaca' }}>
-                                    Excluir
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <button 
+                                onClick={confirmPixPayment}
+                                style={{
+                                    padding: '0.8rem', background: '#1e293b', color: 'white', borderRadius: '12px',
+                                    border: 'none', fontWeight: '700', cursor: 'pointer'
+                                }}
+                            >
+                                Confirmar Pagamento
+                            </button>
+                            
+                            {!isPartial && (
+                                <button 
+                                    onClick={() => setIsPartial(true)}
+                                    style={{
+                                        padding: '0.8rem', background: '#f1f5f9', color: '#475569', borderRadius: '12px',
+                                        border: 'none', fontWeight: '700', cursor: 'pointer'
+                                    }}
+                                >
+                                    Outro Valor
                                 </button>
                             )}
-                        </div>
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button type="button" onClick={onClose} style={{ padding: '0.5rem 1rem', background: '#ccc', borderRadius: '4px' }}>Cancelar</button>
-                            <button type="submit" disabled={loading} style={{ padding: '0.5rem 1rem', background: '#003366', color: 'white', borderRadius: '4px' }}>
-                                {loading ? 'Salvando...' : 'Salvar'}
+
+                            <button 
+                                onClick={() => setShowPaymentModal(false)}
+                                style={{
+                                    padding: '0.8rem', background: 'white', color: '#94a3b8', borderRadius: '12px',
+                                    border: '1px solid #e2e8f0', fontWeight: '600', cursor: 'pointer'
+                                }}
+                            >
+                                Cancelar
                             </button>
                         </div>
                     </div>
-                </form>
-            </div>
+                </div>
+            )}
         </div>
     );
 }

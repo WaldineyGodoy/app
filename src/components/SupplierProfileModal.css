@@ -12,14 +12,14 @@
     gap: 1.5rem;
     margin-bottom: 2.5rem;
     padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-ui);
 }
 
 .avatar-large {
     width: 80px;
     height: 80px;
-    background: var(--primary-light);
-    color: var(--primary-base);
+    background: var(--info-bg);
+    color: var(--primary);
     border-radius: 20px;
     display: flex;
     align-items: center;
@@ -30,7 +30,7 @@
     margin: 0;
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--text-primary);
+    color: var(--text-main);
 }
 
 .status-badge {
@@ -56,7 +56,7 @@
     background: var(--bg-card);
     padding: 1.5rem;
     border-radius: 16px;
-    border: 1px solid var(--border-light);
+    border: 1px solid var(--border-ui);
 }
 
 .profile-section.full-width {
@@ -69,10 +69,10 @@
     gap: 0.75rem;
     font-size: 1rem;
     font-weight: 600;
-    color: var(--primary-base);
+    color: var(--primary);
     margin-bottom: 1.25rem;
     padding-bottom: 0.75rem;
-    border-bottom: 1px dashed var(--border-light);
+    border-bottom: 1px dashed var(--border-ui);
 }
 
 .info-list {
@@ -92,7 +92,7 @@
     margin: 0;
     font-size: 0.95rem;
     font-weight: 500;
-    color: var(--text-primary);
+    color: var(--text-main);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -100,7 +100,7 @@
 
 .address-info p {
     line-height: 1.6;
-    color: var(--text-primary);
+    color: var(--text-main);
 }
 
 .financial-grid {
@@ -111,7 +111,7 @@
 
 .pix-key-display {
     font-family: 'Monaco', 'Consolas', monospace;
-    background: var(--bg-main);
+    background: var(--bg-app);
     padding: 0.5rem 0.75rem;
     border-radius: 8px;
     font-size: 0.9rem !important;

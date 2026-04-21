@@ -15,6 +15,49 @@
     gap: 1.5rem;
 }
 
+.profile-header {
+    background: var(--bg-card);
+    padding: 2.5rem;
+    border-radius: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    border: 1px solid var(--border-ui);
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    background: var(--primary);
+    color: white;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.profile-details h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.profile-details p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
 .usinas-section h2 {
     margin: 0;
     color: var(--text-main);
@@ -59,8 +102,8 @@
 
 .profile-btn {
     background: var(--bg-card);
-    color: var(--primary-base);
-    border: 1px solid var(--border-light);
+    color: var(--primary);
+    border: 1px solid var(--border-ui);
     padding: 0.75rem 1.25rem;
     border-radius: 12px;
     display: flex;
@@ -73,8 +116,9 @@
 }
 
 .profile-btn:hover {
-    background: var(--primary-light);
-    border-color: var(--primary-base);
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
     transform: translateY(-2px);
 }
 
@@ -125,6 +169,26 @@
     .logout-btn {
         bottom: 1.5rem;
         right: 1.5rem;
+    }
+
+    .profile-header {
+        padding: 1.5rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+
+    .profile-info {
+        gap: 1rem;
+    }
+
+    .profile-avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .profile-details h1 {
+        font-size: 1.25rem;
     }
 
     .header-actions-main {
