@@ -77,12 +77,18 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
             let invHistory = [];
             if (ucIds.length > 0) {
-                const { data: invoices } = await supabase
+                const endYear = endPeriod.getFullYear();
+                const endMonth = endPeriod.getMonth() + 1;
+                const endLastDay = new Date(endYear, endMonth, 0).getDate();
+
+                const { data: invoices, error: invError } = await supabase
                     .from('invoices')
                     .select('consumo_kwh, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento')
                     .in('uc_id', ucIds)
                     .gte('vencimento', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
-                    .lte('vencimento', `${endPeriod.getFullYear()}-${(endPeriod.getMonth() + 1).toString().padStart(2, '0')}-31`);
+                    .lte('vencimento', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`);
+                
+                if (invError) console.error("Invoice fetch error:", invError);
                 invHistory = invoices || [];
             }
 
@@ -106,18 +112,18 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             let irrData = null;
             if (ibgeCode) {
                 const { data: irr, error: irrError } = await supabase
-                    .from('irradiancia')
+                    .from('vw_irradiancia')
                     .select('*')
-                    .eq('cod.ibge', ibgeCode)
+                    .eq('ibge_code', String(ibgeCode))
                     .single();
                 if (irrError) console.error("Irradiance fetch error:", irrError);
                 irrData = irr;
             }
 
             const monthMap = {
-                'Jan': 'jan.khw', 'Fev': 'fev.khw', 'Mar': 'mar.kwh', 'Abr': 'abr.kwh',
-                'Mai': 'mai.kwh', 'Jun': 'jun.kwh', 'Jul': 'jul.kwh', 'Ago': 'ago.kwh',
-                'Set': 'set.kwh', 'Out': 'out.kwh', 'Nov': 'nov.kwh', 'Dez': 'dez.khw'
+                'Jan': 'jan_kwh', 'Fev': 'fev_kwh', 'Mar': 'mar_kwh', 'Abr': 'abr_kwh',
+                'Mai': 'mai_kwh', 'Jun': 'jun_kwh', 'Jul': 'jul_kwh', 'Ago': 'ago_kwh',
+                'Set': 'set_kwh', 'Out': 'out_kwh', 'Nov': 'nov_kwh', 'Dez': 'dez_kwh'
             };
 
             // 3. Process Chart Data
