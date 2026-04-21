@@ -92,7 +92,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 .select('amount')
                 .eq('reference_id', usina.id)
                 .eq('account_code', '2.1.1');
-            const balanceToReceive = ledgerData?.reduce((acc, curr) => acc + Math.abs(curr.amount || 0), 0) || 0;
+            const netBalance = ledgerData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+            const balanceToReceive = Math.abs(netBalance);
 
             // 3. Process Chart Data
             const processedData = [];
@@ -158,7 +159,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 vacancyKwh,
                 vacancyPercent,
                 profitability,
-                balanceToReceive
+                balanceToReceive,
+                totalFranquia
             });
 
         } catch (err) {
@@ -317,7 +319,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             <h4>Capacidade Comprometida</h4>
                                             <div className="stat-main d-flex align-items-center gap-2">
                                                 <ArrowDownRight size={24} color="#FF6600" />
-                                                <span className="fs-3 fw-bold">{formatNumber(metrics.consumptionLastMonth)} kWh</span>
+                                                <span className="fs-3 fw-bold">{formatNumber(metrics.totalFranquia)} kWh</span>
                                             </div>
                                             <small className="text-muted">Soma da franquia das UCs</small>
                                         </motion.div>
@@ -365,20 +367,22 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#7f8c8d', fontSize: 12 }} />
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7f8c8d', fontSize: 12 }} />
                                                     <Tooltip content={<CustomTooltip />} />
-                                                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                                                    <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px' }} />
                                                     {selectedRange === 1 ? (
                                                         <>
-                                                            <Bar dataKey="Geracao" name="Geração (kWh)" fill="#FF6600" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={40} />
-                                                            <Bar dataKey="Consumo" name="Consumo Real (kWh)" fill="#003366" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={40} />
+                                                            <Bar dataKey="Consumo" name="Consumo" fill="#003366" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="Franquia" name="Franquia" fill="#dc2626" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="Geracao" name="Geração" fill="#FF6600" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="GeracaoEstimada" name="Ger. Estimada" fill="#ef4444" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Area type="monotone" dataKey="Geracao" name="Geração (kWh)" stroke="#FF6600" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
-                                                            <Area type="monotone" dataKey="Consumo" name="Consumo Real (kWh)" stroke="#003366" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
+                                                            <Area type="monotone" dataKey="Geracao" name="Geração" stroke="#FF6600" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
+                                                            <Area type="monotone" dataKey="Consumo" name="Consumo" stroke="#003366" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
+                                                            <Line type="monotone" dataKey="GeracaoEstimada" name="Ger. Estimada" stroke="#ef4444" strokeWidth={3} dot={false} animationDuration={1500} />
+                                                            <Line type="step" dataKey="Franquia" name="Franquia" stroke="#dc2626" strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1500} />
                                                         </>
                                                     )}
-                                                    <Line type="monotone" dataKey="GeracaoEstimada" name="Geração Estimada (kWh)" stroke="#ef4444" strokeWidth={3} dot={false} animationDuration={1500} />
-                                                    <Line type="step" dataKey="Franquia" name="Franquia UCs (kWh)" stroke="#dc2626" strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1500} />
                                                 </ComposedChart>
                                             </ResponsiveContainer>
                                         </div>
