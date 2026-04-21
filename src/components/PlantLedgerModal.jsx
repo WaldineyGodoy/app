@@ -29,14 +29,14 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
     }, [isOpen, usina]);
 
     const fetchLedgerStatement = async () => {
-        if (!usina?.id || !supplier?.id) return;
+        if (!supplier?.id) return;
         setLedgerLoading(true);
         try {
-            // Fetch entries from view_ledger_enriched for this usina AND supplier account 2.1.1
+            // [UPDATED] Use reference_id (supplier_id) and account 2.1.1 to match CRM logic
             const { data, error } = await supabase
                 .from('view_ledger_enriched')
                 .select('*')
-                .eq('usina_id', usina.id)
+                .eq('reference_id', supplier.id)
                 .eq('account_code', '2.1.1')
                 .order('created_at', { ascending: false });
 
