@@ -73,8 +73,8 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                 .from('invoices')
                 .select('*, consumer_units(numero_uc, subscriber:subscriber_id(name))')
                 .in('uc_id', ucIds)
-                .gte('mes_referencia', startOfMonth)
-                .lte('mes_referencia', endOfMonth);
+                .gte('vencimento', startOfMonth)
+                .lte('vencimento', endOfMonth);
 
             if (invError) throw invError;
 
@@ -299,7 +299,7 @@ const PlantInvoicesModal = ({ isOpen, onClose, usina }) => {
                                         </span>
                                     </div>
                                     <div className="total-item">
-                                        <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Total a Receber</span>
+                                        <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase' }}>Total Faturado</span>
                                         <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#16a34a' }}>
                                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                                                 invoices.reduce((acc, inv) => {
