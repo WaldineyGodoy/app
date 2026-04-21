@@ -1,8 +1,8 @@
 import React from 'react';
-import { Activity, Zap, Users, FileText, BarChart2 } from 'lucide-react';
+import { Activity, Zap, Users, FileText, BarChart2, Coins } from 'lucide-react';
 import './PlantCard.css';
 
-const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs }) => {
+const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedger }) => {
     // Determine status color
     const getStatusColor = (status) => {
         const s = status?.toLowerCase() || '';
@@ -68,6 +68,10 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs }) => {
                 <button className="plant-action-btn" onClick={() => onOpenInvoices(usina)}>
                     <FileText size={18} />
                     Faturamento
+                </button>
+                <button className="plant-action-btn" onClick={() => onOpenLedger(usina)} style={{ borderLeft: '1px solid #eee' }}>
+                    <Coins size={18} />
+                    Extrato
                 </button>
             </div>
         </div>

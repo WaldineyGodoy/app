@@ -9,6 +9,7 @@ import SupplierPlantsModal from '../components/SupplierPlantsModal';
 import SupplierUCsModal from '../components/SupplierUCsModal';
 import SupplierProfileModal from '../components/SupplierProfileModal';
 import ThemeToggle from '../components/ThemeToggle';
+import PlantLedgerModal from '../components/PlantLedgerModal';
 import { Factory, Zap, Users, Coins, LogOut, ChevronRight, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './SupplierDashboard.css';
@@ -34,6 +35,7 @@ const SupplierDashboard = () => {
     const [showPlantsModal, setShowPlantsModal] = useState(false);
     const [showUCsModal, setShowUCsModal] = useState(false);
     const [showProfileModal, setShowProfileModal] = useState(false);
+    const [showLedgerModal, setShowLedgerModal] = useState(false);
 
     // Active Tab (Status Filter)
     const [activeTab, setActiveTab] = useState('all');
@@ -188,6 +190,11 @@ const SupplierDashboard = () => {
         setShowUCsModal(true);
     };
 
+    const handleOpenLedger = (usina) => {
+        setSelectedUsina(usina);
+        setShowLedgerModal(true);
+    };
+
     const handleLogout = async () => {
         try {
             await signOut();
@@ -316,6 +323,7 @@ const SupplierDashboard = () => {
                                                     onOpenGraphs={handleOpenPerformance}
                                                     onOpenInvoices={handleOpenInvoices}
                                                     onOpenUCs={() => handleOpenUCs(usina)}
+                                                    onOpenLedger={handleOpenLedger}
                                                 />
                                             </motion.div>
                                         ))
@@ -361,6 +369,13 @@ const SupplierDashboard = () => {
             <SupplierProfileModal
                 isOpen={showProfileModal}
                 onClose={() => setShowProfileModal(false)}
+                supplier={supplierData}
+            />
+
+            <PlantLedgerModal 
+                isOpen={showLedgerModal}
+                onClose={() => setShowLedgerModal(false)}
+                usina={selectedUsina}
                 supplier={supplierData}
             />
 
