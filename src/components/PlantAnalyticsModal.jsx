@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-    PieChart, Pie, Cell, AreaChart, Area
+    PieChart, Pie, Cell, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 import './PlantAnalyticsModal.css';
 
 const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
     const [loading, setLoading] = useState(true);
-    const [selectedRange, setSelectedRange] = useState(12); // 3, 6, 12 months
+    const [selectedRange, setSelectedRange] = useState(1); // 1, 3, 6, 12 months
+    const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
+    const [showMonthPicker, setShowMonthPicker] = useState(false);
+    const pickerRef = useRef(null);
     const [metrics, setMetrics] = useState({
         totalUCs: 0,
         generationLastMonth: 0,
@@ -19,30 +22,45 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
         vacancyKwh: 0,
         vacancyPercent: 0,
         profitability: 0,
-        balanceToReceive: 0
+        balanceToReceive: 0,
+        totalFranquia: 0
     });
     const [chartData, setChartData] = useState([]);
     const [occupancyData, setOccupancyData] = useState([]);
+
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const shortMonthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+                setShowMonthPicker(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (isOpen && usina) {
             fetchAnalytics();
         }
-    }, [isOpen, usina, selectedRange]);
+    }, [isOpen, usina, selectedRange, selectedMonth]);
 
     const fetchAnalytics = async () => {
         setLoading(true);
         try {
-            // 1. Fetch Generation History (Based on selectedRange)
-            const today = new Date();
-            const lastPeriod = new Date();
-            lastPeriod.setMonth(today.getMonth() - selectedRange);
+            const endPeriod = new Date(`${selectedMonth}-01T00:00:00`);
+            const lastPeriod = new Date(endPeriod);
+            lastPeriod.setMonth(endPeriod.getMonth() - (selectedRange - 1));
 
+            // 1. Fetch Generation History
             const { data: genHistory, error: genError } = await supabase
                 .from('generation_production')
-                .select('geracao_mensal_kwh, fechamento')
+                .select('geracao_mensal_kwh, geracao_prevista, fechamento')
                 .eq('usina_id', usina.id)
                 .gte('fechamento', lastPeriod.toISOString())
+                .lte('fechamento', new Date(endPeriod.getFullYear(), endPeriod.getMonth() + 1, 0).toISOString())
                 .order('fechamento', { ascending: true });
 
             if (genError) throw genError;
@@ -61,59 +79,76 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             if (ucIds.length > 0) {
                 const { data: invoices } = await supabase
                     .from('invoices')
-                    .select('consumo_kwh, valor_a_pagar, mes_referencia')
+                    .select('consumo_kwh, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento')
                     .in('uc_id', ucIds)
-                    .gte('mes_referencia', `${lastPeriod.getFullYear()}-${lastPeriod.getMonth() + 1}-01`);
+                    .gte('vencimento', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
+                    .lte('vencimento', `${endPeriod.getFullYear()}-${(endPeriod.getMonth() + 1).toString().padStart(2, '0')}-31`);
                 invHistory = invoices || [];
             }
+
+            // Fetch Ledger Balance (Global for the Usina)
+            const { data: ledgerData } = await supabase
+                .from('view_ledger_enriched')
+                .select('amount')
+                .eq('reference_id', usina.id)
+                .eq('account_code', '2.1.1');
+            const balanceToReceive = ledgerData?.reduce((acc, curr) => acc + Math.abs(curr.amount || 0), 0) || 0;
 
             // 3. Process Chart Data
             const processedData = [];
             for (let i = 0; i < selectedRange; i++) {
-                const d = new Date(today.getFullYear(), today.getMonth() - (selectedRange - 1) + i, 1);
+                const d = new Date(lastPeriod.getFullYear(), lastPeriod.getMonth() + i, 1);
                 const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
-                const monthName = d.toLocaleDateString('pt-BR', { month: 'short' });
+                const monthName = shortMonthNames[d.getMonth()];
 
                 const genItem = genHistory?.find(g => g.fechamento.startsWith(monthKey));
                 const generation = Number(genItem?.geracao_mensal_kwh) || 0;
+                const estimatedGen = Number(genItem?.geracao_prevista) || 0;
 
-                const consItems = invHistory.filter(inv => inv.mes_referencia.startsWith(monthKey));
-                const consumption = consItems.reduce((acc, curr) => acc + (Number(curr.consumo_kwh) || 0), 0);
-                const revenue = consItems.reduce((acc, curr) => acc + (Number(curr.valor_a_pagar) || 0), 0);
+                const consItems = invHistory.filter(inv => inv.vencimento.startsWith(monthKey));
+                
+                const consumption = consItems.reduce((acc, inv) => {
+                    const tarifa = parseFloat(inv.tarifa_concessionaria || 1);
+                    const tarifaMinimaKwh = parseFloat(inv.tarifa_minima || 0) / (tarifa > 0 ? tarifa : 1);
+                    return acc + Math.max(0, parseFloat(inv.consumo_kwh || 0) - tarifaMinimaKwh);
+                }, 0);
+                
+                const revenue = consItems.reduce((acc, inv) => {
+                    const saldoReal = parseFloat(inv.valor_a_pagar || 0) - parseFloat(inv.valor_concessionaria || 0);
+                    return acc + Math.max(0, saldoReal);
+                }, 0);
 
                 processedData.push({
                     name: monthName,
                     monthKey: monthKey,
                     Geracao: generation,
+                    GeracaoEstimada: estimatedGen,
                     Consumo: consumption,
-                    Revenue: revenue
+                    Revenue: revenue,
+                    Franquia: totalFranquia
                 });
             }
 
             setChartData(processedData);
 
-            // 4. Metrics Helper (Syncing with CRM logic)
-            // Latest generation record specifically
-            const latestGenItem = [...genHistory].reverse()[0];
-            const generationLastMonth = Number(latestGenItem?.geracao_mensal_kwh) || 0;
+            // 4. Metrics Helper (Syncing with selectedMonth)
+            const currentMonthData = processedData[processedData.length - 1] || { Geracao: 0, Consumo: 0, Revenue: 0 };
+            const generationLastMonth = currentMonthData.Geracao;
+            const consumptionLastMonth = currentMonthData.Consumo;
+            const revenueLastMonth = currentMonthData.Revenue;
 
-            // For sync: Occupancy kwh Value = Total Franquia (Committed)
-            // Occupancy % = Committed / Generation
-            const consumptionLastMonth = totalFranquia;
-            const revenueLastMonth = processedData[processedData.length - 1].Revenue;
-
-            const vacancyKwh = Math.max(0, generationLastMonth - totalFranquia);
+            const vacancyKwh = Math.max(0, generationLastMonth - consumptionLastMonth);
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
-            const occupancyRate = generationLastMonth > 0 ? (totalFranquia / generationLastMonth) * 100 : 0;
 
             // 5. Profitability & Financials
-            // Hardcoded expenses/investment logic as fallback if columns missing
-            const { data: usinaDetails } = await supabase.from('usinas').select('*').eq('id', usina.id).single();
-            const invested = usinaDetails?.valor_investido || usina.valor_investido || 500000;
-            const expenses = 500; // Mock fixed operational cost
-            // Balance = Revenue - Expenses
-            const balanceToReceive = revenueLastMonth - expenses;
+            const { data: usinaDetails } = await supabase.from('usinas').select('valor_investido').eq('id', usina.id).single();
+            const invested = usinaDetails?.valor_investido || usina.valor_investido || 0;
             const profitability = invested > 0 ? (revenueLastMonth / invested) * 100 : 0;
+
+            setOccupancyData([
+                { name: 'Ocupado', value: consumptionLastMonth, color: '#003366' },
+                { name: 'Livre', value: vacancyKwh, color: '#FF6600' }
+            ]);
 
             setMetrics({
                 totalUCs: ucs?.length || 0,
@@ -174,15 +209,70 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                             <div className="col">
                                 <h2 className="mb-0">Painel de Análise - {usina.name}</h2>
                             </div>
-                            <div className="col-auto">
+                            <div className="col-auto d-flex gap-3 align-items-center">
+                                <div className="month-selector" ref={pickerRef} style={{ position: 'relative', zIndex: 100 }}>
+                                    <div className="custom-month-picker-wrapper">
+                                        <button
+                                            className="picker-trigger btn btn-outline-secondary d-flex align-items-center gap-2"
+                                            onClick={() => setShowMonthPicker(!showMonthPicker)}
+                                            style={{ borderRadius: '20px', padding: '6px 16px', background: '#fff' }}
+                                        >
+                                            <Calendar size={18} />
+                                            <span>{`${monthNames[parseInt(selectedMonth.split('-')[1]) - 1]} de ${selectedMonth.split('-')[0]}`}</span>
+                                        </button>
+
+                                        <AnimatePresence>
+                                            {showMonthPicker && (
+                                                <motion.div
+                                                    className="picker-popover"
+                                                    style={{ position: 'absolute', top: '100%', right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', minWidth: '280px', marginTop: '8px' }}
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 10 }}
+                                                >
+                                                    <div className="picker-header d-flex justify-content-between align-items-center mb-3">
+                                                        <button className="btn btn-sm btn-light" onClick={() => {
+                                                            const [year, month] = selectedMonth.split('-');
+                                                            setSelectedMonth(`${parseInt(year) - 1}-${month}`);
+                                                        }}><ChevronLeft size={16} /></button>
+                                                        <span className="current-year fw-bold text-dark">{selectedMonth.split('-')[0]}</span>
+                                                        <button className="btn btn-sm btn-light" onClick={() => {
+                                                            const [year, month] = selectedMonth.split('-');
+                                                            setSelectedMonth(`${parseInt(year) + 1}-${month}`);
+                                                        }}><ChevronRight size={16} /></button>
+                                                    </div>
+                                                    <div className="months-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                                                        {shortMonthNames.map((m, i) => {
+                                                            const monthVal = (i + 1).toString().padStart(2, '0');
+                                                            const isSelected = selectedMonth.split('-')[1] === monthVal;
+                                                            return (
+                                                                <button
+                                                                    key={m}
+                                                                    className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-outline-secondary'}`}
+                                                                    onClick={() => {
+                                                                        const year = selectedMonth.split('-')[0];
+                                                                        setSelectedMonth(`${year}-${monthVal}`);
+                                                                        setShowMonthPicker(false);
+                                                                    }}
+                                                                >
+                                                                    {m}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
                                 <div className="range-selector">
-                                    {[3, 6, 12].map(range => (
+                                    {[1, 3, 6, 12].map(range => (
                                         <button
                                             key={range}
                                             className={`range-btn ${selectedRange === range ? 'active' : ''}`}
                                             onClick={() => setSelectedRange(range)}
                                         >
-                                            {range} meses
+                                            {range === 1 ? 'Mês' : `${range} meses`}
                                         </button>
                                     ))}
                                 </div>
@@ -260,7 +350,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                 </span>
                                             </div>
                                             <ResponsiveContainer width="100%" height={350}>
-                                                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                                <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                                     <defs>
                                                         <linearGradient id="colorGen" x1="0" y1="0" x2="0" y2="1">
                                                             <stop offset="5%" stopColor="#FF6600" stopOpacity={0.1} />
@@ -276,9 +366,20 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#7f8c8d', fontSize: 12 }} />
                                                     <Tooltip content={<CustomTooltip />} />
                                                     <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                                    <Area type="monotone" dataKey="Geracao" name="Geração (kWh)" stroke="#FF6600" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
-                                                    <Area type="monotone" dataKey="Consumo" name="Consumo (kWh)" stroke="#003366" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
-                                                </AreaChart>
+                                                    {selectedRange === 1 ? (
+                                                        <>
+                                                            <Bar dataKey="Geracao" name="Geração (kWh)" fill="#FF6600" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={40} />
+                                                            <Bar dataKey="Consumo" name="Consumo Real (kWh)" fill="#003366" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={40} />
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Area type="monotone" dataKey="Geracao" name="Geração (kWh)" stroke="#FF6600" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
+                                                            <Area type="monotone" dataKey="Consumo" name="Consumo Real (kWh)" stroke="#003366" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
+                                                        </>
+                                                    )}
+                                                    <Line type="monotone" dataKey="GeracaoEstimada" name="Geração Estimada (kWh)" stroke="#ef4444" strokeWidth={3} dot={false} animationDuration={1500} />
+                                                    <Line type="step" dataKey="Franquia" name="Franquia UCs (kWh)" stroke="#dc2626" strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1500} />
+                                                </ComposedChart>
                                             </ResponsiveContainer>
                                         </div>
                                     </div>
