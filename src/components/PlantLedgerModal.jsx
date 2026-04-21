@@ -21,12 +21,34 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState(0);
     const [isPartial, setIsPartial] = useState(false);
+    const [canAutoRedeem, setCanAutoRedeem] = useState(false);
 
     useEffect(() => {
-        if (isOpen && usina?.id) {
-            fetchLedgerStatement();
+        if (isOpen) {
+            fetchAutoRedemptionConfig();
+            if (usina?.id) {
+                fetchLedgerStatement();
+            }
         }
     }, [isOpen, usina]);
+
+    const fetchAutoRedemptionConfig = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('integrations_config')
+                .select('variables')
+                .eq('service_name', 'financial_api')
+                .maybeSingle();
+
+            if (data?.variables?.allow_auto_redemption) {
+                setCanAutoRedeem(true);
+            } else {
+                setCanAutoRedeem(false);
+            }
+        } catch (err) {
+            console.error('Erro ao verificar config de resgate:', err);
+        }
+    };
 
     const fetchLedgerStatement = async () => {
         if (!supplier?.id) return;
@@ -223,30 +245,33 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                             </div>
                             <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{formatCurrency(ledgerBalance)}</div>
                         </div>
-                        <button 
-                            type="button"
-                            onClick={handlePayPix}
-                            disabled={paying || ledgerBalance >= 0}
-                            style={{ 
-                                background: 'white', 
-                                padding: '1rem 2rem', 
-                                borderRadius: '20px',
-                                border: 'none',
-                                color: '#1d4ed8',
-                                fontWeight: '800',
-                                fontSize: '1rem',
-                                cursor: (paying || ledgerBalance >= 0) ? 'not-allowed' : 'pointer',
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.75rem',
-                                opacity: (paying || ledgerBalance >= 0) ? 0.7 : 1,
-                                transition: 'transform 0.2s'
-                            }}
-                        >
-                            <Wallet size={20} />
-                            {paying ? 'Processando...' : 'Resgatar Agora'}
-                        </button>
+                        </div>
+                        {canAutoRedeem && (
+                            <button 
+                                type="button"
+                                onClick={handlePayPix}
+                                disabled={paying || ledgerBalance >= 0}
+                                style={{ 
+                                    background: 'white', 
+                                    padding: '1rem 2rem', 
+                                    borderRadius: '20px',
+                                    border: 'none',
+                                    color: '#1d4ed8',
+                                    fontWeight: '800',
+                                    fontSize: '1rem',
+                                    cursor: (paying || ledgerBalance >= 0) ? 'not-allowed' : 'pointer',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    opacity: (paying || ledgerBalance >= 0) ? 0.7 : 1,
+                                    transition: 'transform 0.2s'
+                                }}
+                            >
+                                <Wallet size={20} />
+                                {paying ? 'Processando...' : 'Resgatar Agora'}
+                            </button>
+                        )}
                     </div>
 
                     {/* Transactions List */}
