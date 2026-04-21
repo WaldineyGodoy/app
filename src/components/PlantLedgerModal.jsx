@@ -410,6 +410,22 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                             </div>
                         )}
 
+                        <div style={{ 
+                            background: '#f8fafc', 
+                            padding: '1rem', 
+                            borderRadius: '16px', 
+                            border: '1px solid #e2e8f0',
+                            marginBottom: '1.5rem',
+                            textAlign: 'left'
+                        }}>
+                            <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                                Destino (Chave PIX Cadastrada)
+                            </div>
+                            <div style={{ fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', wordBreak: 'break-all' }}>
+                                {supplier?.pix_key} ({supplier?.pix_key_type?.toUpperCase()})
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <button 
                                 onClick={confirmPixPayment}
