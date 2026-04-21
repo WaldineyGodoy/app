@@ -174,20 +174,27 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             let generationLastMonth = 0;
             let consumptionLastMonth = 0;
             let revenueLastMonth = 0;
+            let estimatedGenLastMonth = 0;
 
             if (selectedRange === 1) {
-                const currentMonthData = processedData[processedData.length - 1] || { Geracao: 0, Consumo: 0, Revenue: 0 };
+                const currentMonthData = processedData[processedData.length - 1] || { Geracao: 0, GeracaoEstimada: 0, Consumo: 0, Revenue: 0 };
                 generationLastMonth = currentMonthData.Geracao;
                 consumptionLastMonth = currentMonthData.Consumo;
                 revenueLastMonth = currentMonthData.Revenue;
+                estimatedGenLastMonth = currentMonthData.GeracaoEstimada;
             } else {
                 generationLastMonth = processedData.reduce((acc, curr) => acc + curr.Geracao, 0);
                 consumptionLastMonth = processedData.reduce((acc, curr) => acc + curr.Consumo, 0);
                 revenueLastMonth = processedData.reduce((acc, curr) => acc + curr.Revenue, 0);
+                estimatedGenLastMonth = processedData.reduce((acc, curr) => acc + curr.GeracaoEstimada, 0);
             }
 
             const vacancyKwh = Math.max(0, generationLastMonth - consumptionLastMonth);
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
+
+            const avgEstimatedGen = estimatedGenLastMonth / selectedRange;
+            const reserveKwh = avgEstimatedGen - totalFranquia;
+            const reservePercent = avgEstimatedGen > 0 ? (reserveKwh / avgEstimatedGen) * 100 : 0;
 
             // 5. Profitability & Financials
             const invested = usinaDetails?.valor_investido || usina.valor_investido || 0;
@@ -205,6 +212,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 revenueLastMonth,
                 vacancyKwh,
                 vacancyPercent,
+                reserveKwh,
+                reservePercent,
                 profitability,
                 balanceToReceive,
                 totalFranquia
@@ -451,9 +460,26 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                             {metrics.vacancyPercent.toFixed(1)}%
                                                         </span>
                                                     </div>
-                                                    <small className="text-muted d-block mt-1">Diferença Geração - Consumo</small>
+                                                    <small className="text-muted d-block mt-2">Diferença Geração - Consumo</small>
                                                 </div>
                                             </div>
+
+                                            {/* RESERVA */}
+                                            <div className="col-12">
+                                                <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-warning border-4">
+                                                    <div className="side-header d-flex justify-content-between align-items-start mb-2">
+                                                        <h4 className="h6 text-muted mb-0">Reserva</h4>
+                                                        <div className="icon-circle yellow text-warning bg-warning bg-opacity-10 p-1 rounded-circle"><Sun size={16} /></div>
+                                                    </div>
+                                                    <div className="side-values d-flex align-items-baseline gap-2">
+                                                        <span className="fs-4 fw-bold text-dark">{formatNumber(metrics.reserveKwh)} kWh</span>
+                                                        <span className={`badge px-2 py-1 ${metrics.reserveKwh >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
+                                                            {metrics.reservePercent.toFixed(1)}%
+                                                        </span>
+                                                    </div>
+                                                    <small className="text-muted d-block mt-2">Geração Média Estimada - Cap. Comprometida</small>
+                                                </div>
+                                            </div>                 </div>
 
                                             {/* PROFITABILITY */}
                                             <div className="col-12">
