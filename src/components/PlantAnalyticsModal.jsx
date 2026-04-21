@@ -105,18 +105,19 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             // Fetch Irradiance Data
             let irrData = null;
             if (ibgeCode) {
-                const { data: irr } = await supabase
+                const { data: irr, error: irrError } = await supabase
                     .from('irradiancia')
                     .select('*')
-                    .eq('ibge_code', ibgeCode)
+                    .eq('cod.ibge', ibgeCode)
                     .single();
+                if (irrError) console.error("Irradiance fetch error:", irrError);
                 irrData = irr;
             }
 
             const monthMap = {
-                'Jan': 'jan_kwh', 'Fev': 'fev_kwh', 'Mar': 'mar_kwh', 'Abr': 'abr_kwh',
-                'Mai': 'mai_kwh', 'Jun': 'jun_kwh', 'Jul': 'jul_kwh', 'Ago': 'ago_kwh',
-                'Set': 'set_kwh', 'Out': 'out_kwh', 'Nov': 'nov_kwh', 'Dez': 'dez_kwh'
+                'Jan': 'jan.khw', 'Fev': 'fev.khw', 'Mar': 'mar.kwh', 'Abr': 'abr.kwh',
+                'Mai': 'mai.kwh', 'Jun': 'jun.kwh', 'Jul': 'jul.kwh', 'Ago': 'ago.kwh',
+                'Set': 'set.kwh', 'Out': 'out.kwh', 'Nov': 'nov.kwh', 'Dez': 'dez.khw'
             };
 
             // 3. Process Chart Data
