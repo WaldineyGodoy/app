@@ -245,7 +245,6 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                             </div>
                             <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{formatCurrency(ledgerBalance)}</div>
                         </div>
-                        </div>
                         {canAutoRedeem && (
                             <button 
                                 type="button"
