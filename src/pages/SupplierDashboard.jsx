@@ -257,6 +257,10 @@ const SupplierDashboard = () => {
                                     title="Total a Receber"
                                     value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
                                     icon={Coins}
+                                    onClick={() => {
+                                        setSelectedUsina(null);
+                                        setShowLedgerModal(true);
+                                    }}
                                 />
                             </motion.div>
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

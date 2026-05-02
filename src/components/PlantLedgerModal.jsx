@@ -26,11 +26,11 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
     useEffect(() => {
         if (isOpen) {
             fetchAutoRedemptionConfig();
-            if (usina?.id) {
+            if (supplier?.id) {
                 fetchLedgerStatement();
             }
         }
-    }, [isOpen, usina]);
+    }, [isOpen, supplier]);
 
     const fetchAutoRedemptionConfig = async () => {
         try {
@@ -149,7 +149,7 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                     value: amountToPay,
                     pix_key: supplier.pix_key,
                     pix_key_type: supplier.pix_key_type,
-                    description: `Resgate Fornecedor: ${supplier.name} - Usina: ${usina.name}`,
+                    description: `Resgate Fornecedor: ${supplier.name}${usina ? ` - Usina: ${usina.name}` : ''}`,
                     operationType: 'PIX'
                 }
             });
@@ -219,7 +219,7 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                 }}>
                     <div>
                         <h2 style={{ margin: 0, color: '#1e293b', fontSize: '1.5rem', fontWeight: 800 }}>Extrato Financeiro</h2>
-                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>{usina.name}</p>
+                        <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>{supplier?.name || usina?.name}</p>
                     </div>
                     <button onClick={onClose} style={{ background: '#f1f5f9', border: 'none', padding: '0.5rem', borderRadius: '12px', cursor: 'pointer', color: '#64748b' }}>
                         <X size={24} />
