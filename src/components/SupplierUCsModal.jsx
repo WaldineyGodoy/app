@@ -174,11 +174,24 @@ const SupplierUCsModal = ({ isOpen, onClose, usinaIds }) => {
                                                 <div className="uc-document">{(uc.subscriber || uc.subscribers)?.cpf_cnpj || uc.cpf_cnpj_fatura || '---'}</div>
                                             </div>
                                             <div className="uc-stats-secondary">
-                                                <div className="uc-concessionaria">{uc.concessionaria || 'Neoenergia Cosern'}</div>
-                                                <div className="uc-franquia-value">{formatNumber(uc.franquia)} kWh</div>
-                                                <div className="uc-franquia-percent">{generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : '0.00'}%</div>
-                                                <div className="uc-remanescente">Saldo R.: {uc.saldo_remanescente ? 'Sim' : 'Não'}</div>
+                                                <div className="stat-block">
+                                                    <span className="stat-label">Concessionária</span>
+                                                    <span className="stat-value">{uc.concessionaria || 'Neoenergia'}</span>
+                                                </div>
+                                                <div className="stat-block">
+                                                    <span className="stat-label">Franquia</span>
+                                                    <span className="stat-value">{formatNumber(uc.franquia)} kWh</span>
+                                                </div>
+                                                <div className="stat-block">
+                                                    <span className="stat-label">Participação</span>
+                                                    <span className="stat-value">{generation > 0 ? ((Number(uc.franquia) / generation) * 100).toFixed(2) : '0.00'}%</span>
+                                                </div>
+                                                <div className="stat-block">
+                                                    <span className="stat-label">Saldo Rem.</span>
+                                                    <span className="stat-value">{uc.saldo_remanescente ? 'Sim' : 'Não'}</span>
+                                                </div>
                                             </div>
+
                                         </div>
                                     </div>
                                     <button

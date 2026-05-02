@@ -106,14 +106,18 @@
     background: var(--bg-card);
     border: 1px solid var(--border-ui) !important;
     border-radius: 24px !important;
-    padding: 1.5rem !important;
+    padding: 1.5rem 2rem !important;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .uc-item-card:hover {
     transform: translateY(-4px);
     border-color: var(--primary) !important;
-    box-shadow: var(--shadow-sm) !important;
+    box-shadow: var(--shadow-btn) !important;
 }
 
 .uc-index-circle {
@@ -126,18 +130,137 @@
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 1rem;
+    font-size: 1.1rem;
     flex-shrink: 0;
     box-shadow: 0 8px 16px rgba(var(--primary-glow), 0.2);
 }
 
-.uc-item-card h4 {
+.uc-card-content {
+    flex: 1;
+}
+
+.uc-card-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.uc-info-primary {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.uc-number {
+    font-size: 1.35rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
     color: var(--text-main);
     letter-spacing: -0.01em;
 }
 
-.text-success {
-    color: var(--success-base) !important;
+.uc-badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+}
+
+.uc-badge.type-generator {
+    background: var(--info-bg);
+    color: var(--info-base);
+}
+
+.uc-badge.type-beneficiary {
+    background: rgba(var(--primary-glow), 0.1);
+    color: var(--primary);
+}
+
+.uc-badge.status-ativo { background: var(--success-bg); color: var(--success-base); }
+.uc-badge.status-em_ativacao { background: var(--warning-bg); color: var(--warning-text); }
+.uc-badge.status-aguardando_conexao { background: var(--warning-bg); color: var(--warning-text); }
+.uc-badge.status-em_atraso { background: var(--error-bg); color: var(--error-base); }
+.uc-badge.status-cancelado { background: var(--bg-app); color: var(--text-muted); }
+
+.uc-usina-name {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.uc-titular {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.uc-document {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-family: 'Monaco', 'Consolas', monospace;
+}
+
+.uc-stats-secondary {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    background: var(--bg-app);
+    padding: 1rem 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-ui);
+}
+
+.stat-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.uc-view-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-app);
+    border: 1px solid var(--border-ui);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.uc-view-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(var(--primary-glow), 0.3);
 }
 
 .modal-loading {
@@ -180,5 +303,31 @@
     .search-bar,
     .filter-select {
         width: 100%;
+    }
+
+    .uc-item-card {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.5rem !important;
+    }
+    
+    .uc-card-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+        width: 100%;
+    }
+    
+    .uc-stats-secondary {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        width: 100%;
+    }
+    
+    .uc-view-btn {
+        width: 100%;
+        border-radius: 12px;
+        margin-top: 1rem;
     }
 }
