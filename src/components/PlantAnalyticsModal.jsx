@@ -208,6 +208,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             setMetrics({
                 totalUCs: ucs?.length || 0,
                 generationLastMonth,
+                estimatedGenLastMonth,
                 consumptionLastMonth,
                 revenueLastMonth,
                 vacancyKwh,
@@ -363,10 +364,16 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                         <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
                                             <h4>Geração (Mês)</h4>
                                             <div className="stat-main d-flex align-items-center gap-2">
-                                                <Zap size={24} color="#FF6600" />
-                                                <span className="fs-3 fw-bold">{formatNumber(metrics.generationLastMonth)} kWh</span>
+                                                <Zap size={24} color={metrics.generationLastMonth > 0 ? "#FF6600" : "#ef4444"} />
+                                                <span className="fs-3 fw-bold">
+                                                    {metrics.generationLastMonth > 0 
+                                                        ? formatNumber(metrics.generationLastMonth) 
+                                                        : formatNumber(metrics.estimatedGenLastMonth)} kWh
+                                                </span>
                                             </div>
-                                            <small className="text-muted">Analíticos do último mês</small>
+                                            <small className="text-muted">
+                                                {metrics.generationLastMonth > 0 ? 'Geração' : 'Geração estimada (sem lançamentos)'}
+                                            </small>
                                         </motion.div>
                                     </div>
 

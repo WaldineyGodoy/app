@@ -116,14 +116,16 @@ const SupplierDashboard = () => {
                     .select('*', { count: 'exact', head: true })
                     .eq('usina_id', usina.id);
 
-                // Fetch Generation (Latest)
-                // Assuming 'generation_production' has 'usina_id' and 'geracao_mensal_kwh'
+                // Fetch Generation (Last Month explicitly)
+                const today = new Date();
+                const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                // We use gte and order to get the entry that falls in the previous month
                 const { data: genData } = await supabase
                     .from('generation_production')
                     .select('geracao_mensal_kwh')
                     .eq('usina_id', usina.id)
-                    .gt('geracao_mensal_kwh', 0) // [FIX] Get the last valid generation
-                    .order('fechamento', { ascending: false })
+                    .gte('fechamento', lastMonthStart.toISOString())
+                    .order('fechamento', { ascending: true })
                     .limit(1)
                     .maybeSingle();
 
@@ -138,8 +140,8 @@ const SupplierDashboard = () => {
                 const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
                 const ucIds = ucs?.map(u => u.id) || [];
 
-                // [UPDATED] Fetch balance from Ledger per Usina
-                const usinaLedger = await ledgerService.getUsinaBalance(usina.id);
+                // [UPDATED] Use Supplier Balance for consistency across dashboard cards
+                const usinaLedger = await ledgerService.getSupplierBalance(supplier.id);
                 const plantReceivable = usinaLedger.balance || 0;
 
                 // Calculate Percentages based on ACTUAL generation
