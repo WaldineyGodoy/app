@@ -196,8 +196,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             const profitability = invested > 0 ? (revenueLastMonth / invested) * 100 : 0;
 
             setOccupancyData([
-                { name: 'Ocupado', value: consumptionLastMonth, color: '#003366' },
-                { name: 'Livre', value: vacancyKwh, color: '#FF6600' }
+                { name: 'Ocupado', value: consumptionLastMonth, color: '#3b82f6' },
+                { name: 'Livre', value: vacancyKwh, color: '#10b981' }
             ]);
 
             setMetrics({
@@ -413,12 +413,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                 <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                                                     <defs>
                                                         <linearGradient id="colorGen" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="5%" stopColor="#FF6600" stopOpacity={0.1} />
-                                                            <stop offset="95%" stopColor="#FF6600" stopOpacity={0} />
+                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1} />
+                                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                                         </linearGradient>
                                                         <linearGradient id="colorCons" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="5%" stopColor="#003366" stopOpacity={0.1} />
-                                                            <stop offset="95%" stopColor="#003366" stopOpacity={0} />
+                                                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1} />
+                                                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                                         </linearGradient>
                                                     </defs>
                                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -428,17 +428,17 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                     <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '11px' }} />
                                                     {selectedRange === 1 ? (
                                                         <>
-                                                            <Bar dataKey="Consumo" name="Consumo" fill="#003366" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
-                                                            <Bar dataKey="Franquia" name="Franquia" fill="#dc2626" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
-                                                            <Bar dataKey="Geracao" name="Geração" fill="#FF6600" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
-                                                            <Bar dataKey="GeracaoEstimada" name="Ger. Estimada" fill="#ef4444" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="Consumo" name="Consumo" fill="#3b82f6" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="Franquia" name="Franquia" fill="#f59e0b" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="Geracao" name="Geração" fill="#10b981" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
+                                                            <Bar dataKey="GeracaoEstimada" name="Ger. Estimada" fill="#94a3b8" radius={[4, 4, 0, 0]} animationDuration={1500} barSize={30} />
                                                         </>
                                                     ) : (
                                                         <>
-                                                            <Area type="monotone" dataKey="Geracao" name="Geração" stroke="#FF6600" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
-                                                            <Area type="monotone" dataKey="Consumo" name="Consumo" stroke="#003366" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
-                                                            <Line type="monotone" dataKey="GeracaoEstimada" name="Ger. Estimada" stroke="#ef4444" strokeWidth={3} dot={false} animationDuration={1500} />
-                                                            <Line type="step" dataKey="Franquia" name="Franquia" stroke="#dc2626" strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1500} />
+                                                            <Area type="monotone" dataKey="Geracao" name="Geração" stroke="#10b981" fillOpacity={1} fill="url(#colorGen)" strokeWidth={3} animationDuration={1500} />
+                                                            <Area type="monotone" dataKey="Consumo" name="Consumo" stroke="#3b82f6" fillOpacity={1} fill="url(#colorCons)" strokeWidth={3} animationDuration={1500} />
+                                                            <Line type="monotone" dataKey="GeracaoEstimada" name="Ger. Estimada" stroke="#94a3b8" strokeWidth={3} dot={false} animationDuration={1500} />
+                                                            <Line type="step" dataKey="Franquia" name="Franquia" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={false} animationDuration={1500} />
                                                         </>
                                                     )}
                                                 </ComposedChart>
