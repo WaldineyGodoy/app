@@ -119,17 +119,20 @@ const SupplierDashboard = () => {
                 // Fetch Generation (Last Month explicitly)
                 const today = new Date();
                 const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                // We use gte and order to get the entry that falls in the previous month
+                const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+
                 const { data: genData } = await supabase
                     .from('generation_production')
-                    .select('geracao_mensal_kwh')
+                    .select('geracao_mensal_kwh, saldo_receber')
                     .eq('usina_id', usina.id)
-                    .gte('fechamento', lastMonthStart.toISOString())
-                    .order('fechamento', { ascending: true })
+                    .gte('mes_referencia', lastMonthStart.toISOString().split('T')[0])
+                    .lte('mes_referencia', lastMonthEnd.toISOString().split('T')[0])
+                    .order('mes_referencia', { ascending: false })
                     .limit(1)
                     .maybeSingle();
 
                 const generation = Number(genData?.geracao_mensal_kwh) || 0;
+                const revenue = Number(genData?.saldo_receber) || 0;
 
                 // 2. Fetch UCs for this usina (Select all for robustness)
                 const { data: ucs } = await supabase

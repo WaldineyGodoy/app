@@ -57,11 +57,11 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             // 1. Fetch Generation History
             const { data: genHistory, error: genError } = await supabase
                 .from('generation_production')
-                .select('geracao_mensal_kwh, geracao_prevista, fechamento')
+                .select('geracao_mensal_kwh, geracao_prevista, energia_compensada, saldo_receber, mes_referencia')
                 .eq('usina_id', usina.id)
-                .gte('fechamento', lastPeriod.toISOString())
-                .lte('fechamento', new Date(endPeriod.getFullYear(), endPeriod.getMonth() + 1, 0).toISOString())
-                .order('fechamento', { ascending: true });
+                .gte('mes_referencia', lastPeriod.toISOString().split('T')[0])
+                .lte('mes_referencia', new Date(endPeriod.getFullYear(), endPeriod.getMonth() + 1, 0).toISOString().split('T')[0])
+                .order('mes_referencia', { ascending: true });
 
             if (genError) throw genError;
 
@@ -92,21 +92,24 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 invHistory = invoices || [];
             }
 
-            // Fetch Ledger Balance (Global for the Supplier)
-            const { data: ledgerData } = await supabase
-                .from('view_ledger_enriched')
-                .select('amount')
-                .eq('reference_id', usina.supplier_id || usina.id)
-                .eq('account_code', '2.1.1');
-            const netBalance = ledgerData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
-            const balanceToReceive = Math.abs(netBalance);
-
             // Fetch Usina Details (Investimento, IBGE e Potência)
             const { data: usinaDetails } = await supabase.from('usinas')
                 .select('valor_investido, ibge_code, potencia_kwp, supplier_id')
                 .eq('id', usina.id).single();
+            
+            const supplierId = usinaDetails?.supplier_id || usina.supplier_id;
             const ibgeCode = usinaDetails?.ibge_code || usina.ibge_code;
             const potenciaKwp = parseFloat(usinaDetails?.potencia_kwp || usina.potencia_kwp || 0);
+
+            // Fetch Ledger Balance (Global for the Supplier)
+            const { data: ledgerData } = await supabase
+                .from('view_ledger_enriched')
+                .select('amount')
+                .eq('reference_id', supplierId || usina.id)
+                .eq('account_code', '2.1.1');
+            
+            const netBalance = ledgerData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+            const balanceToReceive = Math.abs(netBalance);
 
             // Fetch Irradiance Data
             let irrData = null;
@@ -121,9 +124,9 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             }
 
             const monthMap = {
-                'Jan': 'jan_kwh', 'Fev': 'fev_kwh', 'Mar': 'mar_kwh', 'Abr': 'abr_kwh',
+                'Jan': 'jan_khw', 'Fev': 'fev_khw', 'Mar': 'mar_kwh', 'Abr': 'abr_kwh',
                 'Mai': 'mai_kwh', 'Jun': 'jun_kwh', 'Jul': 'jul_kwh', 'Ago': 'ago_kwh',
-                'Set': 'set_kwh', 'Out': 'out_kwh', 'Nov': 'nov_kwh', 'Dez': 'dez_kwh'
+                'Set': 'set_kwh', 'Out': 'out_kwh', 'Nov': 'nov_kwh', 'Dez': 'dez_khw'
             };
 
             // 3. Process Chart Data
@@ -133,29 +136,21 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 const monthKey = d.toISOString().slice(0, 7); // YYYY-MM
                 const monthName = shortMonthNames[d.getMonth()];
 
-                const genItem = genHistory?.find(g => g.fechamento.startsWith(monthKey));
+                const genItem = genHistory?.find(g => g.mes_referencia.startsWith(monthKey));
                 const generation = Number(genItem?.geracao_mensal_kwh) || 0;
+                const consumption = Number(genItem?.energia_compensada) || 0;
+                const revenue = Number(genItem?.saldo_receber) || 0;
                 
                 let estimatedGen = 0;
                 if (irrData && monthMap[monthName]) {
                     estimatedGen = Math.round((irrData[monthMap[monthName]] || 0) * potenciaKwp);
-                } else {
-                    // Fallback to table value if irradiance is not found
+                }
+                
+                if (estimatedGen === 0) {
                     estimatedGen = Number(genItem?.geracao_prevista) || 0;
                 }
 
                 const consItems = invHistory.filter(inv => inv.vencimento.startsWith(monthKey));
-                
-                const consumption = consItems.reduce((acc, inv) => {
-                    const tarifa = parseFloat(inv.tarifa_concessionaria || 1);
-                    const tarifaMinimaKwh = parseFloat(inv.tarifa_minima || 0) / (tarifa > 0 ? tarifa : 1);
-                    return acc + Math.max(0, parseFloat(inv.consumo_kwh || 0) - tarifaMinimaKwh);
-                }, 0);
-                
-                const revenue = consItems.reduce((acc, inv) => {
-                    const saldoReal = parseFloat(inv.valor_a_pagar || 0) - parseFloat(inv.valor_concessionaria || 0);
-                    return acc + Math.max(0, saldoReal);
-                }, 0);
 
                 processedData.push({
                     name: monthName,
