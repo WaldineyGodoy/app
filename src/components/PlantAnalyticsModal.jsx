@@ -23,7 +23,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
         vacancyPercent: 0,
         profitability: 0,
         balanceToReceive: 0,
-        totalFranquia: 0
+        totalFranquia: 0,
+        cycleString: 'Geração'
     });
     const [chartData, setChartData] = useState([]);
     const [occupancyData, setOccupancyData] = useState([]);
@@ -212,7 +213,22 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 reservePercent,
                 profitability,
                 balanceToReceive,
-                totalFranquia
+                totalFranquia,
+                cycleString: (() => {
+                    const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
+                    const diaLeitura = mainUG?.dia_leitura;
+                    if (selectedRange === 1 && generationLastMonth > 0 && diaLeitura) {
+                        const lastGen = processedData[processedData.length - 1];
+                        if (lastGen?.monthKey) {
+                            const [year, month] = lastGen.monthKey.split('-').map(Number);
+                            const day = parseInt(diaLeitura);
+                            const endD = new Date(year, month - 1, day);
+                            const startD = new Date(year, month - 2, day + 1);
+                            return `${startD.toLocaleDateString('pt-BR')} a ${endD.toLocaleDateString('pt-BR')}`;
+                        }
+                    }
+                    return generationLastMonth > 0 ? (selectedRange === 1 ? 'Geração' : 'Total do Período') : 'Geração estimada (sem lançamentos)';
+                })()
             });
 
         } catch (err) {
@@ -367,7 +383,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                 </span>
                                             </div>
                                             <small className="text-muted">
-                                                {metrics.generationLastMonth > 0 ? 'Geração' : 'Geração estimada (sem lançamentos)'}
+                                                {metrics.cycleString}
                                             </small>
                                         </motion.div>
                                     </div>
