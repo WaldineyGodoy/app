@@ -25,7 +25,7 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
 
             <div className="plant-body">
                 <div className="plant-stat mb-3">
-                    <span className="stat-label">Geração (Último Mês)</span>
+                    <span className="stat-label">Geração ({usina.cycleString || 'Último Mês'})</span>
                     <div className="stat-value-row">
                         <Zap size={20} className="orange-text" />
                         <span className="stat-value">{formatNumber(usina.generation)} kWh</span>

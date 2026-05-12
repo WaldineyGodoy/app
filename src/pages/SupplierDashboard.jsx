@@ -123,7 +123,7 @@ const SupplierDashboard = () => {
 
                 const { data: genData } = await supabase
                     .from('generation_production')
-                    .select('geracao_mensal_kwh, saldo_receber')
+                    .select('geracao_mensal_kwh, saldo_receber, mes_referencia')
                     .eq('usina_id', usina.id)
                     .gte('mes_referencia', lastMonthStart.toISOString().split('T')[0])
                     .lte('mes_referencia', lastMonthEnd.toISOString().split('T')[0])
@@ -151,6 +151,18 @@ const SupplierDashboard = () => {
                 const occupation = generation > 0 ? (committedCapacity / generation) * 100 : 0;
                 const vacancy = Math.max(0, 100 - occupation);
 
+                const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
+                const diaLeitura = mainUG?.dia_leitura;
+                let cycleString = 'Último Mês';
+                
+                if (diaLeitura && genData?.mes_referencia) {
+                    const [year, month] = genData.mes_referencia.split('-').map(Number);
+                    const day = parseInt(diaLeitura);
+                    const endD = new Date(year, month - 1, day);
+                    const startD = new Date(year, month - 2, day + 1);
+                    cycleString = `${startD.toLocaleDateString('pt-BR')} a ${endD.toLocaleDateString('pt-BR')}`;
+                }
+
                 return {
                     ...usina,
                     ucCount: ucs?.length || 0,
@@ -158,7 +170,8 @@ const SupplierDashboard = () => {
                     committedCapacity,
                     plantReceivable,
                     occupation,
-                    vacancy
+                    vacancy,
+                    cycleString
                 };
             }));
 
