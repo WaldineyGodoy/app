@@ -33,11 +33,11 @@ const SupplierProfileModal = ({ isOpen, onClose, supplier }) => {
 
                         <div className="profile-header-main">
                             <div className="avatar-large">
-                                <User size={48} />
+                                <User size={54} strokeWidth={1.5} />
                             </div>
                             <div className="header-info">
                                 <h2>Perfil do Fornecedor</h2>
-                                <span className={`status-badge ${supplier.status?.toLowerCase() || 'pendente'}`}>
+                                <span className={`status-badge ${supplier.status?.toLowerCase().replace(' ', '-') || 'ativo'}`}>
                                     {supplier.status || 'Ativo'}
                                 </span>
                             </div>
