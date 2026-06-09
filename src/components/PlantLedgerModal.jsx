@@ -292,7 +292,7 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                             background: '#f8fafc', 
                             borderRadius: '30px', 
                             width: '95%', 
-                            maxWidth: '850px', 
+                            maxWidth: '1000px', 
                             maxHeight: '90vh', 
                             overflow: 'hidden',
                             display: 'flex',
@@ -323,43 +323,53 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                             {/* Balance Card */}
                             <div style={{ 
                                 background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)', 
-                                padding: '2rem',
+                                padding: '2rem 2.5rem',
                                 borderRadius: '24px',
                                 color: 'white',
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 flexWrap: 'wrap',
-                                gap: '1.25rem',
+                                gap: '1.5rem',
                                 marginBottom: '2.5rem',
-                                boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)'
+                                boxShadow: '0 15px 30px -5px rgba(59, 130, 246, 0.4)'
                             }}>
-                                <div style={{ flex: '1 1 250px' }}>
-                                    <div style={{ fontSize: '0.9rem', opacity: 0.9, fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <Coins size={16} /> Saldo Disponível
+                                <div style={{ flex: '1 1 300px' }}>
+                                    <div style={{ fontSize: '1rem', opacity: 0.9, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                        <Coins size={20} /> Saldo Disponível
                                     </div>
-                                    <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{formatCurrency(ledgerBalance)}</div>
+                                    <div style={{ fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: '1' }}>{formatCurrency(ledgerBalance)}</div>
                                 </div>
                                 
                                 {/* Filters inside Header */}
-                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '0.75rem', 
+                                    flexWrap: 'wrap', 
+                                    alignItems: 'center',
+                                    background: 'rgba(255, 255, 255, 0.15)',
+                                    padding: '1rem',
+                                    borderRadius: '20px',
+                                    backdropFilter: 'blur(10px)',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                                }}>
                                     <input
                                         type="date"
                                         value={extratoStartDate}
                                         onChange={e => setExtratoStartDate(e.target.value)}
-                                        style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', fontSize: '0.85rem', color: '#1e293b', fontWeight: '600' }}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
                                     />
-                                    <span style={{ opacity: 0.8 }}>até</span>
+                                    <span style={{ opacity: 0.9, fontWeight: '600' }}>até</span>
                                     <input
                                         type="date"
                                         value={extratoEndDate}
                                         onChange={e => setExtratoEndDate(e.target.value)}
-                                        style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', fontSize: '0.85rem', color: '#1e293b', fontWeight: '600' }}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
                                     />
                                     <select
                                         value={extratoType}
                                         onChange={e => setExtratoType(e.target.value)}
-                                        style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', fontSize: '0.85rem', color: '#1e293b', fontWeight: '600' }}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
                                     >
                                         <option value="all">Todos os tipos</option>
                                         <option value="credit">Créditos</option>
@@ -374,22 +384,25 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                         disabled={paying || ledgerBalance >= 0}
                                         style={{ 
                                             background: 'white', 
-                                            padding: '1rem 2rem', 
+                                            padding: '1.25rem 2.5rem', 
                                             borderRadius: '20px',
                                             border: 'none',
                                             color: '#1d4ed8',
                                             fontWeight: '800',
-                                            fontSize: '1rem',
+                                            fontSize: '1.1rem',
                                             cursor: (paying || ledgerBalance >= 0) ? 'not-allowed' : 'pointer',
-                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '0.75rem',
-                                            opacity: (paying || ledgerBalance >= 0) ? 0.7 : 1,
-                                            transition: 'transform 0.2s'
+                                            opacity: (paying || ledgerBalance >= 0) ? 0.6 : 1,
+                                            transition: 'all 0.3s ease',
+                                            transform: (paying || ledgerBalance >= 0) ? 'none' : 'translateY(-2px)'
                                         }}
+                                        onMouseOver={(e) => { if(!paying && ledgerBalance < 0) e.currentTarget.style.boxShadow = '0 15px 25px -5px rgba(0, 0, 0, 0.2)'; }}
+                                        onMouseOut={(e) => { if(!paying && ledgerBalance < 0) e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'; }}
                                     >
-                                        <Wallet size={20} />
+                                        <Wallet size={24} />
                                         {paying ? 'Processando...' : 'Resgatar Agora'}
                                     </button>
                                 )}
