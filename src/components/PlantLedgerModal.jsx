@@ -323,49 +323,87 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                             {/* Balance Card */}
                             <div style={{ 
                                 background: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)', 
-                                padding: '2rem 2.5rem',
+                                padding: '2.5rem',
                                 borderRadius: '24px',
                                 color: 'white',
                                 display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                flexWrap: 'wrap',
-                                gap: '1.5rem',
+                                flexDirection: 'column',
+                                gap: '2rem',
                                 marginBottom: '2.5rem',
                                 boxShadow: '0 15px 30px -5px rgba(59, 130, 246, 0.4)'
                             }}>
-                                <div style={{ flex: '1 1 300px' }}>
-                                    <div style={{ fontSize: '1rem', opacity: 0.9, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                        <Coins size={20} /> Saldo Disponível
-                                    </div>
-                                    <div style={{ fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: '1' }}>{formatCurrency(ledgerBalance)}</div>
-                                </div>
-                                
-                                {/* Filters inside Header */}
+                                {/* Top Row: Balance and Action */}
                                 <div style={{ 
                                     display: 'flex', 
-                                    gap: '0.75rem', 
+                                    justifyContent: 'space-between', 
+                                    alignItems: 'center', 
+                                    flexWrap: 'wrap', 
+                                    gap: '1.5rem',
+                                    width: '100%'
+                                }}>
+                                    <div style={{ flex: '1 1 300px' }}>
+                                        <div style={{ fontSize: '1rem', opacity: 0.9, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                            <Coins size={20} /> Saldo Disponível
+                                        </div>
+                                        <div style={{ fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: '1' }}>{formatCurrency(ledgerBalance)}</div>
+                                    </div>
+
+                                    {canAutoRedeem && (
+                                        <button 
+                                            type="button"
+                                            onClick={handlePayPix}
+                                            disabled={paying || ledgerBalance >= 0}
+                                            style={{ 
+                                                background: 'white', 
+                                                padding: '1.25rem 2.5rem', 
+                                                borderRadius: '20px',
+                                                border: 'none',
+                                                color: '#1d4ed8',
+                                                fontWeight: '800',
+                                                fontSize: '1.1rem',
+                                                cursor: (paying || ledgerBalance >= 0) ? 'not-allowed' : 'pointer',
+                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.75rem',
+                                                opacity: (paying || ledgerBalance >= 0) ? 0.6 : 1,
+                                                transition: 'all 0.3s ease',
+                                                transform: (paying || ledgerBalance >= 0) ? 'none' : 'translateY(-2px)'
+                                            }}
+                                            onMouseOver={(e) => { if(!paying && ledgerBalance < 0) e.currentTarget.style.boxShadow = '0 15px 25px -5px rgba(0, 0, 0, 0.2)'; }}
+                                            onMouseOut={(e) => { if(!paying && ledgerBalance < 0) e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'; }}
+                                        >
+                                            <Wallet size={24} />
+                                            {paying ? 'Processando...' : 'Resgatar Agora'}
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {/* Bottom Row: Filters */}
+                                <div style={{ 
+                                    display: 'flex', 
+                                    gap: '1rem', 
                                     flexWrap: 'wrap', 
                                     alignItems: 'center',
-                                    background: 'rgba(255, 255, 255, 0.15)',
-                                    padding: '1rem',
-                                    borderRadius: '20px',
-                                    backdropFilter: 'blur(10px)',
-                                    border: '1px solid rgba(255, 255, 255, 0.2)'
+                                    borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                                    paddingTop: '1.5rem',
+                                    width: '100%'
                                 }}>
-                                    <input
-                                        type="date"
-                                        value={extratoStartDate}
-                                        onChange={e => setExtratoStartDate(e.target.value)}
-                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
-                                    />
-                                    <span style={{ opacity: 0.9, fontWeight: '600' }}>até</span>
-                                    <input
-                                        type="date"
-                                        value={extratoEndDate}
-                                        onChange={e => setExtratoEndDate(e.target.value)}
-                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
-                                    />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <input
+                                            type="date"
+                                            value={extratoStartDate}
+                                            onChange={e => setExtratoStartDate(e.target.value)}
+                                            style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
+                                        />
+                                        <span style={{ opacity: 0.9, fontWeight: '600' }}>até</span>
+                                        <input
+                                            type="date"
+                                            value={extratoEndDate}
+                                            onChange={e => setExtratoEndDate(e.target.value)}
+                                            style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
+                                        />
+                                    </div>
                                     <select
                                         value={extratoType}
                                         onChange={e => setExtratoType(e.target.value)}
@@ -376,36 +414,6 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                         <option value="debit">Débitos</option>
                                     </select>
                                 </div>
-
-                                {canAutoRedeem && (
-                                    <button 
-                                        type="button"
-                                        onClick={handlePayPix}
-                                        disabled={paying || ledgerBalance >= 0}
-                                        style={{ 
-                                            background: 'white', 
-                                            padding: '1.25rem 2.5rem', 
-                                            borderRadius: '20px',
-                                            border: 'none',
-                                            color: '#1d4ed8',
-                                            fontWeight: '800',
-                                            fontSize: '1.1rem',
-                                            cursor: (paying || ledgerBalance >= 0) ? 'not-allowed' : 'pointer',
-                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.75rem',
-                                            opacity: (paying || ledgerBalance >= 0) ? 0.6 : 1,
-                                            transition: 'all 0.3s ease',
-                                            transform: (paying || ledgerBalance >= 0) ? 'none' : 'translateY(-2px)'
-                                        }}
-                                        onMouseOver={(e) => { if(!paying && ledgerBalance < 0) e.currentTarget.style.boxShadow = '0 15px 25px -5px rgba(0, 0, 0, 0.2)'; }}
-                                        onMouseOut={(e) => { if(!paying && ledgerBalance < 0) e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'; }}
-                                    >
-                                        <Wallet size={24} />
-                                        {paying ? 'Processando...' : 'Resgatar Agora'}
-                                    </button>
-                                )}
                             </div>
 
                             {/* Transactions List */}
