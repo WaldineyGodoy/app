@@ -383,31 +383,29 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                 <div style={{ 
                                     display: 'flex', 
                                     gap: '1rem', 
-                                    flexWrap: 'wrap', 
                                     alignItems: 'center',
                                     borderTop: '1px solid rgba(255, 255, 255, 0.2)',
                                     paddingTop: '1.5rem',
-                                    width: '100%'
+                                    width: '100%',
+                                    overflowX: 'auto'
                                 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <input
-                                            type="date"
-                                            value={extratoStartDate}
-                                            onChange={e => setExtratoStartDate(e.target.value)}
-                                            style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
-                                        />
-                                        <span style={{ opacity: 0.9, fontWeight: '600' }}>até</span>
-                                        <input
-                                            type="date"
-                                            value={extratoEndDate}
-                                            onChange={e => setExtratoEndDate(e.target.value)}
-                                            style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
-                                        />
-                                    </div>
+                                    <input
+                                        type="date"
+                                        value={extratoStartDate}
+                                        onChange={e => setExtratoStartDate(e.target.value)}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
+                                    />
+                                    <span style={{ opacity: 0.9, fontWeight: '600', whiteSpace: 'nowrap' }}>até</span>
+                                    <input
+                                        type="date"
+                                        value={extratoEndDate}
+                                        onChange={e => setExtratoEndDate(e.target.value)}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none' }}
+                                    />
                                     <select
                                         value={extratoType}
                                         onChange={e => setExtratoType(e.target.value)}
-                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none', cursor: 'pointer' }}
+                                        style={{ padding: '0.6rem 1rem', borderRadius: '12px', border: 'none', fontSize: '0.9rem', color: '#1e293b', fontWeight: '700', outline: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}
                                     >
                                         <option value="all">Todos os tipos</option>
                                         <option value="credit">Créditos</option>
