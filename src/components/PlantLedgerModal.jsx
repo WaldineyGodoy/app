@@ -18,6 +18,11 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
     const [paying, setPaying] = useState(false);
     const [repasseOrigins, setRepasseOrigins] = useState({}); // [NEW]
     
+    // Extrato Filters
+    const [extratoStartDate, setExtratoStartDate] = useState('');
+    const [extratoEndDate, setExtratoEndDate] = useState('');
+    const [extratoType, setExtratoType] = useState('all');
+
     // Payment Modal states
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState(0);
@@ -181,6 +186,22 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
 
     const ledgerBalance = ledgerEntries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
+    const filteredLedgerEntries = ledgerEntries.filter(entry => {
+        let isValid = true;
+        if (extratoStartDate) {
+            isValid = isValid && new Date(entry.created_at) >= new Date(extratoStartDate + 'T00:00:00');
+        }
+        if (extratoEndDate) {
+            isValid = isValid && new Date(entry.created_at) <= new Date(extratoEndDate + 'T23:59:59');
+        }
+        if (extratoType === 'credit') {
+            isValid = isValid && entry.amount < 0; // Negative means credit to supplier
+        } else if (extratoType === 'debit') {
+            isValid = isValid && entry.amount > 0;
+        }
+        return isValid;
+    });
+
     const handlePayPix = async () => {
         if (!supplier?.id) return;
         
@@ -308,15 +329,44 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
+                                flexWrap: 'wrap',
+                                gap: '1.25rem',
                                 marginBottom: '2.5rem',
                                 boxShadow: '0 10px 15px -3px rgba(59, 130, 246, 0.3)'
                             }}>
-                                <div>
+                                <div style={{ flex: '1 1 250px' }}>
                                     <div style={{ fontSize: '0.9rem', opacity: 0.9, fontWeight: '500', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                         <Coins size={16} /> Saldo Disponível
                                     </div>
                                     <div style={{ fontSize: '2.5rem', fontWeight: 900 }}>{formatCurrency(ledgerBalance)}</div>
                                 </div>
+                                
+                                {/* Filters inside Header */}
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <input
+                                        type="date"
+                                        value={extratoStartDate}
+                                        onChange={e => setExtratoStartDate(e.target.value)}
+                                        style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', fontSize: '0.85rem', color: '#1e293b', fontWeight: '600' }}
+                                    />
+                                    <span style={{ opacity: 0.8 }}>até</span>
+                                    <input
+                                        type="date"
+                                        value={extratoEndDate}
+                                        onChange={e => setExtratoEndDate(e.target.value)}
+                                        style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', fontSize: '0.85rem', color: '#1e293b', fontWeight: '600' }}
+                                    />
+                                    <select
+                                        value={extratoType}
+                                        onChange={e => setExtratoType(e.target.value)}
+                                        style={{ padding: '0.5rem', borderRadius: '8px', border: 'none', fontSize: '0.85rem', color: '#1e293b', fontWeight: '600' }}
+                                    >
+                                        <option value="all">Todos os tipos</option>
+                                        <option value="credit">Créditos</option>
+                                        <option value="debit">Débitos</option>
+                                    </select>
+                                </div>
+
                                 {canAutoRedeem && (
                                     <button 
                                         type="button"
@@ -369,7 +419,7 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {ledgerEntries.map(entry => {
+                                                {filteredLedgerEntries.map(entry => {
                                                     const isRevenue = entry.amount < 0;
                                                     
                                                     const isRepasse = entry.description?.toLowerCase().includes('repasse');
