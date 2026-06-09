@@ -69,12 +69,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             // 2. Fetch UCs and calculate Total Franquia (Committed Capacity)
             const { data: ucs, error: ucsError } = await supabase
                 .from('consumer_units')
-                .select('id, franquia')
+                .select('id, franquia, status, numero_uc')
                 .eq('usina_id', usina.id);
 
             if (ucsError) throw ucsError;
             const ucIds = ucs?.map(u => u.id) || [];
-            const totalFranquia = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
+            const totalFranquia = ucs?.filter(uc => uc.status !== 'desconectado' && uc.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
 
             let invHistory = [];
             if (ucIds.length > 0) {
@@ -84,7 +84,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
                 const { data: invoices, error: invError } = await supabase
                     .from('invoices')
-                    .select('consumo_kwh, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento')
+                    .select('energia_injetada, consumo_kwh, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento, uc_id, mes_referencia')
                     .in('uc_id', ucIds)
                     .gte('vencimento', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
                     .lte('vencimento', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`);
@@ -95,7 +95,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
             // Fetch Usina Details (Investimento, IBGE e Potência)
             const { data: usinaDetails } = await supabase.from('usinas')
-                .select('valor_investido, ibge_code, potencia_kwp, supplier_id')
+                .select('valor_investido, ibge_code, potencia_kwp, supplier_id, unidade_geradora')
                 .eq('id', usina.id).single();
             
             const supplierId = usinaDetails?.supplier_id || usina.supplier_id;
@@ -130,6 +130,9 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 'Set': 'set_kwh', 'Out': 'out_kwh', 'Nov': 'nov_kwh', 'Dez': 'dez_khw'
             };
 
+            const ugNum = usinaDetails?.unidade_geradora || usina.unidade_geradora;
+            const mainUG = ucs?.find(u => u.numero_uc === ugNum);
+
             // 3. Process Chart Data
             const processedData = [];
             for (let i = 0; i < selectedRange; i++) {
@@ -138,7 +141,15 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 const monthName = shortMonthNames[d.getMonth()];
 
                 const genItem = genHistory?.find(g => g.mes_referencia.startsWith(monthKey));
-                const generation = Number(genItem?.geracao_mensal_kwh) || 0;
+                let generation = Number(genItem?.geracao_mensal_kwh) || 0;
+
+                if (generation === 0 && mainUG) {
+                    const ugInvoice = invHistory.find(inv => inv.uc_id === mainUG.id && inv.mes_referencia?.startsWith(monthKey));
+                    if (ugInvoice?.energia_injetada) {
+                        generation = Number(ugInvoice.energia_injetada);
+                    }
+                }
+
                 const consumption = Number(genItem?.energia_compensada) || 0;
                 const revenue = Number(genItem?.saldo_receber) || 0;
                 
@@ -217,7 +228,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 cycleString: (() => {
                     const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
                     const diaLeitura = mainUG?.dia_leitura;
-                    if (selectedRange === 1 && generationLastMonth > 0 && diaLeitura) {
+                    if (selectedRange === 1 && diaLeitura) {
                         const lastGen = processedData[processedData.length - 1];
                         if (lastGen?.monthKey) {
                             const [year, month] = lastGen.monthKey.split('-').map(Number);
@@ -227,7 +238,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                             return `${startD.toLocaleDateString('pt-BR')} a ${endD.toLocaleDateString('pt-BR')}`;
                         }
                     }
-                    return generationLastMonth > 0 ? (selectedRange === 1 ? 'Geração' : 'Total do Período') : 'Geração estimada (sem lançamentos)';
+                    return selectedRange === 1 ? 'Geração' : 'Total do Período';
                 })()
             });
 
@@ -377,9 +388,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             <div className="stat-main d-flex align-items-center gap-2">
                                                 <Zap size={24} color={metrics.generationLastMonth > 0 ? "#FF6600" : "#ef4444"} />
                                                 <span className="fs-3 fw-bold">
-                                                    {metrics.generationLastMonth > 0 
-                                                        ? formatNumber(metrics.generationLastMonth) 
-                                                        : formatNumber(metrics.estimatedGenLastMonth)} kWh
+                                                    {formatNumber(metrics.generationLastMonth)} kWh
                                                 </span>
                                             </div>
                                             <small className="text-muted">

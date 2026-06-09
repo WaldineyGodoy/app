@@ -131,32 +131,50 @@ const SupplierDashboard = () => {
                     .limit(1)
                     .maybeSingle();
 
-                const generation = Number(genData?.geracao_mensal_kwh) || 0;
-                const revenue = Number(genData?.saldo_receber) || 0;
-
                 // 2. Fetch UCs for this usina (Select all for robustness)
                 const { data: ucs } = await supabase
                     .from('consumer_units')
                     .select('*')
                     .eq('usina_id', usina.id);
 
-                const committedCapacity = ucs?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
-                const ucIds = ucs?.map(u => u.id) || [];
+                const committedCapacity = ucs
+                    ?.filter(uc => uc.status !== 'desconectado' && uc.status !== 'cancelado')
+                    ?.reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
+
+                const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
+
+                let generation = Number(genData?.geracao_mensal_kwh) || 0;
+                if (generation === 0 && mainUG) {
+                    const { data: ugInvoice } = await supabase
+                        .from('invoices')
+                        .select('energia_injetada')
+                        .eq('uc_id', mainUG.id)
+                        .eq('mes_referencia', lastMonthStart.toISOString().split('T')[0])
+                        .neq('status', 'cancelado')
+                        .maybeSingle();
+                    
+                    if (ugInvoice?.energia_injetada) {
+                        generation = Number(ugInvoice.energia_injetada);
+                    }
+                }
+
+                const revenue = Number(genData?.saldo_receber) || 0;
 
                 // [UPDATED] Use Supplier Balance for consistency across dashboard cards
                 const usinaLedger = await ledgerService.getSupplierBalance(supplier.id);
                 const plantReceivable = usinaLedger.balance || 0;
 
-                // Calculate Percentages based on ACTUAL generation
-                const occupation = generation > 0 ? (committedCapacity / generation) * 100 : 0;
+                // Calculate Percentages based on ESTIMATED generation, matching PowerPlantModal.jsx
+                const estimatedGen = Number(usina.geracao_estimada_kwh) || 0;
+                const occupation = estimatedGen > 0 ? (committedCapacity / estimatedGen) * 100 : 0;
                 const vacancy = Math.max(0, 100 - occupation);
 
-                const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
                 const diaLeitura = mainUG?.dia_leitura;
                 let cycleString = 'Último Mês';
                 
-                if (diaLeitura && genData?.mes_referencia) {
-                    const [year, month] = genData.mes_referencia.split('-').map(Number);
+                const refMonthStr = genData?.mes_referencia || lastMonthStart.toISOString().split('T')[0];
+                if (diaLeitura && refMonthStr) {
+                    const [year, month] = refMonthStr.split('-').map(Number);
                     const day = parseInt(diaLeitura);
                     const endD = new Date(year, month - 1, day);
                     const startD = new Date(year, month - 2, day + 1);

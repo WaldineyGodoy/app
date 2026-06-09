@@ -30,9 +30,6 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
                         <Zap size={20} className="orange-text" />
                         <span className="stat-value">{formatNumber(usina.generation)} kWh</span>
                     </div>
-                    <div className="stat-subtext orange-text fw-bold">
-                        Recebível: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(usina.plantReceivable || 0)}
-                    </div>
                 </div>
 
                 <div className="plant-stat clickable mb-3" onClick={onOpenUCs} title="Ver lista de UCs">
