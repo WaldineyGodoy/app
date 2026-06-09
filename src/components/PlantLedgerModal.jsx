@@ -16,6 +16,7 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
     const [txDetails, setTxDetails] = useState([]);
     const [txLoading, setTxLoading] = useState(false);
     const [paying, setPaying] = useState(false);
+    const [repasseOrigins, setRepasseOrigins] = useState({}); // [NEW]
     
     // Payment Modal states
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -62,7 +63,81 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setLedgerEntries(data || []);
+            
+            const startDate = new Date('2026-06-01T00:00:00Z');
+            const endDate = new Date('2026-06-11T03:00:00Z');
+            
+            const filteredData = (data || []).filter(item => {
+                const itemDate = new Date(item.created_at);
+                const isWithinPeriod = itemDate >= startDate && itemDate <= endDate;
+                if (isWithinPeriod) {
+                    return item.reference_type === 'SUPPLIER';
+                }
+                return true;
+            });
+
+            setLedgerEntries(filteredData);
+
+            const repasseTxs = filteredData
+                .filter(e => e.description?.toLowerCase().includes('repasse'))
+                .map(e => e.transaction_id);
+
+            if (repasseTxs.length > 0) {
+                const originMap = {};
+
+                const { data: repasseData } = await supabase
+                    .from('view_ledger_enriched')
+                    .select('transaction_id, entity_name, account_code')
+                    .in('transaction_id', repasseTxs)
+                    .in('account_code', ['1.1.2', '4.1.1']);
+                
+                if (repasseData) {
+                    repasseData.forEach(r => {
+                        if (r.entity_name) originMap[r.transaction_id] = r.entity_name;
+                    });
+                }
+
+                const { data: invoiceEntries } = await supabase
+                    .from('ledger_entries')
+                    .select('transaction_id, reference_id')
+                    .in('transaction_id', repasseTxs)
+                    .eq('reference_type', 'invoice');
+                
+                if (invoiceEntries && invoiceEntries.length > 0) {
+                    const invoiceIds = invoiceEntries.map(e => e.reference_id);
+                    const { data: invoiceData } = await supabase
+                        .from('invoices')
+                        .select('id, mes_referencia, consumo_compensado, consumer_units(uc_code, subscribers(name))')
+                        .in('id', invoiceIds);
+                    
+                    if (invoiceData) {
+                        const invMap = {};
+                        invoiceData.forEach(inv => invMap[inv.id] = inv);
+
+                        invoiceEntries.forEach(entry => {
+                            const inv = invMap[entry.reference_id];
+                            if (inv) {
+                                const subscriberName = inv.consumer_units?.subscribers?.name || originMap[entry.transaction_id] || '';
+                                const parts = subscriberName.trim().split(' ');
+                                const shortName = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : parts[0];
+                                const ucCode = inv.consumer_units?.uc_code || '';
+                                
+                                let refMonth = inv.mes_referencia || '';
+                                if (refMonth.includes('-')) {
+                                    const [y, m] = refMonth.split('-');
+                                    refMonth = `${m}/${y}`;
+                                }
+                                
+                                if (ucCode && refMonth) {
+                                    const kwh = inv.consumo_compensado ? ` - ${inv.consumo_compensado} kWh` : '';
+                                    originMap[entry.transaction_id] = `${shortName} UC ${ucCode} - Ref: ${refMonth}${kwh}`;
+                                }
+                            }
+                        });
+                    }
+                }
+                setRepasseOrigins(originMap);
+            }
         } catch (err) {
             console.error('Erro ao buscar extrato:', err);
         } finally {
@@ -296,6 +371,18 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                             <tbody>
                                                 {ledgerEntries.map(entry => {
                                                     const isRevenue = entry.amount < 0;
+                                                    
+                                                    const isRepasse = entry.description?.toLowerCase().includes('repasse');
+                                                    const subscriberOrig = isRepasse ? (repasseOrigins[entry.transaction_id] || entry.metadata?.subscriber_name || entry.metadata?.consumer_name || entry.metadata?.nome_assinante || entry.metadata?.originator_name) : null;
+                                                    const kwhCompensated = entry.metadata?.kwh || entry.metadata?.kwh_compensado || entry.metadata?.kWh || null;
+
+                                                    let descTitle = entry.description || '';
+                                                    let descSubtitle = isRevenue ? 'Crédito / Receita' : 'Débito / Desconto';
+                                                    if (subscriberOrig) {
+                                                        descTitle = subscriberOrig;
+                                                        descSubtitle = `${entry.description} ${kwhCompensated ? '| ' + kwhCompensated + ' kWh' : ''}`;
+                                                    }
+
                                                     return (
                                                         <React.Fragment key={entry.id}>
                                                             <tr 
@@ -321,9 +408,9 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                                                             {isRevenue ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                                                                         </div>
                                                                         <div>
-                                                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{entry.description}</div>
+                                                                            <div style={{ fontWeight: '700', color: '#1e293b' }}>{descTitle}</div>
                                                                             <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                                                                                {isRevenue ? 'Crédito / Receita' : 'Débito / Desconto'}
+                                                                                {descSubtitle}
                                                                             </div>
                                                                         </div>
                                                                     </div>

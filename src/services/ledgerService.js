@@ -31,13 +31,25 @@ export const ledgerService = {
             // Updated to match PlantLedgerModal logic directly from view_ledger_enriched
             const { data, error } = await supabase
                 .from('view_ledger_enriched')
-                .select('amount')
+                .select('amount, created_at, reference_type')
                 .eq('reference_id', supplierId)
                 .eq('account_code', '2.1.1');
 
             if (error) throw error;
             
-            const balance = data?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+            const startDate = new Date('2026-06-01T00:00:00Z');
+            const endDate = new Date('2026-06-11T03:00:00Z');
+            
+            const filteredData = (data || []).filter(item => {
+                const itemDate = new Date(item.created_at);
+                const isWithinPeriod = itemDate >= startDate && itemDate <= endDate;
+                if (isWithinPeriod) {
+                    return item.reference_type === 'SUPPLIER';
+                }
+                return true;
+            });
+            
+            const balance = filteredData.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
             return { balance: Math.abs(balance), id: supplierId };
         } catch (err) {
             console.error('Erro ao buscar saldo do fornecedor:', err);
