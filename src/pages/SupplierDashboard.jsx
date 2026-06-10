@@ -160,6 +160,19 @@ const SupplierDashboard = () => {
 
                 const revenue = Number(genData?.saldo_receber) || 0;
 
+                const ucIds = ucs?.map(u => u.id) || [];
+                let consumption = 0;
+                if (ucIds.length > 0) {
+                    const { data: invData } = await supabase
+                        .from('invoices')
+                        .select('consumo_compensado')
+                        .in('uc_id', ucIds)
+                        .eq('mes_referencia', lastMonthStart.toISOString().split('T')[0])
+                        .neq('status', 'cancelado');
+                    
+                    consumption = invData?.reduce((acc, inv) => acc + (Number(inv.consumo_compensado) || 0), 0) || 0;
+                }
+
                 // [UPDATED] Use Supplier Balance for consistency across dashboard cards
                 const usinaLedger = await ledgerService.getSupplierBalance(supplier.id);
                 const plantReceivable = usinaLedger.balance || 0;
@@ -185,6 +198,8 @@ const SupplierDashboard = () => {
                     ...usina,
                     ucCount: ucs?.length || 0,
                     generation,
+                    estimatedGen,
+                    consumption,
                     committedCapacity,
                     plantReceivable,
                     occupation,
