@@ -63,7 +63,7 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
             const { data, error } = await supabase
                 .from('view_ledger_enriched')
                 .select('*')
-                .eq('reference_id', supplier.id)
+                .eq('supplier_id', supplier.id)
                 .eq('account_code', '2.1.1')
                 .order('created_at', { ascending: false });
 
