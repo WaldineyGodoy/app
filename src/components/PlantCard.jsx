@@ -22,6 +22,27 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
     const est = usina.estimatedGen || 0;
     const comp = usina.committedCapacity || 0;
 
+    const consPercent = gen > 0 ? (cons / gen) * 100 : 0;
+    const occPercent = est > 0 ? (comp / est) * 100 : 0;
+
+    const getConsumptionColor = (pct) => {
+        if (pct < 40) return '#ef4444'; // red
+        if (pct < 70) return '#f59e0b'; // orange
+        if (pct < 90) return '#84cc16'; // light green
+        return '#10b981'; // green
+    };
+
+    const getOccupationColor = (pct) => {
+        if (pct > 100) return '#ef4444'; // overbook -> red
+        if (pct < 40) return '#ef4444'; // red
+        if (pct < 70) return '#f59e0b'; // orange
+        if (pct < 90) return '#84cc16'; // light green
+        return '#10b981'; // green
+    };
+
+    const consColor = getConsumptionColor(consPercent);
+    const occColor = getOccupationColor(occPercent);
+
     return (
         <div className="plant-card">
             <div className="plant-header">
@@ -39,26 +60,34 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
                     </div>
                 </div>
 
+                {/* CYCLE STRING */}
+                <div style={{ marginBottom: '0.75rem', fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Período: {usina.cycleString || 'Último Mês'}
+                </div>
+
                 {/* 2. Geração x Consumo */}
                 <div className="plant-stat mb-3" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 40px', gap: '0.5rem', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
                     <div>
-                        <span className="stat-label" style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>Geração ({usina.cycleString || 'Último Mês'})</span>
+                        <span className="stat-label" style={{ textTransform: 'uppercase', fontSize: '0.7rem' }}>Geração</span>
                         <div className="stat-value-row">
                             <Zap size={16} className="orange-text" />
                             <span className="stat-value" style={{ fontSize: '1rem' }}>{formatNumber(gen)} kWh</span>
                         </div>
                     </div>
                     <div>
-                        <span className="stat-label" style={{ color: '#ef4444', textTransform: 'uppercase', fontSize: '0.7rem' }}>Consumo</span>
+                        <span className="stat-label" style={{ color: consColor, textTransform: 'uppercase', fontSize: '0.7rem' }}>Consumo</span>
                         <div className="stat-value-row">
-                            <span className="stat-value" style={{ fontSize: '1rem', color: '#ef4444' }}>{formatNumber(cons)} kWh</span>
+                            <span className="stat-value" style={{ fontSize: '1rem', color: consColor }}>{formatNumber(cons)} kWh</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: consColor, fontWeight: 600, marginTop: '2px' }}>
+                            Consumo: {consPercent.toFixed(1)}%
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <PieChart width={40} height={40}>
                             <Pie
                                 data={[
-                                    { name: 'Consumo', value: cons, color: '#ef4444' },
+                                    { name: 'Consumo', value: cons, color: consColor },
                                     { name: 'Livre', value: Math.max(0, gen - cons), color: '#e2e8f0' }
                                 ]}
                                 dataKey="value"
@@ -68,7 +97,7 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
                                 endAngle={-270}
                             >
                                 {[0, 1].map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#ef4444' : '#e2e8f0'} />
+                                    <Cell key={`cell-${index}`} fill={index === 0 ? consColor : '#e2e8f0'} />
                                 ))}
                             </Pie>
                             <Tooltip content={() => null} />
@@ -85,17 +114,17 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
                         </div>
                     </div>
                     <div>
-                        <span className="stat-label" style={{ color: '#eab308', textTransform: 'uppercase', fontSize: '0.7rem' }}>Comprometimento</span>
+                        <span className="stat-label" style={{ color: occColor, textTransform: 'uppercase', fontSize: '0.7rem' }}>Comprometimento</span>
                         <div className="stat-value-row">
-                            <Activity size={16} style={{ color: '#eab308' }} />
-                            <span className="stat-value" style={{ fontSize: '1rem', color: '#eab308' }}>{formatNumber(comp)} kWh</span>
+                            <Activity size={16} style={{ color: occColor }} />
+                            <span className="stat-value" style={{ fontSize: '1rem', color: occColor }}>{formatNumber(comp)} kWh</span>
                         </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <PieChart width={40} height={40}>
                             <Pie
                                 data={[
-                                    { name: 'Comprometido', value: comp, color: '#eab308' },
+                                    { name: 'Comprometido', value: comp, color: occColor },
                                     { name: 'Reserva', value: Math.max(0, est - comp), color: '#e2e8f0' }
                                 ]}
                                 dataKey="value"
@@ -105,7 +134,7 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
                                 endAngle={-270}
                             >
                                 {[0, 1].map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#eab308' : '#e2e8f0'} />
+                                    <Cell key={`cell-${index}`} fill={index === 0 ? occColor : '#e2e8f0'} />
                                 ))}
                             </Pie>
                             <Tooltip content={() => null} />
@@ -115,11 +144,11 @@ const PlantCard = ({ usina, onOpenGraphs, onOpenInvoices, onOpenUCs, onOpenLedge
 
                 {/* Occupation / Vacancy line */}
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.8rem' }}>
-                    <div className="stat-subtext" style={{ color: '#3b82f6', fontWeight: 600 }}>
-                        Ocupação: {Math.round(usina.occupation || 0)}%
+                    <div className="stat-subtext" style={{ color: occColor, fontWeight: 600 }}>
+                        Ocupação: {Math.round(occPercent)}%
                     </div>
                     <div className="stat-subtext" style={{ color: '#64748b' }}>
-                        Vacância: {Math.round(usina.vacancy || 0)}%
+                        Vacância: {Math.max(0, 100 - Math.round(occPercent))}%
                     </div>
                 </div>
             </div>
