@@ -249,7 +249,14 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                 }
             });
 
-            if (error) throw error;
+            if (error) {
+                let msg = error.message;
+                try {
+                    const body = await error.context?.json();
+                    if (body && body.error) msg = body.error;
+                } catch(e) {}
+                throw new Error(msg);
+            }
             if (data && data.success === false) throw new Error(data.error);
 
             showAlert('Solicitação de resgate enviada com sucesso!', 'success');
