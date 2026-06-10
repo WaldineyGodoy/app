@@ -86,8 +86,9 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                     .from('invoices')
                     .select('energia_injetada, consumo_kwh, consumo_compensado, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento, uc_id, mes_referencia')
                     .in('uc_id', ucIds)
-                    .gte('vencimento', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
-                    .lte('vencimento', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`);
+                    .gte('mes_referencia', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
+                    .lte('mes_referencia', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`)
+                    .neq('status', 'cancelado');
                 
                 if (invError) console.error("Invoice fetch error:", invError);
                 invHistory = invoices || [];
@@ -150,13 +151,16 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 const monthName = shortMonthNames[d.getMonth()];
 
                 const genItem = genHistory?.find(g => g.mes_referencia.startsWith(monthKey));
-                let generation = Number(genItem?.geracao_mensal_kwh) || 0;
-
-                if (generation === 0 && mainUG) {
+                let generation = 0;
+                if (mainUG) {
                     const ugInvoice = invHistory.find(inv => inv.uc_id === mainUG.id && inv.mes_referencia?.startsWith(monthKey));
                     if (ugInvoice?.energia_injetada) {
                         generation = Number(ugInvoice.energia_injetada);
                     }
+                }
+                
+                if (generation === 0) {
+                    generation = Number(genItem?.geracao_mensal_kwh) || 0;
                 }
 
                 const consItems = invHistory.filter(inv => inv.mes_referencia?.startsWith(monthKey));
