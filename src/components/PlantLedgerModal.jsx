@@ -236,9 +236,14 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
         try {
             const { data, error } = await supabase.functions.invoke('transfer-asaas-pix', {
                 body: {
+                    amount: amountToPay,
                     value: amountToPay,
+                    pixKey: supplier.pix_key,
                     pix_key: supplier.pix_key,
+                    pixKeyType: supplier.pix_key_type,
                     pix_key_type: supplier.pix_key_type,
+                    supplierId: supplier.id,
+                    destinationType: 'supplier',
                     description: `Resgate Fornecedor: ${supplier.name}${usina ? ` - Usina: ${usina.name}` : ''}`,
                     operationType: 'PIX'
                 }
