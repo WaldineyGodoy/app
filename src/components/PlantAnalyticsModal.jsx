@@ -492,7 +492,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             <div className="col-12">
                                                 <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-danger border-4">
                                                     <div className="side-header d-flex justify-content-between align-items-start mb-2">
-                                                        <h4 className="h6 text-muted mb-0">Vacância</h4>
+                                                        <h4 className="h6 text-muted mb-0">Energia Não compensada</h4>
                                                         <div className="icon-circle red text-danger bg-danger bg-opacity-10 p-1 rounded-circle"><AlertCircle size={16} /></div>
                                                     </div>
                                                     <div className="side-values d-flex align-items-baseline gap-2">
@@ -508,17 +508,31 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             {/* RESERVA */}
                                             <div className="col-12">
                                                 <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-warning border-4">
-                                                    <div className="side-header d-flex justify-content-between align-items-start mb-2">
-                                                        <h4 className="h6 text-muted mb-0">Reserva</h4>
+                                                    <div className="side-header d-flex justify-content-between align-items-start mb-3">
+                                                        <h4 className="h6 text-muted mb-0">{metrics.reserveKwh >= 0 ? 'Reserva' : 'Overbook'}</h4>
                                                         <div className="icon-circle yellow text-warning bg-warning bg-opacity-10 p-1 rounded-circle"><Sun size={16} /></div>
                                                     </div>
-                                                    <div className="side-values d-flex align-items-baseline gap-2">
-                                                        <span className="fs-4 fw-bold text-dark">{formatNumber(metrics.reserveKwh)} kWh</span>
-                                                        <span className={`badge px-2 py-1 ${metrics.reserveKwh >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
-                                                            {metrics.reservePercent.toFixed(1)}%
-                                                        </span>
+                                                    
+                                                    <div className="calculation-memory mb-3" style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                                        <div className="d-flex justify-content-between mb-1">
+                                                            <span>Geração Média Estimada</span>
+                                                            <strong>{formatNumber(metrics.estimatedGenLastMonth / selectedRange)} kWh</strong>
+                                                        </div>
+                                                        <div className="d-flex justify-content-between mb-1">
+                                                            <span>Capacidade Comprometida (Franquia)</span>
+                                                            <strong>{formatNumber(metrics.totalFranquia)} kWh</strong>
+                                                        </div>
                                                     </div>
-                                                    <small className="text-muted d-block mt-2">Geração Média Estimada - Cap. Comprometida</small>
+
+                                                    <div className="side-values d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                                                        <span className="text-dark fw-bold" style={{ fontSize: '0.85rem' }}>{metrics.reserveKwh >= 0 ? 'Reserva:' : 'Overbook:'}</span>
+                                                        <div className="d-flex align-items-baseline gap-2">
+                                                            <span className="fs-5 fw-bold text-dark">{formatNumber(Math.abs(metrics.reserveKwh))} kWh</span>
+                                                            <span className={`badge px-2 py-1 ${metrics.reserveKwh >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
+                                                                {metrics.reservePercent.toFixed(1)}%
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
 
