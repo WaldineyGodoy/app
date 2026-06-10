@@ -84,7 +84,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
                 const { data: invoices, error: invError } = await supabase
                     .from('invoices')
-                    .select('energia_injetada, consumo_kwh, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento, uc_id, mes_referencia')
+                    .select('energia_injetada, consumo_kwh, consumo_compensado, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento, uc_id, mes_referencia')
                     .in('uc_id', ucIds)
                     .gte('vencimento', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
                     .lte('vencimento', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`);
@@ -105,11 +105,20 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             // Fetch Ledger Balance (Global for the Supplier)
             const { data: ledgerData } = await supabase
                 .from('view_ledger_enriched')
-                .select('amount')
+                .select('amount, created_at, reference_type')
                 .eq('reference_id', supplierId || usina.id)
                 .eq('account_code', '2.1.1');
             
-            const netBalance = ledgerData?.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
+            const startDate = new Date('2026-06-01T00:00:00Z');
+            const endDate = new Date('2026-06-11T03:00:00Z');
+            const filteredLedger = (ledgerData || []).filter(item => {
+                const itemDate = new Date(item.created_at);
+                if (itemDate >= startDate && itemDate <= endDate) {
+                    return item.reference_type === 'SUPPLIER';
+                }
+                return true;
+            });
+            const netBalance = filteredLedger.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
             const balanceToReceive = Math.abs(netBalance);
 
             // Fetch Irradiance Data
@@ -150,8 +159,11 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                     }
                 }
 
-                const consumption = Number(genItem?.energia_compensada) || 0;
-                const revenue = Number(genItem?.saldo_receber) || 0;
+                const consItems = invHistory.filter(inv => inv.mes_referencia?.startsWith(monthKey));
+                const consumption = consItems.reduce((acc, inv) => acc + (Number(inv.consumo_compensado) || 0), 0);
+                
+                const monthLedger = filteredLedger.filter(l => l.created_at?.startsWith(monthKey) && l.amount < 0);
+                const revenue = Math.abs(monthLedger.reduce((acc, curr) => acc + curr.amount, 0));
                 
                 let estimatedGen = 0;
                 if (irrData && monthMap[monthName]) {
@@ -161,8 +173,6 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 if (estimatedGen === 0) {
                     estimatedGen = Number(genItem?.geracao_prevista) || 0;
                 }
-
-                const consItems = invHistory.filter(inv => inv.vencimento.startsWith(monthKey));
 
                 processedData.push({
                     name: monthName,
@@ -410,12 +420,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
                                     <div className="col-12 col-sm-6 col-lg-3">
                                         <motion.div className="stat-card top h-100 p-3 bg-white rounded shadow-sm" whileHover={{ y: -5 }}>
-                                            <h4>Faturamento (Mês)</h4>
+                                            <h4>Saldo a Receber</h4>
                                             <div className="stat-main d-flex align-items-center gap-2">
                                                 <DollarSign size={24} color="#FF6600" />
-                                                <span className="fs-3 fw-bold">{formatCurrency(metrics.revenueLastMonth)}</span>
+                                                <span className="fs-3 fw-bold">{formatCurrency(metrics.balanceToReceive)}</span>
                                             </div>
-                                            <small className="text-muted">Total faturas emitidas</small>
+                                            <small className="text-muted">Extrato - Saldo Disponível</small>
                                         </motion.div>
                                     </div>
                                 </div>
@@ -522,16 +532,16 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                 </div>
                                             </div>
 
-                                            {/* BALANCE */}
+                                            {/* FATURAMENTO */}
                                             <div className="col-12">
                                                 <div className="stat-card side p-3 bg-white rounded shadow-sm border-start border-primary border-4">
                                                     <div className="side-header d-flex justify-content-between align-items-start mb-2">
-                                                        <h4 className="h6 text-muted mb-0">Saldo a Receber</h4>
+                                                        <h4 className="h6 text-muted mb-0">Faturamento (Mês)</h4>
                                                         <div className="icon-circle user text-primary bg-primary bg-opacity-10 p-1 rounded-circle"><DollarSign size={16} /></div>
                                                     </div>
                                                     <div className="side-values">
-                                                        <span className="fs-4 fw-bold text-dark">{formatCurrency(metrics.balanceToReceive)}</span>
-                                                        <small className="text-muted d-block">Faturamento - Despesas</small>
+                                                        <span className="fs-4 fw-bold text-dark">{formatCurrency(metrics.revenueLastMonth)}</span>
+                                                        <small className="text-muted d-block">Lançamentos do extrato</small>
                                                     </div>
                                                 </div>
                                             </div>
