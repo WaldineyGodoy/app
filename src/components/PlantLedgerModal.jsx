@@ -172,7 +172,8 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
         });
     };
 
-    const ledgerBalance = ledgerEntries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+    const rawBalance = ledgerEntries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+    const ledgerBalance = Math.round(rawBalance * 100) / 100;
 
     const filteredLedgerEntries = ledgerEntries.filter(entry => {
         let isValid = true;
