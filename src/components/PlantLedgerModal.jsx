@@ -69,21 +69,9 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
 
             if (error) throw error;
             
-            const startDate = new Date('2026-06-01T00:00:00Z');
-            const endDate = new Date('2026-06-11T03:00:00Z');
-            
-            const filteredData = (data || []).filter(item => {
-                const itemDate = new Date(item.created_at);
-                const isWithinPeriod = itemDate >= startDate && itemDate <= endDate;
-                if (isWithinPeriod) {
-                    return item.reference_type === 'SUPPLIER';
-                }
-                return true;
-            });
+            setLedgerEntries(data || []);
 
-            setLedgerEntries(filteredData);
-
-            const repasseTxs = filteredData
+            const repasseTxs = (data || [])
                 .filter(e => e.description?.toLowerCase().includes('repasse'))
                 .map(e => e.transaction_id);
 
