@@ -107,20 +107,21 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             const { data: ledgerData } = await supabase
                 .from('view_ledger_enriched')
                 .select('amount, created_at, reference_type')
-                .eq('reference_id', supplierId || usina.id)
+                .or(`reference_id.eq.${supplierId || usina.id},supplier_id.eq.${supplierId || usina.id}`)
                 .eq('account_code', '2.1.1');
             
-            const startDate = new Date('2026-06-01T00:00:00Z');
-            const endDate = new Date('2026-06-11T03:00:00Z');
+            const startStr = lastPeriod.toISOString().split('T')[0];
+            const endStr = new Date(endPeriod.getFullYear(), endPeriod.getMonth() + 1, 0).toISOString().split('T')[0];
+
             const filteredLedger = (ledgerData || []).filter(item => {
-                const itemDate = new Date(item.created_at);
-                if (itemDate >= startDate && itemDate <= endDate) {
-                    return item.reference_type === 'SUPPLIER';
-                }
-                return true;
+                if (!item.created_at) return false;
+                const itemDateStr = item.created_at.split('T')[0];
+                return itemDateStr >= startStr && itemDateStr <= endStr;
             });
             const netBalance = filteredLedger.reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
-            const balanceToReceive = Math.abs(netBalance);
+            // In account 2.1.1 (liability), a negative net balance means the platform owes the supplier money.
+            // Therefore, for the supplier's perspective, their "Available Balance" is the inverse of the net balance.
+            const balanceToReceive = -netBalance;
 
             // Fetch Irradiance Data
             let irrData = null;
