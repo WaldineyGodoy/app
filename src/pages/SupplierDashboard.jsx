@@ -304,7 +304,15 @@ const SupplierDashboard = () => {
                             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 <KPICard
                                     title="Total a Receber"
-                                    value={new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(stats.totalReceivable)}
+                                    value={
+                                        (() => {
+                                            const displayVal = -stats.totalReceivable;
+                                            const color = displayVal < 0 ? '#FF0000' : '#00FF00';
+                                            const prefix = displayVal < 0 ? '(-)' : '(+)';
+                                            const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.abs(displayVal));
+                                            return <span style={{ color }}>{prefix} {formatted}</span>;
+                                        })()
+                                    }
                                     icon={Coins}
                                     onClick={() => {
                                         setSelectedUsina(null);
