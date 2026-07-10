@@ -346,7 +346,20 @@ export default function PlantLedgerModal({ isOpen, onClose, usina, supplier }) {
                                         <div style={{ fontSize: '1rem', opacity: 0.9, fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                             <Coins size={20} /> Saldo Disponível
                                         </div>
-                                        <div style={{ fontSize: '3.5rem', fontWeight: 900, letterSpacing: '-0.02em', lineHeight: '1' }}>{formatCurrency(ledgerBalance)}</div>
+                                        {(() => {
+                                            const displayBalance = -ledgerBalance;
+                                            return (
+                                                <div style={{ 
+                                                    fontSize: '3.5rem', 
+                                                    fontWeight: 900, 
+                                                    letterSpacing: '-0.02em', 
+                                                    lineHeight: '1',
+                                                    color: displayBalance < 0 ? '#FF0000' : '#00FF00'
+                                                }}>
+                                                    {displayBalance < 0 ? '(-)' : '(+)'} {formatCurrency(displayBalance)}
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {canAutoRedeem && (
