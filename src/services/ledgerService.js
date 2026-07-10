@@ -38,7 +38,7 @@ export const ledgerService = {
             
             const rawBalance = (data || []).reduce((acc, curr) => acc + (curr.amount || 0), 0) || 0;
             const balance = Math.round(rawBalance * 100) / 100;
-            return { balance: Math.abs(balance), id: supplierId };
+            return { balance, id: supplierId };
         } catch (err) {
             console.error('Erro ao buscar saldo do fornecedor:', err);
             return { balance: 0, id: null };
