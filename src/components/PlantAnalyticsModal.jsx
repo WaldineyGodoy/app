@@ -432,79 +432,6 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                             </div>
                         </div>
 
-                        {concessionariaTarifas && (() => {
-                            const values = getTariffValues();
-                            if (!values) return null;
-                            const uDetails = usinaDetailsState || usina;
-                            return (
-                                <div style={{
-                                    marginBottom: '2rem',
-                                    background: '#f8fafc',
-                                    padding: '1.5rem',
-                                    borderRadius: '16px',
-                                    border: '1px solid #e2e8f0',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '1rem',
-                                    animation: 'slideDown 0.3s ease-out'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
-                                        <div style={{ padding: '0.5rem', background: '#eff6ff', borderRadius: '10px', color: '#2563eb' }}>
-                                            <Building2 size={20} />
-                                        </div>
-                                        <div>
-                                            <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e3a8a', fontWeight: 700 }}>
-                                                Detalhamento de Tarifas: {uDetails.concessionaria}
-                                            </h4>
-                                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
-                                                Classe selecionada: {uDetails.grupo_tarifario || 'B1 Residencial'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                                        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>TARIFA CONCESSIONÁRIA</span>
-                                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
-                                                {values.tarifa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
-                                            </span>
-                                        </div>
-                                        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>DESCONTO CLIENTE ({values.descontoPercent}%)</span>
-                                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#dc2626' }}>
-                                                -{values.descontoReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
-                                            </span>
-                                        </div>
-                                        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>FIO B</span>
-                                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#d97706' }}>
-                                                {values.fioB.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
-                                            </span>
-                                        </div>
-                                        <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                                            <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>GESTÃO ({values.gestaoPercent}%)</span>
-                                            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
-                                                {values.gestaoReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
-                                            </span>
-                                        </div>
-                                        <div style={{ gridColumn: '1 / -1', background: '#eff6ff', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                                            <div>
-                                                <span style={{ fontSize: '0.7rem', color: '#1d4ed8', fontWeight: 800, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fórmula da Gestão</span>
-                                                <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>
-                                                    ({values.tarifa.toFixed(4)} - {values.descontoReais.toFixed(4)} - {values.fioB.toFixed(4)}) × {values.gestaoPercent}% = {values.gestaoReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
-                                                </span>
-                                            </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 800, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TARIFA LÍQUIDA</span>
-                                                <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e3a8a' }}>
-                                                    {values.tarifaLiquida.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })()}
-
                         {loading ? (
                             <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
                                 <div className="spinner-border text-primary" role="status">
@@ -513,6 +440,79 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                             </div>
                         ) : (
                             <div className="analytics-grid">
+
+                                {concessionariaTarifas && (() => {
+                                    const values = getTariffValues();
+                                    if (!values) return null;
+                                    const uDetails = usinaDetailsState || usina;
+                                    return (
+                                        <div style={{
+                                            marginBottom: '2rem',
+                                            background: '#f8fafc',
+                                            padding: '1.5rem',
+                                            borderRadius: '16px',
+                                            border: '1px solid #e2e8f0',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '1rem',
+                                            animation: 'slideDown 0.3s ease-out'
+                                        }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '1rem' }}>
+                                                <div style={{ padding: '0.5rem', background: '#eff6ff', borderRadius: '10px', color: '#2563eb' }}>
+                                                    <Building2 size={20} />
+                                                </div>
+                                                <div>
+                                                    <h4 style={{ margin: 0, fontSize: '1rem', color: '#1e3a8a', fontWeight: 700 }}>
+                                                        Detalhamento de Tarifas: {uDetails.concessionaria}
+                                                    </h4>
+                                                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
+                                                        Classe selecionada: {uDetails.grupo_tarifario || 'B1 Residencial'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                                <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>TARIFA CONCESSIONÁRIA</span>
+                                                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>
+                                                        {values.tarifa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
+                                                    </span>
+                                                </div>
+                                                <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>DESCONTO CLIENTE ({values.descontoPercent}%)</span>
+                                                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#dc2626' }}>
+                                                        -{values.descontoReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
+                                                    </span>
+                                                </div>
+                                                <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>FIO B</span>
+                                                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#d97706' }}>
+                                                        {values.fioB.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
+                                                    </span>
+                                                </div>
+                                                <div style={{ background: 'white', padding: '1rem', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                                    <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>GESTÃO ({values.gestaoPercent}%)</span>
+                                                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#16a34a' }}>
+                                                        {values.gestaoReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
+                                                    </span>
+                                                </div>
+                                                <div style={{ gridColumn: '1 / -1', background: '#eff6ff', padding: '1rem 1.25rem', borderRadius: '12px', border: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                                    <div>
+                                                        <span style={{ fontSize: '0.7rem', color: '#1d4ed8', fontWeight: 800, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fórmula da Gestão</span>
+                                                        <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 600 }}>
+                                                            ({values.tarifa.toFixed(4)} - {values.descontoReais.toFixed(4)} - {values.fioB.toFixed(4)}) × {values.gestaoPercent}% = {values.gestaoReais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right' }}>
+                                                        <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 800, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>TARIFA LÍQUIDA</span>
+                                                        <span style={{ fontSize: '1.25rem', fontWeight: 900, color: '#1e3a8a' }}>
+                                                            {values.tarifaLiquida.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4 })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* TOP CARDS ROW */}
                                 <div className="row g-3 mb-4">
