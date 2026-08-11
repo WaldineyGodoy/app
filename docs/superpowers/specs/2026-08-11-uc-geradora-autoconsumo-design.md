@@ -113,14 +113,19 @@ Motivo: hoje `PlantAnalyticsModal`, `SupplierDashboard` e `useInvestorData` calc
 
 Módulo JS, não função de banco: nenhuma RPC usa franquia, e uma função SQL viveria no outro repositório.
 
-### 4.3 As telas do admin passam a consumir o módulo
+### 4.3 Quem passa a consumir o módulo
 
-Esta rodada é voltada ao **painel do administrador**. As telas do fornecedor ficam para depois (seção 5).
+O grosso da rodada é o **painel do administrador**. A **área nova do investidor** entra junto, porque o fornecedor precisa enxergar o próprio autoconsumo — é energia da usina dele que não foi para assinantes, e esconder isso é o oposto de transparência.
+
+**Admin:**
 
 - `PlantAnalyticsModal.jsx:123` soma hoje a franquia de **todas** as UCs, geradora inclusive. Passa a exibir `Autoconsumo da UG` e `Disponível para rateio` como linhas próprias.
 - `ConsumerUnitModal.jsx`, conforme 4.1.
 
-O módulo da seção 4.2 continua no escopo mesmo com um único consumidor agora: é ele que impede a regra de ser reescrita de novo em cada tela quando as demais migrarem.
+**Área nova do investidor (`/fornecedores/novo`):**
+
+- `useInvestorData.js` já exclui a geradora da franquia (`:114`, `:140`), mas ainda não subtrai o autoconsumo da geração disponível. Passa a expor `autoconsumoUG` (previsto e medido) e a calcular a ocupação sobre a geração **disponível**: hoje `:164` faz `comprometido / previsto`, e passa a fazer `comprometido / (previsto − autoconsumoUG)`.
+- `PlantNameplate.jsx` ganha a linha `Autoconsumo da UG` entre as specs, e a legenda do medidor deixa claro que a ocupação é sobre o disponível, não sobre o bruto.
 
 ### 4.4 Ajuste de dados — Novo Leblon
 
@@ -146,7 +151,7 @@ Não é opcional. É a mudança 4.4 que dispara o defeito.
 
 Registrado, não feito nesta rodada:
 
-- **As telas do fornecedor.** `SupplierDashboard.jsx` (rota `/fornecedores`) e `useInvestorData.js` (rota `/fornecedores/novo`) continuam com o cálculo antigo. **Consequência conhecida e aceita:** enquanto isso, o admin e o fornecedor mostrarão números de capacidade diferentes para a mesma usina. Migrar as duas para o módulo da seção 4.2 é a rodada seguinte, e naturalmente casa com a aprovação da área nova do investidor.
+- **A tela antiga do fornecedor.** `SupplierDashboard.jsx` (rota `/fornecedores`) continua com o cálculo antigo, porque será substituída pela área nova. **Consequência conhecida e aceita:** até a troca das telas, `/fornecedores` mostrará capacidade diferente do admin e de `/fornecedores/novo`. Não vale migrar uma tela que vai ser descartada.
 
 - **Guarda por `tipo_unidade` em `handle_invoice_paid_ledger`.** A função não verifica o tipo da UC. Desvincular o assinante não a impede de disparar — apenas faz o `JOIN` com `subscribers` falhar, e as partidas continuam sendo inseridas, agora com referência nula. A guarda continua necessária.
 - **Estorno das transações fantasma:** `0e40f2bf` (Bom Jesus 05/2026) e `2e73aba2` (Novo Leblon 06/2026).
@@ -158,7 +163,8 @@ Registrado, não feito nesta rodada:
 ## 6. Como validar
 
 1. A UG do Novo Leblon sai do comprometido e passa a aparecer como autoconsumo. Mantido o valor de franquia em 300, o "livre para vender" tem de dar o mesmo de antes (592) — se mudar, alguma perna está sendo contada duas vezes. Só depois aplicar o ajuste para 150.
-2. Toda a aritmética de capacidade exibida no admin vem do módulo da seção 4.2 — nenhuma tela do admin refaz a conta por conta própria.
+2. Toda a aritmética de capacidade exibida no admin e na área nova vem do módulo da seção 4.2 — nenhuma das duas refaz a conta por conta própria, e as duas mostram o mesmo número para a mesma usina.
+2b. O fornecedor vê o autoconsumo da própria UG em `/fornecedores/novo`, e a ocupação exibida ali é sobre a geração disponível, não sobre a bruta.
 3. Nas usinas cujo UG tem `consumo_compensado = 0` (Bom Jesus), os números exibidos não mudam.
 4. Após o desvínculo, o status do assinante que perdeu a UC é recalculado.
 5. `fn_conta_ug` continua devolvendo `ok = true` para Novo Leblon e Bom Jesus.
