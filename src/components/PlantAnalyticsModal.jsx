@@ -27,6 +27,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
         profitability: 0,
         balanceToReceive: 0,
         totalFranquia: 0,
+        autoconsumoUG: 0,
+        disponivelRateio: 0,
         cycleString: 'Geração'
     });
     const [chartData, setChartData] = useState([]);
@@ -279,13 +281,17 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             const vacancyKwh = Math.max(0, generationLastMonth - consumptionLastMonth);
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
 
-            // Geração já apurada do período menos o autoconsumo da UG: é isto que
-            // sobra para os assinantes. `generationLastMonth` é bruto.
-            const disponivelRateio = generationLastMonth - autoconsumoUG;
-
             const avgEstimatedGen = estimatedGenLastMonth / selectedRange;
-            const reserveKwh = avgEstimatedGen - totalFranquia;
+            // totalFranquia e autoconsumoUG sao ambos mensais (franquia cadastrada), assim
+            // como avgEstimatedGen (estimatedGenLastMonth ja dividido por selectedRange).
+            // A geradora entra aqui do lado da oferta: antes desta task ela ja saia implicita
+            // deste calculo porque totalFranquia somava todas as UCs, geradora inclusive.
+            const reserveKwh = avgEstimatedGen - totalFranquia - autoconsumoUG;
             const reservePercent = avgEstimatedGen > 0 ? (reserveKwh / avgEstimatedGen) * 100 : 0;
+
+            // Disponivel para rateio na mesma base mensal do card de Reserva (nao a geracao
+            // apurada do periodo, que mistura meses quando selectedRange > 1).
+            const disponivelRateio = avgEstimatedGen - autoconsumoUG;
 
             // 5. Profitability & Financials
             const invested = usinaDetails?.valor_investido || usina.valor_investido || 0;
@@ -566,7 +572,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             <small className="text-muted d-block">
                                                 Franquia das beneficiárias
                                             </small>
-                                            {metrics.autoconsumoUG > 0 && (
+                                            {metrics.autoconsumoUG > 0 && metrics.disponivelRateio > 0 && (
                                                 <small className="text-muted d-block mt-1">
                                                     Autoconsumo da UG: {formatNumber(metrics.autoconsumoUG)} kWh ·
                                                     disponível para rateio: {formatNumber(metrics.disponivelRateio)} kWh
