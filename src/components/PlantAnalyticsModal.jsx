@@ -130,11 +130,10 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
                 const { data: invoices, error: invError } = await supabase
                     .from('invoices')
-                    .select('energia_injetada, consumo_kwh, consumo_compensado, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento, uc_id, mes_referencia')
+                    .select('energia_injetada, consumo_kwh, consumo_compensado, valor_a_pagar, valor_concessionaria, tarifa_concessionaria, tarifa_minima, vencimento, uc_id, mes_referencia, status')
                     .in('uc_id', ucIds)
                     .gte('mes_referencia', `${lastPeriod.getFullYear()}-${(lastPeriod.getMonth() + 1).toString().padStart(2, '0')}-01`)
-                    .lte('mes_referencia', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`)
-                    .neq('status', 'cancelado');
+                    .lte('mes_referencia', `${endYear}-${endMonth.toString().padStart(2, '0')}-${endLastDay.toString().padStart(2, '0')}`);
                 
                 if (invError) console.error("Invoice fetch error:", invError);
                 invHistory = invoices || [];
@@ -209,19 +208,23 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 const monthName = shortMonthNames[d.getMonth()];
 
                 const genItem = genHistory?.find(g => g.mes_referencia.startsWith(monthKey));
-                let generation = 0;
-                if (mainUG) {
+
+                // Monthly closing (generation_production) is the primary source: it is the
+                // figure the operator reviewed and closed the month on. Same precedence as
+                // SupplierDashboard, so both screens report the same number.
+                let generation = Number(genItem?.geracao_mensal_kwh) || 0;
+                if (generation === 0 && mainUG) {
+                    // The generating unit has no subscriber boleto, so invoices.status
+                    // ('cancelado', 'sem_faturamento', ...) describes a charge that does not
+                    // exist here and says nothing about the meter reading. Filtering the UG
+                    // invoice by it silently dropped the generation and showed zero.
                     const ugInvoice = invHistory.find(inv => inv.uc_id === mainUG.id && inv.mes_referencia?.startsWith(monthKey));
-                    if (ugInvoice?.energia_injetada) {
-                        generation = Number(ugInvoice.energia_injetada);
-                    }
-                }
-                
-                if (generation === 0) {
-                    generation = Number(genItem?.geracao_mensal_kwh) || 0;
+                    generation = Number(ugInvoice?.energia_injetada) || 0;
                 }
 
-                const consItems = invHistory.filter(inv => inv.mes_referencia?.startsWith(monthKey));
+                // Cancelled invoices stay out of the consumption sum: there the status does
+                // describe the subscriber charge, which is what consumo_compensado bills.
+                const consItems = invHistory.filter(inv => inv.status !== 'cancelado' && inv.mes_referencia?.startsWith(monthKey));
                 const consumption = consItems.reduce((acc, inv) => acc + (Number(inv.consumo_compensado) || 0), 0);
                 
                 const monthLedger = filteredLedger.filter(l => l.created_at?.startsWith(monthKey) && l.amount < 0);

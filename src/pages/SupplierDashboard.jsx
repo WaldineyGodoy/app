@@ -145,12 +145,15 @@ const SupplierDashboard = () => {
 
                 let generation = Number(genData?.geracao_mensal_kwh) || 0;
                 if (generation === 0 && mainUG) {
+                    // No .neq('status', 'cancelado') here: the generating unit has no
+                    // subscriber boleto, so invoices.status describes a charge that does not
+                    // exist and says nothing about the meter reading. Filtering by it
+                    // silently dropped the generation and showed zero.
                     const { data: ugInvoice } = await supabase
                         .from('invoices')
                         .select('energia_injetada')
                         .eq('uc_id', mainUG.id)
                         .eq('mes_referencia', lastMonthStart.toISOString().split('T')[0])
-                        .neq('status', 'cancelado')
                         .maybeSingle();
                     
                     if (ugInvoice?.energia_injetada) {
