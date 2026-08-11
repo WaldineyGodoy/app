@@ -17,7 +17,7 @@
 - Não tocar em `src/pages/SupplierDashboard.jsx`: está fora de escopo por decisão do dono (será substituída pela área nova).
 - Não tocar em `handle_invoice_paid_ledger` nem estornar lançamentos do razão: fora de escopo, registrado na spec §5.
 - Comentários em português sem acentuação em SQL; nos `.js`/`.jsx` seguir o arquivo (a área `investidor/` usa português acentuado, os componentes antigos usam inglês).
-- Rodar `npm run lint` antes de cada commit. Os 7 erros pré-existentes (`motion`, `authLoading`, `suppError`, `emailError`, `ucCount`, `revenue`, `usinaLedger`) não são regressão; **nenhum erro novo** pode aparecer.
+- Rodar `npm run lint` antes de cada commit. A linha de base do projeto, medida em 11/08/2026 no commit `3857815`, é **72 problemas: 57 erros e 15 warnings** — quase todos variáveis e imports não usados. Nada disso é regressão e **nada disso deve ser corrigido nesta rodada**. O critério é só um: **a contagem não pode subir**.
 
 ---
 
@@ -57,7 +57,7 @@ Expected: sai com "No test files found" e código de saída 1. Isso prova que o 
 - [ ] **Step 4: Confirmar que o build não quebrou**
 
 Run: `npm run lint`
-Expected: os mesmos 7 erros pré-existentes, nenhum novo.
+Expected: 72 problemas (57 erros, 15 warnings) — a linha de base, sem nada novo.
 
 - [ ] **Step 5: Commit**
 
@@ -759,7 +759,7 @@ Não há arquivo a commitar nesta task. Registrar o que foi aplicado no corpo do
 npm test && npm run lint && npm run build
 ```
 
-Expected: testes passam; lint com os mesmos 7 erros pré-existentes e nenhum novo; build conclui.
+Expected: testes passam; lint com no máximo 72 problemas (57 erros, 15 warnings); build conclui.
 
 - [ ] **Step 2: Registrar as mudanças de banco no repositório**
 
