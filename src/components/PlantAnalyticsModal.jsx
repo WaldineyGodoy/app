@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle, Calendar, ChevronLeft, ChevronRight, Sun, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { calcularCapacidade } from '../lib/capacidade';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, AreaChart, Area, ComposedChart, Line
@@ -115,12 +116,16 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             // 2. Fetch UCs and calculate Total Franquia (Committed Capacity)
             const { data: ucs, error: ucsError } = await supabase
                 .from('consumer_units')
-                .select('id, franquia, status, numero_uc')
+                .select('id, franquia, status, numero_uc, tipo_unidade')
                 .eq('usina_id', usina.id);
 
             if (ucsError) throw ucsError;
             const ucIds = ucs?.map(u => u.id) || [];
-            const totalFranquia = ucs?.filter(uc => uc.status !== 'desconectado' && uc.status !== 'cancelado').reduce((acc, curr) => acc + (Number(curr.franquia) || 0), 0) || 0;
+            // A geradora sai do comprometido e vira dedução da geração: ver
+            // docs/superpowers/specs/2026-08-11-uc-geradora-autoconsumo-design.md
+            const capacidadeCadastro = calcularCapacidade({ ucs: ucs || [], geracao: null });
+            const totalFranquia = capacidadeCadastro.comprometido;
+            const autoconsumoUG = capacidadeCadastro.autoconsumoUG;
 
             let invHistory = [];
             if (ucIds.length > 0) {
@@ -274,6 +279,10 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             const vacancyKwh = Math.max(0, generationLastMonth - consumptionLastMonth);
             const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
 
+            // Geração já apurada do período menos o autoconsumo da UG: é isto que
+            // sobra para os assinantes. `generationLastMonth` é bruto.
+            const disponivelRateio = generationLastMonth - autoconsumoUG;
+
             const avgEstimatedGen = estimatedGenLastMonth / selectedRange;
             const reserveKwh = avgEstimatedGen - totalFranquia;
             const reservePercent = avgEstimatedGen > 0 ? (reserveKwh / avgEstimatedGen) * 100 : 0;
@@ -300,6 +309,8 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 profitability,
                 balanceToReceive,
                 totalFranquia,
+                autoconsumoUG,
+                disponivelRateio,
                 cycleString: (() => {
                     const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
                     const diaLeitura = mainUG?.dia_leitura;
@@ -552,7 +563,15 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                 <ArrowDownRight size={24} color="#FF6600" />
                                                 <span className="fs-3 fw-bold">{formatNumber(metrics.totalFranquia)} kWh</span>
                                             </div>
-                                            <small className="text-muted">Soma da franquia das UCs</small>
+                                            <small className="text-muted d-block">
+                                                Franquia das beneficiárias
+                                            </small>
+                                            {metrics.autoconsumoUG > 0 && (
+                                                <small className="text-muted d-block mt-1">
+                                                    Autoconsumo da UG: {formatNumber(metrics.autoconsumoUG)} kWh ·
+                                                    disponível para rateio: {formatNumber(metrics.disponivelRateio)} kWh
+                                                </small>
+                                            )}
                                         </motion.div>
                                     </div>
 
