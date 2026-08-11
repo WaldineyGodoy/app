@@ -75,6 +75,53 @@ describe('calcularCapacidade', () => {
         expect(r.comprometido).toBe(0);
         expect(r.livre).toBe(500);
     });
+
+    it('duas geradoras: autoconsumo soma ambas, livre bate com geracao menos todas as franquias', () => {
+        const ucs = [
+            { tipo_unidade: 'geradora', status: 'ativo', franquia: 300 },
+            { tipo_unidade: 'geradora', status: 'ativo', franquia: 200 },
+            { tipo_unidade: 'beneficiaria', status: 'ativo', franquia: 100 },
+        ];
+        const somaTodas = ucs.reduce((a, uc) => a + uc.franquia, 0);
+        const r = calcularCapacidade({ ucs, geracao: 1000 });
+        expect(r.autoconsumoUG).toBe(500);
+        expect(r.comprometido).toBe(100);
+        expect(r.disponivel).toBe(500);
+        expect(r.livre).toBe(1000 - somaTodas);
+    });
+
+    it('geracao igual ao autoconsumo: disponivel zero, ocupacao null, livre negativo', () => {
+        const ucs = [
+            { tipo_unidade: 'geradora', status: 'ativo', franquia: 300 },
+            { tipo_unidade: 'beneficiaria', status: 'ativo', franquia: 100 },
+        ];
+        const r = calcularCapacidade({ ucs, geracao: 300 });
+        expect(r.disponivel).toBe(0);
+        expect(r.ocupacao).toBeNull();
+        expect(r.livre).toBe(-100);
+        expect(r.geracao).toBe(300);
+    });
+
+    it('geracao zero: disponivel zero, ocupacao null, livre negativo', () => {
+        const ucs = [
+            { tipo_unidade: 'beneficiaria', status: 'ativo', franquia: 100 },
+        ];
+        const r = calcularCapacidade({ ucs, geracao: 0 });
+        expect(r.disponivel).toBe(0);
+        expect(r.ocupacao).toBeNull();
+        expect(r.livre).toBe(-100);
+    });
+
+    it('geracao menor que autoconsumo: disponivel negativo, ocupacao null, livre negativo', () => {
+        const ucs = [
+            { tipo_unidade: 'geradora', status: 'ativo', franquia: 300 },
+            { tipo_unidade: 'beneficiaria', status: 'ativo', franquia: 100 },
+        ];
+        const r = calcularCapacidade({ ucs, geracao: 200 });
+        expect(r.disponivel).toBe(-100);
+        expect(r.ocupacao).toBeNull();
+        expect(r.livre).toBe(-200);
+    });
 });
 
 describe('ocupaFranquia', () => {

@@ -35,12 +35,18 @@ const numero = (v) => {
  *   geracao: number|null, autoconsumoUG: number, disponivel: number|null,
  *   comprometido: number, livre: number|null, ocupacao: number|null
  * }}
+ *
+ * Sobre ocupacao: quando disponivel <= 0, ocupacao é null (não calculável).
+ * Percentual sobre base não positiva não é número. Sobrecarga se lê em livre < 0, não em ocupacao.
  */
 export function calcularCapacidade({ ucs = [], geracao = null } = {}) {
     const ativas = (ucs || []).filter(ocupaFranquia);
-    const geradora = ativas.find((uc) => uc.tipo_unidade === 'geradora') || null;
 
-    const autoconsumoUG = geradora ? numero(geradora.franquia) : 0;
+    // Soma TODAS as UCs geradoras ativas: mesmo com cadastro errado (mais de uma geradora),
+    // nenhuma franquia desaparece da contabilidade.
+    const autoconsumoUG = ativas
+        .filter((uc) => uc.tipo_unidade === 'geradora')
+        .reduce((acc, uc) => acc + numero(uc.franquia), 0);
     const comprometido = ativas
         .filter((uc) => uc.tipo_unidade !== 'geradora')
         .reduce((acc, uc) => acc + numero(uc.franquia), 0);
@@ -52,6 +58,8 @@ export function calcularCapacidade({ ucs = [], geracao = null } = {}) {
 
     const disponivel = bruta === null ? null : bruta - autoconsumoUG;
     const livre = disponivel === null ? null : disponivel - comprometido;
+    // Ocupacao é null quando não calculável (disponivel <= 0 ou sem geração).
+    // Sobrecarga aparece como livre < 0, não em ocupacao.
     const ocupacao = (disponivel === null || disponivel <= 0)
         ? null : (comprometido / disponivel) * 100;
 
