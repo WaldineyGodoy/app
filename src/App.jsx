@@ -4,6 +4,8 @@ import RoleSelectionScreen from './pages/RoleSelectionScreen'
 import SubscriberDashboard from './pages/SubscriberDashboard'
 import AmbassadorDashboard from './pages/AmbassadorDashboard'
 import SupplierDashboard from './pages/SupplierDashboard'
+import InvestorArea from './pages/investidor/InvestorArea'
+import InvestorPreview from './pages/investidor/InvestorPreview'
 import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import './App.css'
@@ -54,8 +56,14 @@ function App() {
 
           <Route element={<ProtectedRoute allowedRoles={['supplier', 'admin', 'super_admin']} />}>
             <Route path="/fornecedores" element={<SupplierDashboard />} />
+            <Route path="/fornecedores/novo" element={<InvestorArea />} />
           </Route>
 
+
+          {/* Só em desenvolvimento: o painel do investidor com dados de exemplo. */}
+          {import.meta.env.DEV && (
+            <Route path="/preview/investidor" element={<InvestorPreview />} />
+          )}
 
           <Route path="/cadastro-embaixador" element={<OriginatorSignup />} />
           <Route path="/cadastro-parceiro" element={<SignupRoleScreen />} />
