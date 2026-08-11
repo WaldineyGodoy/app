@@ -150,6 +150,7 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
     // estimativa em vez de chutar. Sem faturas com valor, não exibe nada —
     // zero aqui seria uma afirmação falsa sobre o consumo.
     useEffect(() => {
+        let cancelado = false;
         if (!consumerUnit?.id || formData.tipo_unidade !== 'geradora') {
             setAutoconsumoMedido(null);
             return;
@@ -163,11 +164,13 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 .eq('uc_id', consumerUnit.id)
                 .gte('mes_referencia', desde.toISOString().slice(0, 10))
                 .not('consumo_compensado', 'is', null);
+            if (cancelado) return;
             if (error) { setAutoconsumoMedido(null); return; }
             if (!data?.length) { setAutoconsumoMedido(null); return; }
             const soma = data.reduce((acc, i) => acc + Number(i.consumo_compensado), 0);
             setAutoconsumoMedido(soma / data.length);
         })();
+        return () => { cancelado = true; };
     }, [consumerUnit?.id, formData.tipo_unidade]);
 
     // Calculate Tarifa Minima automatically
@@ -274,8 +277,11 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 te: parseCurrency(formData.te),
                 tusd: parseCurrency(formData.tusd),
                 fio_b: parseCurrency(formData.fio_b),
-                desconto_assinante: Number(formData.desconto_assinante),
-                dia_vencimento: Number(formData.dia_vencimento),
+                // A geradora não tem desconto de assinante nem dia de vencimento — ela não
+                // gera fatura B2W. Gravar null (em vez de omitir) evita que um valor antigo
+                // de quando a UC era beneficiária fique parado na linha após a reclassificação.
+                desconto_assinante: formData.tipo_unidade === 'geradora' ? null : Number(formData.desconto_assinante),
+                dia_vencimento: formData.tipo_unidade === 'geradora' ? null : Number(formData.dia_vencimento),
                 address: {
                     cep: formData.cep.replace(/\D/g, ''),
                     rua: formData.rua,
@@ -376,9 +382,9 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                     {(defaultSection === 'all' || defaultSection === 'technical') && (
                         <>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Assinante *</label>
+                                <label style={{ display: 'block', marginBottom: '5px' }}>Assinante{formData.tipo_unidade !== 'geradora' ? ' *' : ''}</label>
                                 <select
-                                    required
+                                    required={formData.tipo_unidade !== 'geradora'}
                                     value={formData.subscriber_id}
                                     onChange={e => setFormData({ ...formData, subscriber_id: e.target.value })}
                                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
@@ -638,7 +644,7 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                                 {formData.tipo_unidade === 'geradora' && (
                                     <small style={{ color: '#64748b', display: 'block', marginTop: '4px' }}>
                                         Sai da geração antes do rateio.
-                                        {autoconsumoMedido !== null && ` Medido: ${autoconsumoMedido.toFixed(1)} kWh/mês (média de 6 meses).`}
+                                        {autoconsumoMedido !== null && ` Medido: ${autoconsumoMedido.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kWh/mês (média de 6 meses).`}
                                     </small>
                                 )}
                             </div>
