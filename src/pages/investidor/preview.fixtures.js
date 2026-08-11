@@ -29,7 +29,9 @@ export const usinas = [
         geracao_estimada_kwh: 13401,
         unidade_geradora: '',
         address: { cidade: 'São Paulo do Potengi', uf: 'RN' },
-        ucsBeneficiarias: 0, ucsAtivas: 0, comprometido: 0, ocupacao: 0,
+        // Sem UC geradora cadastrada: autoconsumo zero, disponível = geração bruta.
+        ucsBeneficiarias: 0, ucsAtivas: 0, comprometido: 0,
+        autoconsumoUG: 0, disponivelPrevisto: 13401, livre: 13401, ocupacao: 0,
         compensadoUltimo: null, ucsComFatura: 0, entrantes: 0, franquiaEntrantes: 0,
     }),
     usina({
@@ -44,10 +46,15 @@ export const usinas = [
         // 14 beneficiárias cadastradas, 12 com status que ocupa franquia. As duas
         // fora (cancelado e cancelado_inadimplente) somam 1.600 kWh. A UC 7030839166
         // foi ativada em 10/08/2026 e trouxe 4.500 kWh — daí o overbook real.
+        // A UG é faturada pelo mínimo: autoconsumo pequeno (100 kWh/mês), que ainda
+        // assim reduz o disponível e piora o overbook, nunca melhora.
         ucsBeneficiarias: 14,
         ucsAtivas: 12,
         comprometido: 14271,
-        ocupacao: (14271 / 13558) * 100,
+        autoconsumoUG: 100,
+        disponivelPrevisto: 13558 - 100,
+        livre: (13558 - 100) - 14271,
+        ocupacao: (14271 / (13558 - 100)) * 100,
         ultimoApurado: { mes_referencia: '2026-04-01', geracao_mensal_kwh: 14664 },
         compensadoUltimo: 10853,
         ucsComFatura: 12,
@@ -65,7 +72,9 @@ export const usinas = [
         geracao_estimada_kwh: 13751,
         unidade_geradora: '',
         address: { cidade: 'Bom Jesus', uf: 'RN' },
-        ucsBeneficiarias: 0, ucsAtivas: 0, comprometido: 0, ocupacao: 0,
+        // Sem UC geradora cadastrada: autoconsumo zero, disponível = geração bruta.
+        ucsBeneficiarias: 0, ucsAtivas: 0, comprometido: 0,
+        autoconsumoUG: 0, disponivelPrevisto: 13751, livre: 13751, ocupacao: 0,
         compensadoUltimo: null, ucsComFatura: 0, entrantes: 0, franquiaEntrantes: 0,
     }),
 ];
