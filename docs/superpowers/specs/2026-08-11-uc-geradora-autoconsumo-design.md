@@ -103,6 +103,10 @@ Quando `tipo_unidade === 'geradora'`:
 - Abaixo do campo, exibir o autoconsumo **medido**: a média de `consumo_compensado` das faturas daquela UC nos **últimos 6 meses**, ignorando faturas com `consumo_compensado` nulo. Quando não houver nenhuma fatura com valor, não exibir a linha em vez de exibir zero.
 - Ocultar "Desconto Assinante (%)" e "Dia Vencimento": numa UG sem cobrança são ruído.
 
+**Bloqueio a remover:** `ConsumerUnitModal.jsx:264` faz `if (!payload.subscriber_id) throw new Error('Assinante é obrigatório.')`. Hoje é **impossível salvar uma UC sem assinante pela interface** — o desvínculo da seção 4.4 não teria como ser feito nem mantido, e qualquer edição futura da UG seria recusada. A obrigatoriedade passa a valer só para `tipo_unidade !== 'geradora'`.
+
+**Regra de quem ocupa franquia:** hoje existem duas versões. `useInvestorData.js:23` libera a franquia em `desconectado`, `cancelado` e `cancelado_inadimplente`; `PlantAnalyticsModal.jsx:123` esquece o terceiro. A UC 7029990055 da Bom Jesus está exatamente em `cancelado_inadimplente`, então a divergência é viva. A regra correta é a do `useInvestorData` e vai para o módulo da seção 4.2.
+
 ### 4.2 Módulo único da regra de capacidade
 
 Novo módulo em `src/lib/`, com uma função que recebe as UCs da usina (e, quando houver, as faturas do mês) e devolve:
