@@ -85,6 +85,7 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
         concessionaria: '',
         tipo_ligacao: 'trifasico',
         franquia: '', // kWh
+        tipo_unidade: 'beneficiaria',
         tarifa_concessionaria: '', // String masked
         te: '', // New
         tusd: '', // New
@@ -104,6 +105,8 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
         saldo_remanescente: false
     });
 
+    const [autoconsumoMedido, setAutoconsumoMedido] = useState(null);
+
     useEffect(() => {
         fetchSubscribers();
         fetchUsinas();
@@ -121,6 +124,7 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 concessionaria: consumerUnit.concessionaria || '',
                 tipo_ligacao: consumerUnit.tipo_ligacao || 'trifasico',
                 franquia: consumerUnit.franquia || '',
+                tipo_unidade: consumerUnit.tipo_unidade || 'beneficiaria',
                 tarifa_concessionaria: formatCurrency(consumerUnit.tarifa_concessionaria),
                 te: formatCurrency(consumerUnit.te),
                 tusd: formatCurrency(consumerUnit.tusd),
@@ -141,6 +145,30 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
             });
         }
     }, [consumerUnit?.id, consumerUnit?.subscriber_id]); // Stable dependencies
+
+    // Média do compensado dos últimos 6 meses, para o operador calibrar a
+    // estimativa em vez de chutar. Sem faturas com valor, não exibe nada —
+    // zero aqui seria uma afirmação falsa sobre o consumo.
+    useEffect(() => {
+        if (!consumerUnit?.id || formData.tipo_unidade !== 'geradora') {
+            setAutoconsumoMedido(null);
+            return;
+        }
+        const desde = new Date();
+        desde.setMonth(desde.getMonth() - 6);
+        (async () => {
+            const { data, error } = await supabase
+                .from('invoices')
+                .select('consumo_compensado')
+                .eq('uc_id', consumerUnit.id)
+                .gte('mes_referencia', desde.toISOString().slice(0, 10))
+                .not('consumo_compensado', 'is', null);
+            if (error) { setAutoconsumoMedido(null); return; }
+            if (!data?.length) { setAutoconsumoMedido(null); return; }
+            const soma = data.reduce((acc, i) => acc + Number(i.consumo_compensado), 0);
+            setAutoconsumoMedido(soma / data.length);
+        })();
+    }, [consumerUnit?.id, formData.tipo_unidade]);
 
     // Calculate Tarifa Minima automatically
     useEffect(() => {
@@ -241,6 +269,7 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 concessionaria: formData.concessionaria,
                 tipo_ligacao: formData.tipo_ligacao,
                 franquia: Number(formData.franquia),
+                tipo_unidade: formData.tipo_unidade,
                 tarifa_concessionaria: parseCurrency(formData.tarifa_concessionaria),
                 te: parseCurrency(formData.te),
                 tusd: parseCurrency(formData.tusd),
@@ -261,7 +290,12 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                 saldo_remanescente: formData.saldo_remanescente
             };
 
-            if (!payload.subscriber_id) throw new Error('Assinante é obrigatório.');
+            // A UC geradora é a usina vista pela concessionária, não um cliente:
+            // ela não gera fatura B2W e por isso não tem assinante. Quem identifica
+            // o titular da conta de energia é `titular_fatura_id`, que continua valendo.
+            if (formData.tipo_unidade !== 'geradora' && !payload.subscriber_id) {
+                throw new Error('Assinante é obrigatório.');
+            }
 
             let result;
             if (consumerUnit?.id) {
@@ -584,19 +618,38 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                     {(defaultSection === 'all' || defaultSection === 'technical') && (
                         <>
                             <div>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Desconto Assinante (%)</label>
-                                <input type="number" step="0.01" value={formData.desconto_assinante} onChange={e => setFormData({ ...formData, desconto_assinante: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Franquia (kWh)</label>
-                                <input type="number" value={formData.franquia} onChange={e => setFormData({ ...formData, franquia: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-                            </div>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Dia Vencimento</label>
-                                <select value={formData.dia_vencimento} onChange={e => setFormData({ ...formData, dia_vencimento: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
-                                    {vencimentoOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                                <label style={{ display: 'block', marginBottom: '5px' }}>Tipo de Unidade</label>
+                                <select value={formData.tipo_unidade} onChange={e => setFormData({ ...formData, tipo_unidade: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+                                    <option value="beneficiaria">Beneficiária</option>
+                                    <option value="geradora">Geradora (UG da usina)</option>
                                 </select>
                             </div>
+                            {formData.tipo_unidade !== 'geradora' && (
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '5px' }}>Desconto Assinante (%)</label>
+                                    <input type="number" step="0.01" value={formData.desconto_assinante} onChange={e => setFormData({ ...formData, desconto_assinante: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                </div>
+                            )}
+                            <div>
+                                <label style={{ display: 'block', marginBottom: '5px' }}>
+                                    {formData.tipo_unidade === 'geradora' ? 'Autoconsumo previsto (kWh)' : 'Franquia (kWh)'}
+                                </label>
+                                <input type="number" value={formData.franquia} onChange={e => setFormData({ ...formData, franquia: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+                                {formData.tipo_unidade === 'geradora' && (
+                                    <small style={{ color: '#64748b', display: 'block', marginTop: '4px' }}>
+                                        Sai da geração antes do rateio.
+                                        {autoconsumoMedido !== null && ` Medido: ${autoconsumoMedido.toFixed(1)} kWh/mês (média de 6 meses).`}
+                                    </small>
+                                )}
+                            </div>
+                            {formData.tipo_unidade !== 'geradora' && (
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '5px' }}>Dia Vencimento</label>
+                                    <select value={formData.dia_vencimento} onChange={e => setFormData({ ...formData, dia_vencimento: e.target.value })} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+                                        {vencimentoOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                                    </select>
+                                </div>
+                            )}
                         </>
                     )}
 
