@@ -61,7 +61,9 @@ export default function PlantNameplate({ usina }) {
     const cidade = usina.address?.cidade;
     const uf = usina.address?.uf;
     const ocupacao = usina.ocupacao;
-    const excedido = ocupacao !== null && ocupacao > 100;
+    // Sobrecarga se lê em livre < 0, não em ocupacao: quando o autoconsumo consome
+    // toda a geração, disponivel <= 0 e ocupacao vira null — livre continua negativo.
+    const excedido = usina.livre !== null && usina.livre !== undefined && usina.livre < 0;
     const ultimo = usina.ultimoApurado;
 
     const specs = [
@@ -70,6 +72,12 @@ export default function PlantNameplate({ usina }) {
         ['Unidade geradora', usina.unidade_geradora || '—'],
         ['Beneficiárias ativas', `${usina.ucsAtivas} de ${usina.ucsBeneficiarias}`],
         ['Geração prevista', isBlank(usina.geracao_estimada_kwh) ? '—' : `${kwh(usina.geracao_estimada_kwh)}/mês`],
+        ['Autoconsumo da UG', usina.autoconsumoUG > 0
+            ? `${kwh(usina.autoconsumoUG)}/mês`
+            : '—'],
+        ['Disponível para rateio', isBlank(usina.disponivelPrevisto)
+            ? '—'
+            : `${kwh(usina.disponivelPrevisto)}/mês`],
         ['Último ciclo apurado', ultimo
             ? `${cycleLabel(ultimo.mes_referencia).curto} · ${kwh(ultimo.geracao_mensal_kwh)}`
             : 'nenhum'],
@@ -108,7 +116,7 @@ export default function PlantNameplate({ usina }) {
                     />
                 </div>
                 <div className="iv-meter-legend">
-                    <span className="iv-label">Franquia comprometida</span>
+                    <span className="iv-label">Franquia comprometida (sobre o disponível)</span>
                     <span className="iv-spec-value">
                         {kwh(usina.comprometido)}
                         {ocupacao === null ? '' : ` · ${percent(ocupacao)}`}

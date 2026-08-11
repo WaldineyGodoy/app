@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { calcularCapacidade, ocupaFranquia } from '../../lib/capacidade';
 import { cents } from './format';
 
 /**
@@ -13,15 +14,6 @@ const unwrap = (label, { data, error }) => {
 };
 
 const CONTA_REPASSE = '2.1.1';
-
-/**
- * Franquia é capacidade contratada, então ela fica ocupada desde o vínculo —
- * inclusive enquanto a UC aguarda conexão, e inclusive com o assinante em atraso
- * (a UC segue conectada e compensando; quem está atrasado é o pagamento).
- * Só três estados devolvem a capacidade para a usina.
- */
-const STATUS_LIBERAM_FRANQUIA = new Set(['desconectado', 'cancelado', 'cancelado_inadimplente']);
-const ocupaFranquia = (uc) => !STATUS_LIBERAM_FRANQUIA.has(uc.status);
 
 /** Quantos meses de fatura carregar para apurar o consumo compensado. */
 const MESES_DE_APURACAO = 18;
@@ -138,8 +130,15 @@ export function useInvestorData(user) {
             const usinas = usinasRaw.map((u) => {
                 const bucket = porUsina.get(u.id) || { benef: [], geradora: null };
                 const ativas = bucket.benef.filter(ocupaFranquia);
-                const comprometido = ativas.reduce((acc, uc) => acc + (Number(uc.franquia) || 0), 0);
+                // A geradora entra aqui de propósito: é ela que o módulo separa
+                // como autoconsumo, deduzindo-o da geração antes do rateio.
+                const todasAsUcs = bucket.geradora ? [...bucket.benef, bucket.geradora] : bucket.benef;
                 const previsto = Number(u.geracao_estimada_kwh) || 0;
+                const capacidade = calcularCapacidade({
+                    ucs: todasAsUcs,
+                    geracao: previsto > 0 ? previsto : null,
+                });
+                const comprometido = capacidade.comprometido;
                 const ciclos = (cyclesRaw || []).filter((c) => c.usina_id === u.id);
                 const ultimoApurado = [...ciclos].reverse()
                     .find((c) => Number(c.geracao_mensal_kwh) > 0) || null;
@@ -161,7 +160,10 @@ export function useInvestorData(user) {
                     ucsAtivas: ativas.length,
                     geradora: bucket.geradora,
                     comprometido,
-                    ocupacao: previsto > 0 ? (comprometido / previsto) * 100 : null,
+                    ocupacao: capacidade.ocupacao,
+                    autoconsumoUG: capacidade.autoconsumoUG,
+                    disponivelPrevisto: capacidade.disponivel,
+                    livre: capacidade.livre,
                     ultimoApurado,
                     // Base da conferência de overbook: a franquia é declaração, isto é medição.
                     compensadoUltimo: apuracao ? apuracao.kwh : null,
