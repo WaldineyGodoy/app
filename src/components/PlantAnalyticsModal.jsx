@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, ArrowUpRight, ArrowDownRight, Info, DollarSign, Zap, Users, AlertCircle, Calendar, ChevronLeft, ChevronRight, Sun, Building2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { calcularCapacidade } from '../lib/capacidade';
+import { calcularCapacidade, autoconsumoMedidoGeradora } from '../lib/capacidade';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, AreaChart, Area, ComposedChart, Line
@@ -29,6 +29,9 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
         totalFranquia: 0,
         autoconsumoUG: 0,
         disponivelRateio: 0,
+        disponivelApurado: null,
+        autoconsumoMedidoPeriodo: null,
+        ocupacaoPercent: null,
         cycleString: 'Geração'
     });
     const [chartData, setChartData] = useState([]);
@@ -128,6 +131,10 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
             const capacidadeCadastro = calcularCapacidade({ ucs: ucs || [], geracao: null });
             const totalFranquia = capacidadeCadastro.comprometido;
             const autoconsumoUG = capacidadeCadastro.autoconsumoUG;
+            // Ids da UC geradora: a fatura dela mede autoconsumo, nao consumo de
+            // assinante, entao ela sai da soma de consumo e vira uma apuracao a parte.
+            const geradoraIds = new Set((ucs || [])
+                .filter(uc => uc.tipo_unidade === 'geradora').map(uc => uc.id));
 
             let invHistory = [];
             if (ucIds.length > 0) {
@@ -231,7 +238,10 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
                 // Cancelled invoices stay out of the consumption sum: there the status does
                 // describe the subscriber charge, which is what consumo_compensado bills.
-                const consItems = invHistory.filter(inv => inv.status !== 'cancelado' && inv.mes_referencia?.startsWith(monthKey));
+                // The generating unit's own invoice never enters here: its consumo_compensado
+                // is self-consumption, not a beneficiary's — it is apportioned separately
+                // below (autoconsumoMedidoPeriodo) via the status-blind pure function.
+                const consItems = invHistory.filter(inv => !geradoraIds.has(inv.uc_id) && inv.status !== 'cancelado' && inv.mes_referencia?.startsWith(monthKey));
                 const consumption = consItems.reduce((acc, inv) => acc + (Number(inv.consumo_compensado) || 0), 0);
                 
                 const monthLedger = filteredLedger.filter(l => l.created_at?.startsWith(monthKey) && l.amount < 0);
@@ -259,6 +269,15 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
 
             setChartData(processedData);
 
+            // Autoconsumo medido da geradora no periodo inteiro selecionado (mesma
+            // janela de invHistory usada para consumptionLastMonth, entao os dois
+            // somam sobre o mesmo intervalo de mes_referencia). NUNCA filtra por
+            // status: a UC geradora nao tem boleto de assinante, e o status do
+            // "boleto" dela nao diz nada sobre a leitura do medidor — regra central
+            // deste projeto (ver capacidade.js e commit c74a2e2).
+            const geradoraInvoicesPeriodo = invHistory.filter(inv => geradoraIds.has(inv.uc_id));
+            const autoconsumoMedidoPeriodo = autoconsumoMedidoGeradora(geradoraInvoicesPeriodo);
+
             // 4. Metrics Helper (Syncing with selectedMonth or Period)
             let generationLastMonth = 0;
             let consumptionLastMonth = 0;
@@ -278,29 +297,52 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 estimatedGenLastMonth = processedData.reduce((acc, curr) => acc + curr.GeracaoEstimada, 0);
             }
 
-            const vacancyKwh = Math.max(0, generationLastMonth - consumptionLastMonth);
-            const vacancyPercent = generationLastMonth > 0 ? (vacancyKwh / generationLastMonth) * 100 : 0;
+            // Ocupacao e vacancia sao medidas sobre o disponivel apurado (gerado -
+            // autoconsumo MEDIDO da UG no periodo), nao sobre a geracao bruta — senao
+            // o autoconsumo do dono da usina infla a "ocupacao" como se fosse consumo
+            // de assinante (era exatamente o defeito: a fatura da UG trazia
+            // consumo_compensado e entrava direto na soma de consumo de assinante).
+            // Sem leitura da UG no periodo, disponivelApurado propaga null: nao ha
+            // premissa falsa sobre a qual desenhar um numero.
+            const disponivelApurado = autoconsumoMedidoPeriodo === null
+                ? null : generationLastMonth - autoconsumoMedidoPeriodo;
+            // Percentual sobre base nao positiva (ou ausente) nao e' numero — mesma
+            // convencao de capacidade.js para `ocupacao`.
+            const percentSobre = (parte, base) => (base === null || base <= 0) ? null : (parte / base) * 100;
+            const vacancyKwh = disponivelApurado === null
+                ? null : Math.max(0, disponivelApurado - consumptionLastMonth);
+            const vacancyPercent = percentSobre(vacancyKwh, disponivelApurado);
+            const ocupacaoPercent = percentSobre(consumptionLastMonth, disponivelApurado);
 
             const avgEstimatedGen = estimatedGenLastMonth / selectedRange;
             // totalFranquia e autoconsumoUG sao ambos mensais (franquia cadastrada), assim
             // como avgEstimatedGen (estimatedGenLastMonth ja dividido por selectedRange).
-            // A geradora entra aqui do lado da oferta: antes desta task ela ja saia implicita
-            // deste calculo porque totalFranquia somava todas as UCs, geradora inclusive.
-            const reserveKwh = avgEstimatedGen - totalFranquia - autoconsumoUG;
+            // A conta agora passa pelo modulo em vez de ser refeita a mao: calcularCapacidade
+            // ja separa a geradora do comprometido e a deduz da geracao antes do rateio, e
+            // sua protecao de null passa a valer aqui tambem.
+            const capacidadeEstimada = calcularCapacidade({ ucs: ucs || [], geracao: avgEstimatedGen });
+            const reserveKwh = capacidadeEstimada.livre;
             const reservePercent = avgEstimatedGen > 0 ? (reserveKwh / avgEstimatedGen) * 100 : 0;
 
             // Disponivel para rateio na mesma base mensal do card de Reserva (nao a geracao
             // apurada do periodo, que mistura meses quando selectedRange > 1).
-            const disponivelRateio = avgEstimatedGen - autoconsumoUG;
+            const disponivelRateio = capacidadeEstimada.disponivel;
 
             // 5. Profitability & Financials
             const invested = usinaDetails?.valor_investido || usina.valor_investido || 0;
             const profitability = invested > 0 ? (revenueLastMonth / invested) * 100 : 0;
 
-            setOccupancyData([
-                { name: 'Ocupado', value: consumptionLastMonth, color: '#3b82f6' },
-                { name: 'Livre', value: vacancyKwh, color: '#10b981' }
-            ]);
+            if (disponivelApurado === null) {
+                // Sem leitura da UG no periodo: nao ha "livre" apuravel para desenhar.
+                // Um donut Ocupado/Livre calculado sobre premissa falsa mentiria — melhor
+                // mostrar um estado neutro de "sem apuracao".
+                setOccupancyData([{ name: 'Sem apuração', value: 1, color: '#cbd5e1' }]);
+            } else {
+                setOccupancyData([
+                    { name: 'Ocupado', value: consumptionLastMonth, color: '#3b82f6' },
+                    { name: 'Livre', value: vacancyKwh, color: '#10b981' }
+                ]);
+            }
 
             setMetrics({
                 totalUCs: ucs?.length || 0,
@@ -317,6 +359,9 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                 totalFranquia,
                 autoconsumoUG,
                 disponivelRateio,
+                disponivelApurado,
+                autoconsumoMedidoPeriodo,
+                ocupacaoPercent,
                 cycleString: (() => {
                     const mainUG = ucs?.find(u => u.numero_uc === usina.unidade_geradora);
                     const diaLeitura = mainUG?.dia_leitura;
@@ -606,7 +651,9 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             <div className="side-values">
                                                 <span className="big-val">{formatNumber(metrics.consumptionLastMonth)} kWh</span>
                                                 <span className={`percent-badge pos`}>
-                                                    {metrics.generationLastMonth > 0 ? ((metrics.consumptionLastMonth / metrics.generationLastMonth) * 100).toFixed(1) : 0}% Ocupação
+                                                    {metrics.ocupacaoPercent === null
+                                                        ? 'Ocupação sem apuração'
+                                                        : `${metrics.ocupacaoPercent.toFixed(1)}% Ocupação`}
                                                 </span>
                                             </div>
                                             <div style={{ width: '100%', height: 350 }}>
@@ -659,12 +706,20 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                         <div className="icon-circle red text-danger bg-danger bg-opacity-10 p-1 rounded-circle"><AlertCircle size={16} /></div>
                                                     </div>
                                                     <div className="side-values d-flex align-items-baseline gap-2">
-                                                        <span className="fs-4 fw-bold text-dark">{formatNumber(metrics.vacancyKwh)} kWh</span>
-                                                        <span className={`badge px-2 py-1 ${metrics.vacancyKwh >= 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}>
-                                                            {metrics.vacancyPercent.toFixed(1)}%
+                                                        <span className="fs-4 fw-bold text-dark">
+                                                            {metrics.vacancyKwh === null ? '—' : `${formatNumber(metrics.vacancyKwh)} kWh`}
+                                                        </span>
+                                                        <span className={`badge px-2 py-1 ${metrics.vacancyKwh === null
+                                                            ? 'bg-secondary-subtle text-secondary'
+                                                            : (metrics.vacancyKwh >= 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success')}`}>
+                                                            {metrics.vacancyPercent === null ? 'sem apuração' : `${metrics.vacancyPercent.toFixed(1)}%`}
                                                         </span>
                                                     </div>
-                                                    <small className="text-muted d-block mt-2">Diferença Geração - Consumo</small>
+                                                    <small className="text-muted d-block mt-2">
+                                                        {metrics.vacancyKwh === null
+                                                            ? 'Sem leitura da UG no período para apurar o disponível'
+                                                            : 'Diferença Disponível apurado - Consumo'}
+                                                    </small>
                                                 </div>
                                             </div>
 
@@ -678,7 +733,7 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                     
                                                     <div className="calculation-memory mb-3" style={{ fontSize: '0.8rem', color: '#64748b' }}>
                                                         <div className="d-flex justify-content-between mb-1">
-                                                            <span>Geração Média Estimada</span>
+                                                            <span>Geração Média Estimada (irradiância do mês)</span>
                                                             <strong>{formatNumber(metrics.estimatedGenLastMonth / selectedRange)} kWh</strong>
                                                         </div>
                                                         {metrics.autoconsumoUG > 0 && (
@@ -775,8 +830,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                     </PieChart>
                                                 </ResponsiveContainer>
                                                 <div className="donut-center-text position-absolute top-50 start-50 translate-middle text-center">
-                                                    <strong className="fs-4 text-dark">{((metrics.consumptionLastMonth / metrics.generationLastMonth) * 100 || 0).toFixed(0)}%</strong>
-                                                    <small className="text-muted d-block">Ocupação</small>
+                                                    <strong className="fs-4 text-dark">
+                                                        {metrics.ocupacaoPercent === null ? '—' : `${metrics.ocupacaoPercent.toFixed(0)}%`}
+                                                    </strong>
+                                                    <small className="text-muted d-block">
+                                                        {metrics.ocupacaoPercent === null ? 'Sem apuração' : 'Ocupação'}
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>

@@ -79,7 +79,7 @@ export default function PlantNameplate({ usina }) {
         ['Modalidade', modalidade(usina.modalidade)],
         ['Unidade geradora', usina.unidade_geradora || '—'],
         ['Beneficiárias ativas', `${usina.ucsAtivas} de ${usina.ucsBeneficiarias}`],
-        ['Geração prevista', isBlank(usina.geracao_estimada_kwh) ? '—' : `${kwh(usina.geracao_estimada_kwh)}/mês`],
+        ['Geração prevista (valor de placa)', isBlank(usina.geracao_estimada_kwh) ? '—' : `${kwh(usina.geracao_estimada_kwh)}/mês`],
         ['Autoconsumo da UG', usina.autoconsumoUG > 0
             ? `${kwh(usina.autoconsumoUG)}/mês`
             : '—'],
