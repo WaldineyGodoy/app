@@ -572,10 +572,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                             <small className="text-muted d-block">
                                                 Franquia das beneficiárias
                                             </small>
-                                            {metrics.autoconsumoUG > 0 && metrics.disponivelRateio > 0 && (
+                                            {metrics.autoconsumoUG > 0 && (
                                                 <small className="text-muted d-block mt-1">
                                                     Autoconsumo da UG: {formatNumber(metrics.autoconsumoUG)} kWh ·
-                                                    disponível para rateio: {formatNumber(metrics.disponivelRateio)} kWh
+                                                    {metrics.disponivelRateio > 0
+                                                        ? ` disponível para rateio: ${formatNumber(metrics.disponivelRateio)} kWh`
+                                                        : ' nada disponível para rateio'}
                                                 </small>
                                             )}
                                         </motion.div>
@@ -679,6 +681,12 @@ const PlantAnalyticsModal = ({ isOpen, onClose, usina }) => {
                                                             <span>Geração Média Estimada</span>
                                                             <strong>{formatNumber(metrics.estimatedGenLastMonth / selectedRange)} kWh</strong>
                                                         </div>
+                                                        {metrics.autoconsumoUG > 0 && (
+                                                            <div className="d-flex justify-content-between mb-1">
+                                                                <span>Autoconsumo da UG</span>
+                                                                <strong>{formatNumber(metrics.autoconsumoUG)} kWh</strong>
+                                                            </div>
+                                                        )}
                                                         <div className="d-flex justify-content-between mb-1">
                                                             <span>Capacidade Comprometida (Franquia)</span>
                                                             <strong>{formatNumber(metrics.totalFranquia)} kWh</strong>

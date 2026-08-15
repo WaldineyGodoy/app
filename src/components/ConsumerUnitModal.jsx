@@ -263,7 +263,11 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
 
         try {
             const payload = {
-                subscriber_id: formData.subscriber_id || null,
+                // Mesmo raciocínio de desconto_assinante/dia_vencimento logo abaixo: a UC
+                // geradora é a usina vista pela concessionária, não um cliente, e não pode
+                // carregar um assinante — isso já gerou fatura indevida e contaminou o
+                // razão contábil no passado. `titular_fatura_id` continua valendo para ela.
+                subscriber_id: formData.tipo_unidade === 'geradora' ? null : (formData.subscriber_id || null),
                 usina_id: formData.usina_id || null,
                 status: formData.status,
                 numero_uc: formData.numero_uc,
@@ -381,20 +385,26 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
 
                     {(defaultSection === 'all' || defaultSection === 'technical') && (
                         <>
-                            <div>
-                                <label style={{ display: 'block', marginBottom: '5px' }}>Assinante{formData.tipo_unidade !== 'geradora' ? ' *' : ''}</label>
-                                <select
-                                    required={formData.tipo_unidade !== 'geradora'}
-                                    value={formData.subscriber_id}
-                                    onChange={e => setFormData({ ...formData, subscriber_id: e.target.value })}
-                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                                >
-                                    <option value="">Selecione...</option>
-                                    {subscribers.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name} ({s.cpf_cnpj})</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {/* A UC geradora não tem assinante — é a usina vista pela
+                                concessionária, não um cliente. Ocultar em vez de só
+                                desabilitar evita que um select vazio pareça um campo
+                                esquecido. */}
+                            {formData.tipo_unidade !== 'geradora' && (
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '5px' }}>Assinante *</label>
+                                    <select
+                                        required
+                                        value={formData.subscriber_id}
+                                        onChange={e => setFormData({ ...formData, subscriber_id: e.target.value })}
+                                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                    >
+                                        <option value="">Selecione...</option>
+                                        {subscribers.map(s => (
+                                            <option key={s.id} value={s.id}>{s.name} ({s.cpf_cnpj})</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div>
                                 <label style={{ display: 'block', marginBottom: '5px' }}>Usina (Opcional)</label>

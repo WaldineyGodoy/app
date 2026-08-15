@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcularCapacidade, ocupaFranquia } from './capacidade';
+import { calcularCapacidade, ocupaFranquia, autoconsumoMedidoGeradora } from './capacidade';
 
 // Cadastros reais do Novo Leblon medidos em 11/08/2026, para o caso ficar concreto.
 const NOVO_LEBLON = [
@@ -121,6 +121,41 @@ describe('calcularCapacidade', () => {
         expect(r.disponivel).toBe(-100);
         expect(r.ocupacao).toBeNull();
         expect(r.livre).toBe(-200);
+    });
+});
+
+describe('autoconsumoMedidoGeradora', () => {
+    // A UC geradora nao tem boleto de assinante: invoices.status descreve uma
+    // cobranca que nao existe para ela. Esta e' a asercao que falharia se
+    // alguem reintroduzisse `f.status === 'cancelado'` no filtro (regressao
+    // corrigida pela 3a vez nesta base, ver commit c74a2e2).
+    it('conta a leitura mesmo com status cancelado', () => {
+        const faturas = [{ status: 'cancelado', consumo_compensado: 125 }];
+        expect(autoconsumoMedidoGeradora(faturas)).toBe(125);
+    });
+
+    it('conta a leitura mesmo com status sem_faturamento', () => {
+        const faturas = [{ status: 'sem_faturamento', consumo_compensado: 80 }];
+        expect(autoconsumoMedidoGeradora(faturas)).toBe(80);
+    });
+
+    it('ignora fatura sem leitura (consumo_compensado null)', () => {
+        const faturas = [{ status: 'ativo', consumo_compensado: null }];
+        expect(autoconsumoMedidoGeradora(faturas)).toBeNull();
+    });
+
+    it('soma so as faturas com leitura, ignorando as sem leitura no mesmo grupo', () => {
+        const faturas = [
+            { status: 'cancelado', consumo_compensado: 125 },
+            { status: 'ativo', consumo_compensado: null },
+            { status: 'sem_faturamento', consumo_compensado: 25 },
+        ];
+        expect(autoconsumoMedidoGeradora(faturas)).toBe(150);
+    });
+
+    it('nenhuma fatura devolve null, nunca zero', () => {
+        expect(autoconsumoMedidoGeradora([])).toBeNull();
+        expect(autoconsumoMedidoGeradora()).toBeNull();
     });
 });
 

@@ -39,6 +39,28 @@ const numero = (v) => {
  * Sobre ocupacao: quando disponivel <= 0, ocupacao é null (não calculável).
  * Percentual sobre base não positiva não é número. Sobrecarga se lê em livre < 0, não em ocupacao.
  */
+/**
+ * Autoconsumo medido da UC geradora, apurado das próprias faturas dela.
+ *
+ * A UC geradora não tem boleto de assinante — `invoices.status` descreve uma
+ * cobrança que não existe para ela e não diz nada sobre a leitura do medidor.
+ * Por isso esta função NUNCA filtra por status (ao contrário da apuração do
+ * compensado das beneficiárias, onde `status === 'cancelado'` é motivo
+ * legítimo de exclusão). Ver commit c74a2e2, que corrigiu a mesma confusão
+ * na leitura de geração — esta é a mesma regra aplicada ao autoconsumo.
+ *
+ * @param {Array<{consumo_compensado?: number|string|null}>} faturas
+ * @returns {number|null} soma em kWh das faturas com leitura, ou null quando
+ *   nenhuma fatura do grupo tem `consumo_compensado` — nunca 0, que mentiria
+ *   "sem autoconsumo".
+ */
+export function autoconsumoMedidoGeradora(faturas = []) {
+    const comLeitura = (faturas || [])
+        .filter((f) => f && f.consumo_compensado !== null && f.consumo_compensado !== undefined);
+    if (comLeitura.length === 0) return null;
+    return comLeitura.reduce((acc, f) => acc + numero(f.consumo_compensado), 0);
+}
+
 export function calcularCapacidade({ ucs = [], geracao = null } = {}) {
     const ativas = (ucs || []).filter(ocupaFranquia);
 

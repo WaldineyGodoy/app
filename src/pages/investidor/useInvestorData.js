@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { calcularCapacidade, ocupaFranquia } from '../../lib/capacidade';
+import { calcularCapacidade, ocupaFranquia, autoconsumoMedidoGeradora } from '../../lib/capacidade';
 import { cents } from './format';
 
 /**
@@ -142,13 +142,28 @@ export function useInvestorData(user) {
             // Autoconsumo medido: consumo da própria UC geradora, apurado à parte do
             // compensado das beneficiárias — nunca no mesmo mapa, senão o consumo do
             // dono da usina entraria contado como consumo de assinante.
-            // chave `${usina_id}|${mes}` → kwh
-            const autoconsumoMedido = new Map();
+            //
+            // Ao contrário do laço das beneficiárias acima, este NÃO filtra por
+            // `f.status`: a UC geradora não tem boleto de assinante, então o status
+            // do "boleto" dela é sobre uma cobrança que não existe e não diz nada
+            // sobre a leitura do medidor (mesma regra corrigida no commit c74a2e2
+            // para a leitura de geração). Quem decide o que entra é
+            // `autoconsumoMedidoGeradora`, em capacidade.js.
+            // chave `${usina_id}|${mes}` → array de faturas daquele mês
+            const faturasGeradoraPorChave = new Map();
             for (const f of faturasGeradora) {
-                if (f.status === 'cancelado' || f.consumo_compensado === null) continue;
                 const chave = `${usinaDaUc.get(f.uc_id)}|${f.mes_referencia}`;
-                autoconsumoMedido.set(chave, (autoconsumoMedido.get(chave) || 0)
-                    + (Number(f.consumo_compensado) || 0));
+                const lista = faturasGeradoraPorChave.get(chave) || [];
+                lista.push(f);
+                faturasGeradoraPorChave.set(chave, lista);
+            }
+            // chave `${usina_id}|${mes}` → kwh (só entra quando há leitura — ver
+            // autoconsumoMedidoGeradora, que devolve null e nunca 0 sem faturas com
+            // consumo_compensado gravado)
+            const autoconsumoMedido = new Map();
+            for (const [chave, lista] of faturasGeradoraPorChave) {
+                const soma = autoconsumoMedidoGeradora(lista);
+                if (soma !== null) autoconsumoMedido.set(chave, soma);
             }
 
             const usinas = usinasRaw.map((u) => {
