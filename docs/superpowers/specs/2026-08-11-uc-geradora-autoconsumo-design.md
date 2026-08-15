@@ -164,6 +164,14 @@ Registrado, não feito nesta rodada:
 
 ---
 
+## 5b. Achados em aberto, para decisão do dono
+
+A revisão final da branch (15/08/2026) levantou dois pontos que **mudam números hoje exibidos no painel do admin**. Por isso não foram corrigidos junto: a escolha é do dono, não do implementador.
+
+**a) Admin e investidor usam bases diferentes de "geração prevista", com o mesmo rótulo.** O `PlantAnalyticsModal` deriva a previsão de `vw_irradiancia × potencia_kwp` do mês selecionado (com `geracao_prevista` como reserva); a área do investidor usa `usinas.geracao_estimada_kwh`. Medido na Novo Leblon: o admin mostra 883 kWh disponíveis em junho e 1.058 em agosto, enquanto o investidor mostra 1.042 o ano inteiro. Isso contradiz o critério 2 da seção 6 desta spec. Corrigir significa escolher uma das bases e mudar o número que uma das telas exibe hoje.
+
+**b) A badge "% Ocupação" e o donut do admin continuam na conta antiga.** Eles fazem `consumo / geração bruta`, e o consumo soma as faturas de **todas** as UCs, geradora inclusive — a perna que esta spec existe para eliminar. Medido na Novo Leblon em mar/2026: 128 kWh de consumo da própria UG entram como se fossem consumo de assinante. É código pré-existente, não tocado nesta rodada, mas faz a tela se contradizer: o card novo já desconta o autoconsumo, e a badge ao lado não.
+
 ## 6. Como validar
 
 1. A UG do Novo Leblon sai do comprometido e passa a aparecer como autoconsumo. Mantido o valor de franquia em 300, o "livre para vender" tem de dar o mesmo de antes (592) — se mudar, alguma perna está sendo contada duas vezes. Só depois aplicar o ajuste para 150.
