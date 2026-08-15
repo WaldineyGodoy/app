@@ -164,18 +164,22 @@ Registrado, não feito nesta rodada:
 
 ---
 
-## 5b. Achados em aberto, para decisão do dono
+## 5b. Achados da revisão final — resolvidos
 
-A revisão final da branch (15/08/2026) levantou dois pontos que **mudam números hoje exibidos no painel do admin**. Por isso não foram corrigidos junto: a escolha é do dono, não do implementador.
+A revisão final da branch (15/08/2026) levantou dois pontos, e o dono decidiu corrigir os dois.
 
-**a) Admin e investidor usam bases diferentes de "geração prevista", com o mesmo rótulo.** O `PlantAnalyticsModal` deriva a previsão de `vw_irradiancia × potencia_kwp` do mês selecionado (com `geracao_prevista` como reserva); a área do investidor usa `usinas.geracao_estimada_kwh`. Medido na Novo Leblon: o admin mostra 883 kWh disponíveis em junho e 1.058 em agosto, enquanto o investidor mostra 1.042 o ano inteiro. Isso contradiz o critério 2 da seção 6 desta spec. Corrigir significa escolher uma das bases e mudar o número que uma das telas exibe hoje.
+**a) Admin e investidor usavam bases diferentes de "geração prevista", com o mesmo rótulo.** O `PlantAnalyticsModal` deriva a previsão de `vw_irradiancia × potencia_kwp` do mês selecionado; a área do investidor usa `usinas.geracao_estimada_kwh`. Medido na Novo Leblon: o admin mostrava 883 kWh disponíveis em junho e 1.058 em agosto, o investidor 1.042 o ano inteiro.
 
-**b) A badge "% Ocupação" e o donut do admin continuam na conta antiga.** Eles fazem `consumo / geração bruta`, e o consumo soma as faturas de **todas** as UCs, geradora inclusive — a perna que esta spec existe para eliminar. Medido na Novo Leblon em mar/2026: 128 kWh de consumo da própria UG entram como se fossem consumo de assinante. É código pré-existente, não tocado nesta rodada, mas faz a tela se contradizer: o card novo já desconta o autoconsumo, e a badge ao lado não.
+**Resolução:** as duas grandezas são legitimamente diferentes — uma é projeção sazonal do mês, a outra é valor de placa — e **não** foram forçadas a coincidir. Isso corrige o critério 2 da seção 6, que partia da premissa errada de que deviam ser o mesmo número. O que estava de fato errado era o admin refazer `avgEstimatedGen − totalFranquia − autoconsumoUG` por fora do módulo; agora ele chama `calcularCapacidade` e herda a propagação de `null`. A equivalência foi conferida caso a caso, inclusive nas fronteiras: nenhum número exibido mudou. Os rótulos passaram a dizer qual base cada tela usa.
+
+**b) A badge "% Ocupação" e o donut do admin estavam na conta antiga.** Faziam `consumo / geração bruta`, e o consumo somava as faturas de **todas** as UCs, geradora inclusive. Medido na Novo Leblon em mar/2026: 128 kWh de consumo da própria UG entravam como se fossem consumo de assinante.
+
+**Resolução:** o consumo passa a somar só as faturas das beneficiárias, e a ocupação é medida sobre o disponível apurado — geração menos o autoconsumo **medido** da UG, lido por `autoconsumoMedidoGeradora`, que nunca filtra por `invoices.status`. Sem fatura da geradora no período, a ocupação não é apurável e a tela indica ausência de dado em vez de calcular sobre premissa falsa.
 
 ## 6. Como validar
 
 1. A UG do Novo Leblon sai do comprometido e passa a aparecer como autoconsumo. Mantido o valor de franquia em 300, o "livre para vender" tem de dar o mesmo de antes (592) — se mudar, alguma perna está sendo contada duas vezes. Só depois aplicar o ajuste para 150.
-2. Toda a aritmética de capacidade exibida no admin e na área nova vem do módulo da seção 4.2 — nenhuma das duas refaz a conta por conta própria, e as duas mostram o mesmo número para a mesma usina.
+2. Toda a aritmética de capacidade exibida no admin e na área nova vem do módulo da seção 4.2 — nenhuma das duas refaz a conta por conta própria. **Elas não precisam mostrar o mesmo número:** o admin projeta pela irradiância do mês selecionado e o investidor usa o valor de placa cadastrado. São grandezas diferentes, e o rótulo de cada tela tem de dizer qual é a sua.
 2b. O fornecedor vê o autoconsumo da própria UG em `/fornecedores/novo`, e a ocupação exibida ali é sobre a geração disponível, não sobre a bruta.
 3. Nas usinas cujo UG tem `consumo_compensado = 0` (Bom Jesus), os números exibidos não mudam.
 4. Após o desvínculo, o status do assinante que perdeu a UC é recalculado.
