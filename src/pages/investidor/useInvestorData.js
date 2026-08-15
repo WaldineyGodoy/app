@@ -104,6 +104,10 @@ export function useInvestorData(user) {
             // 10.853 apurados), então a apuração vem daqui, não da coluna.
             const idsBenef = (ucs || [])
                 .filter((uc) => uc.tipo_unidade !== 'geradora').map((uc) => uc.id);
+            // A UC geradora também recebe fatura, e é dela que sai o autoconsumo medido
+            // (usado para conferir o Overbook contra o disponível real, não o bruto).
+            const idsGeradora = (ucs || [])
+                .filter((uc) => uc.tipo_unidade === 'geradora').map((uc) => uc.id);
             const desde = new Date();
             desde.setMonth(desde.getMonth() - MESES_DE_APURACAO);
 
@@ -112,6 +116,14 @@ export function useInvestorData(user) {
                     .from('invoices')
                     .select('uc_id, mes_referencia, consumo_compensado, status')
                     .in('uc_id', idsBenef)
+                    .gte('mes_referencia', desde.toISOString().slice(0, 10))) || []
+                : [];
+
+            const faturasGeradora = idsGeradora.length
+                ? unwrap('faturas da UC geradora', await supabase
+                    .from('invoices')
+                    .select('uc_id, mes_referencia, consumo_compensado, status')
+                    .in('uc_id', idsGeradora)
                     .gte('mes_referencia', desde.toISOString().slice(0, 10))) || []
                 : [];
 
@@ -125,6 +137,18 @@ export function useInvestorData(user) {
                 atual.kwh += Number(f.consumo_compensado) || 0;
                 atual.ucs += 1;
                 compensado.set(chave, atual);
+            }
+
+            // Autoconsumo medido: consumo da própria UC geradora, apurado à parte do
+            // compensado das beneficiárias — nunca no mesmo mapa, senão o consumo do
+            // dono da usina entraria contado como consumo de assinante.
+            // chave `${usina_id}|${mes}` → kwh
+            const autoconsumoMedido = new Map();
+            for (const f of faturasGeradora) {
+                if (f.status === 'cancelado' || f.consumo_compensado === null) continue;
+                const chave = `${usinaDaUc.get(f.uc_id)}|${f.mes_referencia}`;
+                autoconsumoMedido.set(chave, (autoconsumoMedido.get(chave) || 0)
+                    + (Number(f.consumo_compensado) || 0));
             }
 
             const usinas = usinasRaw.map((u) => {
@@ -145,6 +169,11 @@ export function useInvestorData(user) {
 
                 const apuracao = ultimoApurado
                     ? compensado.get(`${u.id}|${ultimoApurado.mes_referencia}`) : null;
+                // Autoconsumo medido no mesmo ciclo de ultimoApurado. Sem fatura da
+                // geradora naquele mês, fica null — nunca 0, que mentiria "sem autoconsumo".
+                const autoconsumoMedidoUltimo = ultimoApurado
+                    ? autoconsumoMedido.get(`${u.id}|${ultimoApurado.mes_referencia}`) ?? null
+                    : null;
 
                 // UCs que passaram a ocupar franquia depois do último ciclo apurado.
                 // O consumo delas não entrou naquela medição, então comparar a
@@ -167,6 +196,7 @@ export function useInvestorData(user) {
                     ultimoApurado,
                     // Base da conferência de overbook: a franquia é declaração, isto é medição.
                     compensadoUltimo: apuracao ? apuracao.kwh : null,
+                    autoconsumoMedidoUltimo,
                     ucsComFatura: apuracao ? apuracao.ucs : 0,
                     entrantes: entrantes.length,
                     franquiaEntrantes: entrantes.reduce((a, uc) => a + (Number(uc.franquia) || 0), 0),

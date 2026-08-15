@@ -16,9 +16,15 @@ function Overbook({ usina }) {
     const compensado = usina.compensadoUltimo;
     const ciclo = usina.ultimoApurado;
     const gerado = ciclo ? Number(ciclo.geracao_mensal_kwh) : null;
+    const autoconsumo = usina.autoconsumoMedidoUltimo;
     const mes = ciclo ? cycleLabel(ciclo.mes_referencia).curto : null;
 
-    if (compensado === null || gerado === null || !gerado) {
+    // A conferência é contra o disponível apurado (gerado − autoconsumo da UG no
+    // mesmo ciclo), não contra o bruto — o autoconsumo nunca chega às beneficiárias.
+    // Sem a medição do autoconsumo daquele ciclo não dá para saber o disponível,
+    // então cai no aviso de "ainda não apurado" em vez de comparar contra o bruto
+    // em silêncio (era exatamente esse o defeito: mascarava overbook real).
+    if (compensado === null || gerado === null || !gerado || autoconsumo === null) {
         return (
             <div className="iv-note is-quiet iv-note-compact">
                 <span>
@@ -29,8 +35,9 @@ function Overbook({ usina }) {
         );
     }
 
-    const coube = compensado <= gerado;
-    const folga = gerado - compensado;
+    const disponivelApurado = gerado - autoconsumo;
+    const coube = compensado <= disponivelApurado;
+    const folga = disponivelApurado - compensado;
     // A medição só vale como conferência se a composição das UCs não mudou depois dela.
     const novas = usina.entrantes || 0;
     const desatualizada = novas > 0;
@@ -39,7 +46,8 @@ function Overbook({ usina }) {
         <div className={`iv-note iv-note-compact ${coube && !desatualizada ? 'is-quiet' : ''}`}>
             <span>
                 <b>{coube ? 'Franquia acima da geração, consumo dentro.' : 'O consumo confirmou a franquia.'}</b>{' '}
-                Em {mes} as beneficiárias compensaram {kwh(compensado)} contra {kwh(gerado)} gerados
+                Em {mes} as beneficiárias compensaram {kwh(compensado)} contra {kwh(disponivelApurado)} disponíveis
+                ({kwh(gerado)} gerados − {kwh(autoconsumo)} de autoconsumo da UG)
                 {coube
                     ? ` — sobraram ${kwh(folga)}.`
                     : ` — faltaram ${kwh(Math.abs(folga))}. Remaneje UCs para outra usina, ou parte do consumo fica sem compensação.`}

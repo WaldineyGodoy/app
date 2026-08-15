@@ -57,6 +57,10 @@ export const usinas = [
         ocupacao: (14271 / (13558 - 100)) * 100,
         ultimoApurado: { mes_referencia: '2026-04-01', geracao_mensal_kwh: 14664 },
         compensadoUltimo: 10853,
+        // Autoconsumo medido da UG naquele ciclo (abr/26), perto do previsto de 100.
+        // O Overbook confere contra o disponível apurado (14.664 − 95 = 14.569), não
+        // contra o gerado bruto: 10.853 ainda coube — sobraram 3.716.
+        autoconsumoMedidoUltimo: 95,
         ucsComFatura: 12,
         // A UC 7030839166 (4.500 kWh) só conectou em 09/06/2026, depois do ciclo de abril.
         entrantes: 1,
