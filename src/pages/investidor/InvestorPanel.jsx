@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CycleRuler, CycleSheet } from './CycleInstrument';
 import PlantNameplate from './PlantNameplate';
 import LedgerStatement from './LedgerStatement';
+import { Sun, Moon } from 'lucide-react';
+import { useUI } from '../../contexts/UIContext';
 import { money, kwh, kwp, dateTime, maskPix, cents } from './format';
 import './investor.css';
 
@@ -25,18 +27,22 @@ export default function InvestorPanel({
     const [filtro, setFiltro] = useState('todas');
     const [dialogo, setDialogo] = useState(null); // { valor, parcial }
 
-    // A página é um painel escuro; o resto do app segue o tema do usuário.
-    // O <html> também precisa escurecer, senão o overscroll mostra o fundo claro.
+    const { theme, toggleTheme } = useUI();
+    const escuro = theme === 'dark';
+
+    // O <html> e o <body> precisam acompanhar o fundo do painel, senão o
+    // overscroll mostra a cor do resto do app por baixo. Segue o tema escolhido.
     useEffect(() => {
         const raiz = document.documentElement;
         const antes = { body: document.body.style.backgroundColor, raiz: raiz.style.backgroundColor };
-        document.body.style.backgroundColor = '#0a0f14';
-        raiz.style.backgroundColor = '#0a0f14';
+        const fundo = escuro ? '#0a0f14' : '#f2f4f6';
+        document.body.style.backgroundColor = fundo;
+        raiz.style.backgroundColor = fundo;
         return () => {
             document.body.style.backgroundColor = antes.body;
             raiz.style.backgroundColor = antes.raiz;
         };
-    }, []);
+    }, [escuro]);
 
     useEffect(() => {
         if (!cicloId && cycles.length) setCicloId(cycles[0].id);
@@ -57,7 +63,10 @@ export default function InvestorPanel({
     const ultimaGeracao = cycles.find((c) => Number(c.geracao_mensal_kwh) > 0) || null;
 
     const saldo = balance?.total ?? null;
-    const podeResgatar = autoRedeem && saldo !== null && saldo > 0
+    const adiantamento = balance?.adiantamento ?? 0;
+    // Com adiantamento em aberto o saldo apurado ainda nao e dinheiro livre: ele
+    // amortiza a divida antes de virar repasse. Resgatar aqui pagaria duas vezes.
+    const podeResgatar = autoRedeem && saldo !== null && saldo > 0 && adiantamento <= 0
         && Boolean(supplier?.pix_key) && Boolean(supplier?.pix_key_type);
 
     const enviarResgate = () => {
@@ -79,6 +88,16 @@ export default function InvestorPanel({
                         <span>{supplier.name}</span>
                         <span className="iv-label">PIX {maskPix(supplier.pix_key, supplier.pix_key_type)}</span>
                     </div>
+                    <button
+                        type="button"
+                        className="iv-ghost"
+                        onClick={toggleTheme}
+                        title={escuro ? 'Mudar para o tema claro' : 'Mudar para o tema escuro'}
+                        aria-label={escuro ? 'Mudar para o tema claro' : 'Mudar para o tema escuro'}
+                    >
+                        {escuro ? <Sun size={14} /> : <Moon size={14} />}
+                        <span className="iv-so-desktop">{escuro ? 'Claro' : 'Escuro'}</span>
+                    </button>
                     <button type="button" className="iv-ghost" onClick={onSignOut}>Sair</button>
                 </div>
             </header>
@@ -108,9 +127,10 @@ export default function InvestorPanel({
                                 </button>
                             ) : (
                                 <button type="button" className="iv-action" disabled>
-                                    {saldo !== null && saldo <= 0 ? 'Nada a resgatar'
-                                        : !supplier.pix_key ? 'Cadastre sua chave PIX'
-                                            : 'Resgate pela B2W'}
+                                    {adiantamento > 0 ? 'Amortiza o adiantamento'
+                                        : saldo !== null && saldo <= 0 ? 'Nada a resgatar'
+                                            : !supplier.pix_key ? 'Cadastre sua chave PIX'
+                                                : 'Resgate pela B2W'}
                                 </button>
                             )}
                         </div>
@@ -122,6 +142,20 @@ export default function InvestorPanel({
                         <b>{balance?.nDebitos ?? 0} débitos</b> entre despesas e resgates.
                         Último lançamento em {dateTime(balance?.ultimoLancamento)}.
                     </p>
+
+                    {/* Adiantamento nao entra no saldo a receber: e pagamento antecipado,
+                        que vai sendo abatido conforme as faturas dos assinantes sao pagas.
+                        Omitir isto faria o investidor ler o saldo como valor livre. */}
+                    {balance?.adiantamento > 0 && (
+                        <div className="iv-note">
+                            <span>
+                                <b>Você tem {money(balance.adiantamento)} adiantados.</b> A B2W pagou
+                                antes de o faturamento existir, e esse valor vai sendo abatido conforme
+                                as faturas dos seus assinantes são pagas. O saldo acima é o que já foi
+                                apurado — o adiantamento é descontado dele antes de qualquer novo repasse.
+                            </span>
+                        </div>
+                    )}
 
                     <div className="iv-gauges">
                         <div className="iv-gauge">

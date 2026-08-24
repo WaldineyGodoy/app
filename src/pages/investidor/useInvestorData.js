@@ -63,7 +63,7 @@ export function useInvestorData(user) {
             const usinaIds = usinasRaw.map((u) => u.id);
 
             // 3, 4, 5, 6 em paralelo — nenhuma depende da outra.
-            const [ucs, cyclesRaw, entriesRaw, config] = await Promise.all([
+            const [ucs, cyclesRaw, entriesRaw, adiantRaw, config] = await Promise.all([
                 usinaIds.length
                     ? supabase.from('consumer_units')
                         .select('id, usina_id, tipo_unidade, status, franquia, numero_uc, dia_leitura, data_ativacao')
@@ -81,6 +81,15 @@ export function useInvestorData(user) {
                     .or(`reference_id.eq.${supplier.id},supplier_id.eq.${supplier.id}`)
                     .order('created_at', { ascending: true })
                     .then((r) => unwrap('extrato', r)),
+                // Adiantamento em aberto (conta 1.1.3): pagamento feito antes de existir
+                // faturamento, que amortiza conforme as faturas sao pagas. Sem isto o
+                // investidor ve "a receber" e nao sabe que ja recebeu adiantado — foi
+                // essa cegueira que duplicou o fechamento de julho/2026.
+                supabase.from('ledger_entries')
+                    .select('amount, ledger_accounts!inner(code)')
+                    .eq('ledger_accounts.code', '1.1.3')
+                    .eq('reference_id', supplier.id)
+                    .then(({ data, error }) => (error ? [] : data || [])),
                 // A policy de `integrations_config` é admin-only, então o fornecedor
                 // não lê esta linha. É config acessória: falhar aqui não pode derrubar
                 // o painel — no pior caso o resgate automático fica desligado.
@@ -263,6 +272,7 @@ export function useInvestorData(user) {
                     nCreditos: creditos.length,
                     nDebitos: debitos.length,
                     ultimoLancamento: limpos.length ? limpos[limpos.length - 1].created_at : null,
+                    adiantamento: cents((adiantRaw || []).reduce((a, e) => a + Number(e.amount || 0), 0)),
                 },
                 autoRedeem: Boolean(config?.variables?.allow_auto_redemption),
                 fetchedAt: new Date(),
