@@ -55,8 +55,13 @@ function App() {
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['supplier', 'admin', 'super_admin']} />}>
-            <Route path="/fornecedores" element={<SupplierDashboard />} />
-            <Route path="/fornecedores/novo" element={<InvestorArea />} />
+            {/* A area do investidor assumiu /fornecedores em 18/08/2026.
+                /fornecedores/novo vira redirecionamento para nao quebrar link ja
+                compartilhado, e a tela anterior fica em /fornecedores/antigo como
+                caminho de volta enquanto a nova nao acumular rodagem. */}
+            <Route path="/fornecedores" element={<InvestorArea />} />
+            <Route path="/fornecedores/novo" element={<Navigate to="/fornecedores" replace />} />
+            <Route path="/fornecedores/antigo" element={<SupplierDashboard />} />
           </Route>
 
 

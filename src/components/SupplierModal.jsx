@@ -33,6 +33,7 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
         email: '',
         phone: '',
         status: 'ativacao',
+        contrato_assinado_em: '',
         legal_partner_name: '',
         legal_partner_cpf: '',
         pix_key: '',
@@ -55,6 +56,8 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
                 email: supplier.email || '',
                 phone: supplier.phone || '',
                 status: supplier.status || 'ativacao',
+                contrato_assinado_em: supplier.contrato_assinado_em
+                    ? supplier.contrato_assinado_em.slice(0, 10) : '',
                 legal_partner_name: supplier.legal_partner_name || '',
                 legal_partner_cpf: supplier.legal_partner_cpf || '',
                 pix_key: supplier.pix_key || '',
@@ -317,6 +320,7 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
                 email: formData.email,
                 phone: formData.phone ? formData.phone.replace(/\D/g, '') : '',
                 status: formData.status,
+                contrato_assinado_em: formData.contrato_assinado_em || null,
                 legal_partner_name: formData.legal_partner_name,
                 legal_partner_cpf: formData.legal_partner_cpf,
                 pix_key: formData.pix_key,
@@ -795,6 +799,19 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
                                                 <option value="ativo">🟢 Ativo</option>
                                                 <option value="inativo">🔴 Inativo</option>
                                             </select>
+                                        </div>
+
+                                        <div style={{ gridColumn: '1 / -1' }}>
+                                            <label style={labelStyle}>Contrato assinado em</label>
+                                            <input
+                                                type="date"
+                                                style={inputStyle}
+                                                value={formData.contrato_assinado_em}
+                                                onChange={e => setFormData({ ...formData, contrato_assinado_em: e.target.value })}
+                                            />
+                                            <small style={{ color: '#64748b', display: 'block', marginTop: '4px' }}>
+                                                Vazio significa contrato não assinado. É um dos requisitos para o fornecedor ser Ativo.
+                                            </small>
                                         </div>
                                     </div>
                                 </div>

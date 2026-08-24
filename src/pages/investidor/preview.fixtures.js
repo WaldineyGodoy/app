@@ -209,6 +209,8 @@ export const balance = {
     nCreditos: brutos.filter(([, a]) => a < 0).length,
     nDebitos: brutos.filter(([, a]) => a > 0).length,
     ultimoLancamento: brutos[brutos.length - 1][0],
+    // Adiantamento em aberto na conta 1.1.3, medido em 18/08/2026.
+    adiantamento: 4273.98,
 };
 
 export const supplier = {
