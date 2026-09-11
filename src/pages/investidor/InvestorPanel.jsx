@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CycleRuler, CycleSheet } from './CycleInstrument';
 import PlantNameplate from './PlantNameplate';
 import LedgerStatement from './LedgerStatement';
+import PlantChartModal from './PlantChartModal';
 import { Sun, Moon } from 'lucide-react';
 import { useUI } from '../../contexts/UIContext';
 import { money, kwh, kwp, dateTime, maskPix, cents } from './format';
@@ -27,6 +28,7 @@ export default function InvestorPanel({
     const [usinaCiclo, setUsinaCiclo] = useState('todas');
     const [filtro, setFiltro] = useState('todas');
     const [dialogo, setDialogo] = useState(null); // { valor, parcial }
+    const [usinaAberta, setUsinaAberta] = useState(null);
 
     const { theme, toggleTheme } = useUI();
     const escuro = theme === 'dark';
@@ -276,7 +278,9 @@ export default function InvestorPanel({
                         </div>
                     ) : (
                         <div className="iv-plates">
-                            {visiveis.map((u) => <PlantNameplate key={u.id} usina={u} />)}
+                            {visiveis.map((u) => (
+                                <PlantNameplate key={u.id} usina={u} onAbrir={setUsinaAberta} />
+                            ))}
                         </div>
                     )}
                 </section>
@@ -374,6 +378,10 @@ export default function InvestorPanel({
                         </div>
                     </div>
                 </div>
+            )}
+
+            {usinaAberta && (
+                <PlantChartModal usina={usinaAberta} onClose={() => setUsinaAberta(null)} />
             )}
 
             {aviso && (

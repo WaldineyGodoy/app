@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { calcularCapacidade, ocupaFranquia, autoconsumoMedidoGeradora } from '../../lib/capacidade';
 import { componentesTarifarios } from '../../lib/tarifa';
 import { mesesFaltantes } from '../../lib/ciclos';
+import { serieDeInjecao } from '../../lib/geracao';
 import { cents } from './format';
 
 /**
@@ -152,7 +153,7 @@ export function useInvestorData(user) {
             const faturasGeradora = idsGeradora.length
                 ? unwrap('faturas da UC geradora', await supabase
                     .from('invoices')
-                    .select('uc_id, mes_referencia, consumo_compensado, status')
+                    .select('uc_id, mes_referencia, consumo_compensado, energia_injetada, status')
                     .in('uc_id', idsGeradora)
                     .gte('mes_referencia', desde.toISOString().slice(0, 10))) || []
                 : [];
@@ -247,6 +248,17 @@ export function useInvestorData(user) {
                     franquiaEntrantes: entrantes.reduce((a, uc) => a + (Number(uc.franquia) || 0), 0),
                     ciclos: ciclos.length,
                     tarifa: componentesTarifarios(u, tarifaPorConcessionaria.get(u.concessionaria)),
+                    // Série do gráfico de injeção. Vai até o mês corrente para que o
+                    // mês em curso apareça como previsão, e não como buraco.
+                    serieInjecao: serieDeInjecao({
+                        ciclos,
+                        faturasUG: faturasGeradora.filter(
+                            (f) => usinaDaUc.get(f.uc_id) === u.id,
+                        ),
+                        previstoPlaca: u.geracao_estimada_kwh,
+                        ate: new Date().toISOString().slice(0, 7),
+                        meses: 12,
+                    }),
                 };
             });
 

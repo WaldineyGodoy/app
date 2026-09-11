@@ -64,7 +64,68 @@ function Overbook({ usina }) {
  * um LED de estado e um medidor de ocupação da franquia. Sem gráfico
  * decorativo — cada linha é uma grandeza que o investidor consegue conferir.
  */
-export default function PlantNameplate({ usina }) {
+/**
+ * O verso do flashcard: a injeção dos últimos meses em miniatura.
+ *
+ * Barra listrada é mês previsto, sólida é medição — a mesma convenção do gráfico
+ * grande, porque o verso é o convite para abri-lo.
+ */
+function Verso({ usina }) {
+    const serie = (usina.serieInjecao || []).slice(-8);
+    const valores = serie.flatMap((p) => [p.kwh, p.previsto]).filter((v) => !isBlank(v));
+    const topo = valores.length ? Math.max(...valores) : 0;
+    const ultimaMedida = [...serie].reverse().find((p) => p.kwh !== null) || null;
+
+    return (
+        <>
+            <header className="iv-nameplate-head">
+                <div>
+                    <h3 className="iv-nameplate-name">{usina.name}</h3>
+                    <span className="iv-nameplate-place">Energia injetada por mês</span>
+                </div>
+            </header>
+
+            {serie.length === 0 ? (
+                <p className="iv-fall-detail">
+                    Sem histórico de injeção: esta usina ainda não tem fechamento nem leitura
+                    da conta da unidade geradora.
+                </p>
+            ) : (
+                <>
+                    <div className="iv-mini">
+                        {serie.map((p) => {
+                            const previsto = p.origem === 'previsto';
+                            const v = previsto ? p.previsto : p.kwh;
+                            const h = topo > 0 && !isBlank(v) ? Math.max(3, (v / topo) * 100) : 0;
+                            return (
+                                <span className="iv-mini-col" key={p.mes}>
+                                    <span
+                                        className={`iv-mini-barra is-${p.origem}`}
+                                        style={{ height: `${h}%` }}
+                                    />
+                                    <span className="iv-mini-mes">{cycleLabel(`${p.mes}-01`).mes}</span>
+                                </span>
+                            );
+                        })}
+                    </div>
+
+                    <div className="iv-spec">
+                        <span className="iv-label">Última injeção medida</span>
+                        <span className="iv-spec-value">
+                            {ultimaMedida
+                                ? `${cycleLabel(`${ultimaMedida.mes}-01`).curto} · ${kwh(ultimaMedida.kwh)}`
+                                : '—'}
+                        </span>
+                    </div>
+                </>
+            )}
+
+            <span className="iv-flip-cta">Abrir o gráfico completo</span>
+        </>
+    );
+}
+
+export default function PlantNameplate({ usina, onAbrir }) {
     const estado = statusUsina(usina.status);
     const cidade = usina.address?.cidade;
     const uf = usina.address?.uf;
@@ -91,9 +152,22 @@ export default function PlantNameplate({ usina }) {
             : 'nenhum'],
     ];
 
+    const abrir = () => onAbrir?.(usina);
+
     return (
-        <article className="iv-nameplate">
-            <header className="iv-nameplate-head">
+        <div className="iv-flip">
+            <div
+                className="iv-flip-in"
+                role="button"
+                tabIndex={0}
+                aria-label={`Ver a energia injetada da ${usina.name}`}
+                onClick={abrir}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+                }}
+            >
+                <article className="iv-nameplate iv-face">
+                    <header className="iv-nameplate-head">
                 <div>
                     <h3 className="iv-nameplate-name">{usina.name}</h3>
                     <span className="iv-nameplate-place">
@@ -132,6 +206,12 @@ export default function PlantNameplate({ usina }) {
                 </div>
                 {excedido && <Overbook usina={usina} />}
             </div>
-        </article>
+                </article>
+
+                <div className="iv-nameplate iv-face is-verso" aria-hidden="true">
+                    <Verso usina={usina} />
+                </div>
+            </div>
+        </div>
     );
 }

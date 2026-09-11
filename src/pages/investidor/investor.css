@@ -1334,3 +1334,279 @@
     gap: 1rem;
     flex-wrap: wrap;
 }
+
+/* ====================== Flashcard da usina e gráfico ===================== */
+
+/* O verso fica sobreposto à frente e herda a altura dela, senão cada cartão do
+   grid giraria para um tamanho diferente. */
+.iv-flip {
+    perspective: 1400px;
+}
+
+.iv-root .iv-flip-in {
+    position: relative;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+    cursor: pointer;
+}
+
+.iv-flip:hover .iv-flip-in,
+.iv-root .iv-flip-in:focus-visible {
+    transform: rotateY(180deg);
+}
+
+.iv-root .iv-flip-in:focus-visible {
+    outline: 2px solid var(--iv-sun);
+    outline-offset: 3px;
+}
+
+.iv-root .iv-face {
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+.iv-root .iv-face.is-verso {
+    position: absolute;
+    inset: 0;
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    overflow: hidden;
+}
+
+.iv-flip-cta {
+    margin-top: auto;
+    font-family: var(--iv-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--iv-sun);
+}
+
+/* Sem giro para quem pediu menos movimento: o cartão continua clicável e o
+   gráfico inteiro está no modal. */
+@media (prefers-reduced-motion: reduce) {
+
+    .iv-root .iv-flip-in,
+    .iv-flip:hover .iv-flip-in,
+    .iv-root .iv-flip-in:focus-visible {
+        transform: none;
+        transition: none;
+    }
+
+    .iv-root .iv-face.is-verso {
+        display: none;
+    }
+}
+
+/* ------------------------------ Mini gráfico ----------------------------- */
+.iv-mini {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    /* Cresce para ocupar a altura que o verso herda da frente: com altura fixa
+       sobrava um vazio enorme nos cartoes altos do grid. */
+    flex: 1;
+    min-height: 96px;
+    border-bottom: 1px solid var(--iv-busbar-strong);
+}
+
+.iv-mini-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: stretch;
+    height: 100%;
+}
+
+.iv-root .iv-mini-barra {
+    background: var(--iv-sun);
+}
+
+.iv-root .iv-mini-barra.is-fatura {
+    background: var(--iv-bar-neutral);
+}
+
+.iv-root .iv-mini-barra.is-previsto {
+    background: repeating-linear-gradient(-45deg,
+            var(--iv-hatch) 0 3px,
+            transparent 3px 6px);
+}
+
+.iv-mini-mes {
+    margin-top: 0.25rem;
+    font-family: var(--iv-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.04em;
+    color: var(--iv-ink-3);
+    text-align: center;
+}
+
+/* ----------------------------- Gráfico grande ---------------------------- */
+.iv-root .iv-dialog-wide {
+    max-width: 62rem;
+    width: 100%;
+    max-height: min(92vh, 56rem);
+    overflow-y: auto;
+}
+
+.iv-graf-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.iv-graf {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.375rem;
+    height: 240px;
+    /* O dialogo e uma coluna flex com altura maxima: sem isto o grafico encolhia
+       para ~90px em tela baixa em vez de o dialogo rolar. */
+    flex: none;
+    padding-top: 1.25rem;
+    border-bottom: 1px solid var(--iv-busbar-strong);
+    overflow-x: auto;
+}
+
+.iv-graf-col {
+    flex: 1 0 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 100%;
+}
+
+.iv-graf-topo {
+    font-family: var(--iv-mono);
+    font-size: 0.5625rem;
+    color: var(--iv-ink-3);
+    text-align: center;
+    white-space: nowrap;
+    margin-bottom: 0.25rem;
+}
+
+.iv-graf-trilho {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    flex: 1;
+    min-height: 0;
+}
+
+.iv-root .iv-graf-barra {
+    width: 100%;
+    background: var(--iv-sun);
+    transition: height 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.iv-root .iv-graf-barra.is-fatura {
+    background: var(--iv-bar-neutral);
+}
+
+.iv-root .iv-graf-barra.is-previsto {
+    background: repeating-linear-gradient(-45deg,
+            var(--iv-hatch) 0 3px,
+            transparent 3px 6px);
+}
+
+/* O traço do previsto do mês, para ler a medição contra a expectativa. */
+.iv-graf-alvo {
+    position: absolute;
+    left: -2px;
+    right: -2px;
+    height: 2px;
+    background: var(--iv-verdigris);
+}
+
+.iv-graf-mes,
+.iv-graf-ano {
+    display: block;
+    font-family: var(--iv-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.04em;
+    text-align: center;
+    color: var(--iv-ink-2);
+}
+
+.iv-graf-ano {
+    font-size: 0.5625rem;
+    color: var(--iv-ink-3);
+}
+
+.iv-graf-mes {
+    margin-top: 0.375rem;
+}
+
+.iv-graf-legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    font-family: var(--iv-mono);
+    font-size: 0.6875rem;
+    color: var(--iv-ink-3);
+}
+
+.iv-graf-legenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+}
+
+.iv-amostra {
+    width: 14px;
+    height: 10px;
+    display: inline-block;
+    background: var(--iv-sun);
+}
+
+.iv-amostra.is-fatura {
+    background: var(--iv-bar-neutral);
+}
+
+.iv-amostra.is-previsto {
+    background: repeating-linear-gradient(-45deg,
+            var(--iv-hatch) 0 3px,
+            transparent 3px 6px);
+}
+
+.iv-amostra.is-alvo {
+    height: 2px;
+    background: var(--iv-verdigris);
+}
+
+.iv-graf-tabela {
+    max-height: 15rem;
+    overflow-y: auto;
+    flex: none;
+}
+
+.iv-graf-tabela table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.iv-graf-tabela th,
+.iv-graf-tabela td {
+    padding: 0.4375rem 0.5rem;
+    border-bottom: 1px solid var(--iv-busbar);
+    text-align: left;
+    font-size: 0.8125rem;
+}
+
+.iv-graf-tabela th {
+    position: sticky;
+    top: 0;
+    background: var(--iv-panel);
+    font-family: var(--iv-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--iv-ink-3);
+    font-weight: 600;
+}

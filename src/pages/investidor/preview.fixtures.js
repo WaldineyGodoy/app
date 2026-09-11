@@ -1,4 +1,5 @@
 import { componentesTarifarios } from '../../lib/tarifa';
+import { serieDeInjecao } from '../../lib/geracao';
 
 /**
  * Dados de exemplo para abrir o painel sem autenticar (rota só de desenvolvimento).
@@ -41,6 +42,25 @@ const usina = (over) => {
 };
 
 const U1 = '9bf1349b-6c79-4f68-a8e4-bc00f00850f5'; // UFV Bom Jesus
+
+// Injecao da UFV Bom Jesus, com as tres origens que o grafico distingue:
+// fechamento apurado ate abril, leitura da conta da UG de maio a agosto (o
+// fechamento veio zerado ou nao existe), e setembro ainda sem lancamento.
+const CICLOS_BOM_JESUS = [
+    { mes_referencia: '2026-01-01', geracao_mensal_kwh: 725, geracao_prevista: 13810 },
+    { mes_referencia: '2026-02-01', geracao_mensal_kwh: 12386, geracao_prevista: 14515 },
+    { mes_referencia: '2026-03-01', geracao_mensal_kwh: 13552, geracao_prevista: 14515 },
+    { mes_referencia: '2026-04-01', geracao_mensal_kwh: 14664, geracao_prevista: 13709 },
+    { mes_referencia: '2026-05-01', geracao_mensal_kwh: 0, geracao_prevista: 12600 },
+    { mes_referencia: '2026-06-01', geracao_mensal_kwh: 0, geracao_prevista: 11592 },
+    { mes_referencia: '2026-08-01', geracao_mensal_kwh: null, geracao_prevista: null },
+];
+const FATURAS_UG_BOM_JESUS = [
+    { mes_referencia: '2026-05-01', energia_injetada: 12218 },
+    { mes_referencia: '2026-06-01', energia_injetada: 12935 },
+    { mes_referencia: '2026-07-01', energia_injetada: 13119 },
+    { mes_referencia: '2026-08-01', energia_injetada: 12477 },
+];
 
 export const usinas = [
     usina({
@@ -89,6 +109,13 @@ export const usinas = [
         entrantes: 1,
         franquiaEntrantes: 4500,
         ciclos: 6,
+        serieInjecao: serieDeInjecao({
+            ciclos: CICLOS_BOM_JESUS,
+            faturasUG: FATURAS_UG_BOM_JESUS,
+            previstoPlaca: 13558,
+            ate: '2026-09',
+            meses: 12,
+        }),
     }),
     usina({
         id: '7c49ff51-c04b-4135-8a90-3a257d2efe94',
