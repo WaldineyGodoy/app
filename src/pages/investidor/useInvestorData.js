@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { calcularCapacidade, ocupaFranquia, autoconsumoMedidoGeradora } from '../../lib/capacidade';
+import { componentesTarifarios } from '../../lib/tarifa';
+import { mesesFaltantes } from '../../lib/ciclos';
 import { cents } from './format';
 
 /**
@@ -62,8 +64,12 @@ export function useInvestorData(user) {
                 .from('usinas').select('*').eq('supplier_id', supplier.id).order('name')) || [];
             const usinaIds = usinasRaw.map((u) => u.id);
 
+            const concessionarias = [...new Set(
+                usinasRaw.map((u) => u.concessionaria).filter(Boolean),
+            )];
+
             // 3, 4, 5, 6 em paralelo — nenhuma depende da outra.
-            const [ucs, cyclesRaw, entriesRaw, adiantRaw, config] = await Promise.all([
+            const [ucs, cyclesRaw, entriesRaw, adiantRaw, config, tarifasRaw] = await Promise.all([
                 usinaIds.length
                     ? supabase.from('consumer_units')
                         .select('id, usina_id, tipo_unidade, status, franquia, numero_uc, dia_leitura, data_ativacao')
@@ -96,7 +102,22 @@ export function useInvestorData(user) {
                 supabase.from('integrations_config')
                     .select('variables').eq('service_name', 'financial_api').maybeSingle()
                     .then(({ data, error }) => (error ? null : data)),
+                // Tarifas da distribuidora, para abrir a composição da tarifa líquida.
+                // A tabela tem uma linha por município, todas com os mesmos valores
+                // para a mesma distribuidora — daí o primeiro registro bastar.
+                concessionarias.length
+                    ? supabase.from('Concessionaria')
+                        .select('*').in('Concessionaria', concessionarias)
+                        .then(({ data, error }) => (error ? [] : data || []))
+                    : Promise.resolve([]),
             ]);
+
+            // chave: nome da distribuidora → primeira linha encontrada
+            const tarifaPorConcessionaria = new Map();
+            for (const linha of tarifasRaw || []) {
+                const nome = linha.Concessionaria;
+                if (nome && !tarifaPorConcessionaria.has(nome)) tarifaPorConcessionaria.set(nome, linha);
+            }
 
             // Agrega as UCs por usina.
             const porUsina = new Map(usinaIds.map((id) => [id, { benef: [], geradora: null }]));
@@ -225,21 +246,46 @@ export function useInvestorData(user) {
                     entrantes: entrantes.length,
                     franquiaEntrantes: entrantes.reduce((a, uc) => a + (Number(uc.franquia) || 0), 0),
                     ciclos: ciclos.length,
+                    tarifa: componentesTarifarios(u, tarifaPorConcessionaria.get(u.concessionaria)),
                 };
             });
 
             // Ciclos: um cartão por (usina, mês), do mais recente para o mais antigo.
             const nomePorUsina = new Map(usinasRaw.map((u) => [u.id, u.name]));
-            const cycles = (cyclesRaw || [])
-                .map((c) => {
-                    const ap = compensado.get(`${c.usina_id}|${c.mes_referencia}`);
-                    return {
-                        ...c,
-                        usinaNome: nomePorUsina.get(c.usina_id) || '—',
+            const reais = (cyclesRaw || []).map((c) => {
+                const ap = compensado.get(`${c.usina_id}|${c.mes_referencia}`);
+                return {
+                    ...c,
+                    usinaNome: nomePorUsina.get(c.usina_id) || '—',
+                    compensadoApurado: ap ? ap.kwh : null,
+                    ucsComFatura: ap ? ap.ucs : 0,
+                };
+            });
+
+            // Mês sem linha em `generation_production` some da régua, e sumir é pior
+            // que aparecer vazio: julho/2026 desapareceu entre junho e agosto sem que
+            // nada na tela dissesse que aquele mês existiu e não foi fechado. Só os
+            // buracos INTERNOS de cada usina viram marcador — antes do primeiro
+            // fechamento a usina não tinha o que fechar.
+            const buracos = [];
+            for (const u of usinasRaw) {
+                const meses = reais.filter((c) => c.usina_id === u.id).map((c) => c.mes_referencia);
+                for (const chave of mesesFaltantes(meses)) {
+                    const ap = compensado.get(`${u.id}|${chave}-01`);
+                    buracos.push({
+                        id: `sem-fechamento-${u.id}-${chave}`,
+                        ausente: true,
+                        usina_id: u.id,
+                        usinaNome: u.name,
+                        mes_referencia: `${chave}-01`,
+                        status: null,
                         compensadoApurado: ap ? ap.kwh : null,
                         ucsComFatura: ap ? ap.ucs : 0,
-                    };
-                })
+                    });
+                }
+            }
+
+            const cycles = [...reais, ...buracos]
                 .sort((a, b) => (a.mes_referencia < b.mes_referencia ? 1 : -1));
 
             // Extrato. Convenção do razão: débito do passivo 2.1.1 é positivo (reduz o que

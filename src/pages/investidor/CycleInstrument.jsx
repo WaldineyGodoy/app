@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import {
     cycleLabel, isBlank, money, kwh, percent, statusCiclo, cents,
+    tarifa as tarifaBRL,
 } from './format';
 
 /**
@@ -76,7 +77,7 @@ export function CycleRuler({ cycles, selectedId, onSelect }) {
             (m, { lido }) => Math.max(m, Math.abs(lido?.apurado ?? 0)), 0,
         );
         return lidos.map(({ cycle, lido }) => {
-            const valor = lido?.apurado;
+            const valor = cycle.ausente ? null : lido?.apurado;
             const altura = maior > 0 && valor !== null && valor !== undefined
                 ? Math.max(2, (Math.abs(valor) / maior) * 100) : 2;
             let tom = cycle.status === 'liquidado' ? 'verdigris'
@@ -95,21 +96,22 @@ export function CycleRuler({ cycles, selectedId, onSelect }) {
                     <button
                         key={cycle.id}
                         type="button"
-                        className="iv-tick"
+                        className={`iv-tick ${cycle.ausente ? 'is-ausente' : ''}`}
                         aria-pressed={ativo}
                         onClick={() => onSelect(cycle.id)}
                     >
                         <span className="iv-tick-bar">
                             <span
-                                className={`iv-tick-fill tom-${tom}`}
-                                style={{ height: `${altura}%` }}
+                                className={`iv-tick-fill ${cycle.ausente ? '' : `tom-${tom}`}`}
+                                style={{ height: `${cycle.ausente ? 100 : altura}%` }}
                             />
                         </span>
                         <span>
                             <span className="iv-tick-month">{rot.curto}</span>
                             <span className="iv-tick-plant">{cycle.usinaNome}</span>
                             <span className="iv-tick-plant">
-                                {lido?.apurado === null ? 'não apurado' : money(lido.apurado)}
+                                {cycle.ausente ? 'sem fechamento'
+                                    : lido?.apurado === null ? 'não apurado' : money(lido.apurado)}
                             </span>
                         </span>
                     </button>
@@ -136,6 +138,9 @@ function FallRow({ nome, valor, detalhe, variante, de, ate, zero }) {
     const texto = valor === null ? '—'
         : saida ? `− ${money(Math.abs(valor))}`
             : money(valor);
+    // Sem valor a barra teria largura zero e a linha sumiria, o que se lê como
+    // gráfico quebrado. O trilho listrado diz "este degrau ainda não foi apurado".
+    const vazio = valor === null;
     return (
         <div className={`iv-fall-row ${variante === 'base' ? 'is-base' : ''} ${variante === 'total' ? 'is-total' : ''}`}>
             <div className="iv-fall-line">
@@ -144,23 +149,129 @@ function FallRow({ nome, valor, detalhe, variante, de, ate, zero }) {
                     {texto}
                 </span>
             </div>
-            <div className="iv-fall-track">
+            <div className={`iv-fall-track ${vazio ? 'is-vazio' : ''}`}>
                 <span className="iv-fall-zero" style={{ left: `${zero}%` }} aria-hidden="true" />
-                <span
-                    className={`iv-fall-bar ${saida || negativo ? 'is-out' : ''} ${variante === 'base' ? 'is-base' : ''} ${variante === 'total' && !negativo ? 'is-total' : ''}`}
-                    style={{ left: `${esquerda}%`, width: `${largura}%` }}
-                />
+                {!vazio && (
+                    <span
+                        className={`iv-fall-bar ${saida || negativo ? 'is-out' : ''} ${variante === 'base' ? 'is-base' : ''} ${variante === 'total' && !negativo ? 'is-total' : ''}`}
+                        style={{ left: `${esquerda}%`, width: `${largura}%` }}
+                    />
+                )}
             </div>
             {detalhe ? <span className="iv-fall-detail">{detalhe}</span> : null}
         </div>
     );
 }
 
-export function CycleSheet({ cycle }) {
+/**
+ * A composição que leva da tarifa cheia da concessionária ao que sobra por kWh
+ * para o investidor. É a conta que ele recebe por WhatsApp todo mês; tê-la na
+ * tela evita conferir de cabeça.
+ */
+function TariffChain({ usina }) {
+    const t = usina?.tarifa;
+    if (!t) {
+        return (
+            <div className="iv-note is-quiet">
+                <span>
+                    A distribuidora <b>{usina?.concessionaria || 'desta usina'}</b> ainda não tem
+                    tarifas cadastradas, então a composição da sua tarifa líquida não pode ser
+                    exibida.
+                </span>
+            </div>
+        );
+    }
+
+    const linhas = [
+        ['Tarifa de energia', t.tarifa, 'in', `classe ${t.grupo}`],
+        ['Desconto do assinante', t.descontoReais, 'out',
+            t.descontoPercent === null ? null : `${percent(t.descontoPercent, 0)} da tarifa`],
+        ['Fio B', t.fioB, 'out', t.fioBIsento ? 'isento — usina GD1' : 'uso da rede da distribuidora'],
+    ];
+    if (t.isCompartilhada) {
+        linhas.push(['ICMS', t.icms, 'out',
+            t.icmsPercent === null ? null : `${percent(t.icmsPercent, 0)} sobre a tarifa sem Fio B`]);
+        linhas.push(['PIS + COFINS', t.pisCofins, 'out',
+            t.pisPercent === null || t.cofinsPercent === null
+                ? null : `${percent(t.pisPercent + t.cofinsPercent)} após o ICMS`]);
+    }
+    linhas.push(['Taxa de gestão B2W', t.gestaoReais, 'out',
+        t.gestaoPercent === null ? null : `${percent(t.gestaoPercent, 0)} do que sobra`]);
+
+    return (
+        <>
+            <div className="iv-sheet-foot">
+                <span className="iv-label">Componentes da sua tarifa · por kWh compensado</span>
+            </div>
+
+            <div className="iv-tarifa">
+                {linhas.map(([nome, valor, tipo, nota]) => (
+                    <div className="iv-tarifa-row" key={nome}>
+                        <span>
+                            <span className="iv-fall-name">{nome}</span>
+                            {nota ? <span className="iv-fall-detail">{nota}</span> : null}
+                        </span>
+                        <span className={`iv-tarifa-value ${tipo === 'out' ? 'is-out' : ''}`}>
+                            {valor === null ? '—' : `${tipo === 'out' ? '− ' : ''}${tarifaBRL(valor)}`}
+                        </span>
+                    </div>
+                ))}
+                <div className="iv-tarifa-row is-total">
+                    <span className="iv-fall-name">Tarifa líquida do investidor</span>
+                    <span className="iv-tarifa-value is-total">{tarifaBRL(t.liquida)}</span>
+                </div>
+            </div>
+
+            {t.faltando.length > 0 && (
+                <div className="iv-note">
+                    <span>
+                        <b>Tarifa incompleta.</b> Falta {t.faltando.join(', ')} no cadastro da
+                        distribuidora. A tarifa líquida fica em branco até o dado existir — mostrar
+                        zero no lugar inflaria o valor que você vê por kWh.
+                    </span>
+                </div>
+            )}
+        </>
+    );
+}
+
+export function CycleSheet({ cycle, usina }) {
+    const rot = cycleLabel(cycle?.mes_referencia);
+
+    // Mês que existiu no calendário e nunca foi fechado. Não tem cascata para
+    // desenhar; tem uma ausência para explicar.
+    if (cycle?.ausente) {
+        return (
+            <div className="iv-sheet iv-enter" key={cycle.id}>
+                <div className="iv-sheet-head">
+                    <h3 className="iv-sheet-month">{rot.longo}</h3>
+                    <p className="iv-sheet-plant">{cycle.usinaNome}</p>
+                    <span className="iv-chip tom-neutro">
+                        <span className="iv-led" aria-hidden="true" />
+                        Sem fechamento
+                    </span>
+                </div>
+
+                <div className="iv-note">
+                    <span>
+                        <b>Este mês não foi fechado.</b> Não existe apuração gravada para{' '}
+                        {rot.longo} nesta usina, embora haja fechamento antes e depois.
+                        {cycle.compensadoApurado !== null
+                            ? ` As faturas das beneficiárias desse mês registram ${kwh(cycle.compensadoApurado)}
+                               compensados em ${cycle.ucsComFatura} unidade${cycle.ucsComFatura === 1 ? '' : 's'},
+                               então houve energia — o que falta é o fechamento.`
+                            : ' Também não há faturas de beneficiárias apuradas no período.'}
+                        {' '}Fale com a B2W antes de conciliar o período.
+                    </span>
+                </div>
+
+                {usina && <TariffChain usina={usina} />}
+            </div>
+        );
+    }
+
     const lido = readCycle(cycle);
     if (!lido) return null;
-
-    const rot = cycleLabel(cycle.mes_referencia);
 
     // Escala única da cascata: do menor ao maior ponto por onde o dinheiro passa,
     // sempre incluindo o zero para o eixo existir mesmo quando tudo é despesa.
@@ -262,6 +373,8 @@ export function CycleSheet({ cycle }) {
                         )}
                 </>
             )}
+
+            {usina && <TariffChain usina={usina} />}
 
             <div className="iv-sheet-foot">
                 <span>

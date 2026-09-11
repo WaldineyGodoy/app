@@ -5,6 +5,9 @@ const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' 
 const dec = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const dec1 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const dec2 = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const dec4 = new Intl.NumberFormat('pt-BR', {
+    style: 'currency', currency: 'BRL', minimumFractionDigits: 4, maximumFractionDigits: 4,
+});
 
 export const isBlank = (v) => v === null || v === undefined || v === '' || Number.isNaN(Number(v));
 
@@ -14,6 +17,12 @@ export const money = (v) => (isBlank(v) ? '—' : brl.format(Number(v)));
 export const moneyAbs = (v) => (isBlank(v) ? '—' : brl.format(Math.abs(Number(v))));
 
 export const kwh = (v) => (isBlank(v) ? '—' : `${dec.format(Number(v))} kWh`);
+
+/**
+ * Preço por kWh. Quatro casas porque a tarifa se mede em milésimos de real:
+ * arredondar para centavos aqui erra o repasse em dezenas de reais no mês.
+ */
+export const tarifa = (v) => (isBlank(v) ? '—' : `${dec4.format(Number(v))}`);
 
 export const kwp = (v) => (isBlank(v) ? '—' : `${dec2.format(Number(v))} kWp`);
 
@@ -71,10 +80,13 @@ const MODALIDADES = {
 };
 export const modalidade = (v) => MODALIDADES[v] || v || '—';
 
+// Verde é usina entregando energia; âmbar é parada mas viva; vermelho fica
+// reservado a perda de dinheiro no extrato e nos ciclos, para não competir com
+// o estado operacional da usina.
 const STATUS_USINA = {
-    gerando: { rotulo: 'Gerando', tom: 'sun' },
+    gerando: { rotulo: 'Gerando', tom: 'verdigris' },
     em_conexao: { rotulo: 'Em conexão', tom: 'neutro' },
-    manutencao: { rotulo: 'Manutenção', tom: 'rust' },
+    manutencao: { rotulo: 'Manutenção', tom: 'sun' },
     inativa: { rotulo: 'Inativa', tom: 'neutro' },
 };
 export const statusUsina = (v) => STATUS_USINA[v] || { rotulo: v || 'Sem status', tom: 'neutro' };
