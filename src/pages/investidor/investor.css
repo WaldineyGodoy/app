@@ -1351,7 +1351,19 @@
     cursor: pointer;
 }
 
-.iv-flip:hover .iv-flip-in,
+/* O giro so existe onde ha ponteiro de verdade.
+   Em touch o :hover e "pegajoso": o navegador aplica o estado no toque e so
+   solta quando voce toca em outro lugar, entao o cartao ficava travado no verso
+   depois de fechar o modal. Verificado em 11/09/2026 num Pixel 8 emulado.
+   Sem hover o toque abre o modal direto, que e onde esta o grafico inteiro. */
+@media (hover: hover) and (pointer: fine) {
+    .iv-flip:hover .iv-flip-in {
+        transform: rotateY(180deg);
+    }
+}
+
+/* :focus-visible fica de fora do media query de proposito: ele so casa em
+   navegacao por teclado, nunca por toque, entao nao gruda. */
 .iv-root .iv-flip-in:focus-visible {
     transform: rotateY(180deg);
 }
@@ -1393,7 +1405,7 @@
     .iv-root .iv-flip-in,
     .iv-flip:hover .iv-flip-in,
     .iv-root .iv-flip-in:focus-visible {
-        transform: none;
+        transform: none !important;
         transition: none;
     }
 
