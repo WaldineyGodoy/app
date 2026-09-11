@@ -19,9 +19,9 @@ import { componentesTarifarios } from '../../lib/tarifa';
 // mesma função da tela para o preview não desenhar uma cadeia que só existe aqui.
 const TARIFAS_COSERN = {
     Concessionaria: 'Neoenergia Cosern',
-    'Tarifa Concessionaria': 1.06654,
+    'Tarifa Concessionaria': 1.0347,
     'Desconto Assinante': 20,
-    'Fio B': 0.22023,
+    'Fio B': 0.213,
     ICMS: 20,
     PIS: 1.29,
     COFINS: 5.97,
