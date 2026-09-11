@@ -1225,3 +1225,112 @@
         transition-duration: 0.001ms !important;
     }
 }
+
+/* ============================ Ajustes de 10/09/2026 ====================== */
+
+/* Usina gerando pulsa em verde; parada fica âmbar e estática. O vermelho segue
+   reservado a dinheiro negativo, para não confundir estado com prejuízo. */
+.iv-root .iv-chip.tom-verdigris .iv-led {
+    animation: iv-pulse 2.4s ease-in-out infinite;
+}
+
+/* Mês que existiu e nunca foi fechado. Listrado e apagado: não é um valor
+   pequeno, é a ausência de apuração. */
+.iv-root .iv-tick.is-ausente {
+    opacity: 0.62;
+}
+
+.iv-root .iv-tick.is-ausente:hover,
+.iv-root .iv-tick.is-ausente[aria-pressed='true'] {
+    opacity: 1;
+}
+
+.iv-root .iv-tick.is-ausente[aria-pressed='true'] {
+    border-top-color: var(--iv-ink-3);
+}
+
+/* Degrau sem valor apurado: o trilho inteiro listrado em vez de barra de
+   largura zero, que se lia como gráfico quebrado. */
+.iv-root .iv-fall-track.is-vazio {
+    background: repeating-linear-gradient(-45deg,
+            var(--iv-hatch) 0 3px,
+            transparent 3px 6px);
+}
+
+/* ------------------------- Componentes da tarifa ------------------------- */
+.iv-tarifa {
+    display: flex;
+    flex-direction: column;
+}
+
+.iv-tarifa-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--iv-busbar);
+}
+
+.iv-tarifa-row.is-total {
+    border-bottom: none;
+    border-top: 1px solid var(--iv-busbar-strong);
+    margin-top: 0.25rem;
+    padding-top: 0.875rem;
+}
+
+/* A nota explicativa é bloco: inline ela cola no rótulo e sai
+   "Tarifa de energiaclasse B1 Residencial". */
+.iv-tarifa-row .iv-fall-detail {
+    display: block;
+    margin-top: 0.1875rem;
+}
+
+.iv-tarifa-value {
+    font-family: var(--iv-mono);
+    font-size: 0.9375rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--iv-ink);
+}
+
+.iv-tarifa-value.is-out {
+    color: var(--iv-rust);
+}
+
+.iv-tarifa-value.is-total {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--iv-sun);
+}
+
+/* --------------------------- Paginação do extrato ------------------------ */
+.iv-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding-top: 0.875rem;
+    margin-top: 0.25rem;
+    border-top: 1px solid var(--iv-busbar);
+}
+
+.iv-pager-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.iv-root .iv-pager-nav button[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Seletor de usina ao lado da contagem de ciclos. */
+.iv-section-tools {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}

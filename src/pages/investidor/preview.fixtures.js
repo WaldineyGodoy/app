@@ -1,3 +1,5 @@
+import { componentesTarifarios } from '../../lib/tarifa';
+
 /**
  * Dados de exemplo para abrir o painel sem autenticar (rota só de desenvolvimento).
  *
@@ -13,9 +15,30 @@
  * fica gravado no repositório.
  */
 
-const usina = (over) => ({
-    concessionaria: 'Neoenergia Cosern', ultimoApurado: null, ciclos: 0, ...over,
-});
+// Tarifas reais da Cosern, como estão na tabela `Concessionaria`. Passam pela
+// mesma função da tela para o preview não desenhar uma cadeia que só existe aqui.
+const TARIFAS_COSERN = {
+    Concessionaria: 'Neoenergia Cosern',
+    'Tarifa Concessionaria': 1.06654,
+    'Desconto Assinante': 20,
+    'Fio B': 0.22023,
+    ICMS: 20,
+    PIS: 1.29,
+    COFINS: 5.97,
+};
+
+const usina = (over) => {
+    const base = {
+        concessionaria: 'Neoenergia Cosern',
+        grupo_tarifario: 'B1 Residencial',
+        gestao_percentual: 10,
+        modalidade_gd: 'GD2',
+        ultimoApurado: null,
+        ciclos: 0,
+        ...over,
+    };
+    return { ...base, tarifa: componentesTarifarios(base, TARIFAS_COSERN) };
+};
 
 const U1 = '9bf1349b-6c79-4f68-a8e4-bc00f00850f5'; // UFV Bom Jesus
 

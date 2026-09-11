@@ -54,10 +54,14 @@ const toCsv = (entries) => {
     return linhas.map((l) => l.join(';')).join('\n');
 };
 
+/** Lançamentos por página. Extrato longo em página única vira rolagem infinita. */
+const POR_PAGINA = 20;
+
 export default function LedgerStatement({ entries, supplierName }) {
     const [de, setDe] = useState('');
     const [ate, setAte] = useState('');
     const [tipo, setTipo] = useState('todos');
+    const [pagina, setPagina] = useState(1);
     const [aberto, setAberto] = useState(null);
     const [composicao, setComposicao] = useState([]);
     const [carregandoComposicao, setCarregandoComposicao] = useState(false);
@@ -69,6 +73,24 @@ export default function LedgerStatement({ entries, supplierName }) {
         if (tipo === 'debito' && e.efeito >= 0) return false;
         return true;
     }), [entries, de, ate, tipo]);
+
+    const paginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+    // Filtrar encurta a lista: sem isto, quem estava na página 4 e filtra para 12
+    // lançamentos cai numa página vazia que parece extrato sem movimento.
+    const atual = Math.min(pagina, paginas);
+    const inicio = (atual - 1) * POR_PAGINA;
+    const naPagina = filtradas.slice(inicio, inicio + POR_PAGINA);
+
+    const irPara = (n) => {
+        setPagina(Math.min(Math.max(1, n), paginas));
+        setAberto(null);
+    };
+
+    const mudarFiltro = (setter) => (valor) => {
+        setter(valor);
+        setPagina(1);
+        setAberto(null);
+    };
 
     const abrir = async (entry) => {
         if (aberto === entry.id) { setAberto(null); return; }
@@ -100,15 +122,23 @@ export default function LedgerStatement({ entries, supplierName }) {
             <div className="iv-statement-tools">
                 <label className="iv-field">
                     <span className="iv-label">De</span>
-                    <input type="date" value={de} onChange={(e) => setDe(e.target.value)} />
+                    <input
+                        type="date"
+                        value={de}
+                        onChange={(e) => mudarFiltro(setDe)(e.target.value)}
+                    />
                 </label>
                 <label className="iv-field">
                     <span className="iv-label">Até</span>
-                    <input type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+                    <input
+                        type="date"
+                        value={ate}
+                        onChange={(e) => mudarFiltro(setAte)(e.target.value)}
+                    />
                 </label>
                 <label className="iv-field">
                     <span className="iv-label">Mostrar</span>
-                    <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
+                    <select value={tipo} onChange={(e) => mudarFiltro(setTipo)(e.target.value)}>
                         {TIPOS.map((t) => <option key={t.id} value={t.id}>{t.rotulo}</option>)}
                     </select>
                 </label>
@@ -139,7 +169,7 @@ export default function LedgerStatement({ entries, supplierName }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {filtradas.map((e) => (
+                            {naPagina.map((e) => (
                                 <React.Fragment key={e.id}>
                                     <tr
                                         className="iv-row"
@@ -224,6 +254,39 @@ export default function LedgerStatement({ entries, supplierName }) {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {filtradas.length > 0 && (
+                <div className="iv-pager">
+                    <span className="iv-label">
+                        {inicio + 1}–{Math.min(inicio + POR_PAGINA, filtradas.length)} de{' '}
+                        {filtradas.length} lançamentos
+                        {paginas > 1 ? ' · o CSV baixa todos' : ''}
+                    </span>
+                    {paginas > 1 && (
+                        <div className="iv-pager-nav">
+                            <button
+                                type="button"
+                                className="iv-ghost"
+                                onClick={() => irPara(atual - 1)}
+                                disabled={atual === 1}
+                            >
+                                Anterior
+                            </button>
+                            <span className="iv-figure">
+                                {atual} / {paginas}
+                            </span>
+                            <button
+                                type="button"
+                                className="iv-ghost"
+                                onClick={() => irPara(atual + 1)}
+                                disabled={atual === paginas}
+                            >
+                                Próxima
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

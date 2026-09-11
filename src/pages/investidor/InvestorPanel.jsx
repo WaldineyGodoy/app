@@ -24,6 +24,7 @@ export default function InvestorPanel({
     onReload, onSignOut, onRedeem, enviando = false, aviso = null,
 }) {
     const [cicloId, setCicloId] = useState(null);
+    const [usinaCiclo, setUsinaCiclo] = useState('todas');
     const [filtro, setFiltro] = useState('todas');
     const [dialogo, setDialogo] = useState(null); // { valor, parcial }
 
@@ -44,13 +45,29 @@ export default function InvestorPanel({
         };
     }, [escuro]);
 
+    // Com mais de uma usina a régua mistura os meses das três, e "AGO/26" aparece
+    // repetido sem que se saiba de qual usina é cada um. O seletor separa.
+    const ciclosVisiveis = useMemo(
+        () => (usinaCiclo === 'todas' ? cycles : cycles.filter((c) => c.usina_id === usinaCiclo)),
+        [cycles, usinaCiclo],
+    );
+
     useEffect(() => {
-        if (!cicloId && cycles.length) setCicloId(cycles[0].id);
-    }, [cycles, cicloId]);
+        if (!ciclosVisiveis.length) {
+            if (cicloId) setCicloId(null);
+            return;
+        }
+        if (!ciclosVisiveis.some((c) => c.id === cicloId)) setCicloId(ciclosVisiveis[0].id);
+    }, [ciclosVisiveis, cicloId]);
 
     const ciclo = useMemo(
-        () => cycles.find((c) => c.id === cicloId) || null,
-        [cycles, cicloId],
+        () => ciclosVisiveis.find((c) => c.id === cicloId) || null,
+        [ciclosVisiveis, cicloId],
+    );
+
+    const usinaDoCiclo = useMemo(
+        () => (ciclo ? usinas.find((u) => u.id === ciclo.usina_id) || null : null),
+        [usinas, ciclo],
     );
 
     const visiveis = useMemo(
@@ -189,18 +206,40 @@ export default function InvestorPanel({
                                 faturas pagas virou o seu saldo — e o que foi descontado no caminho.
                             </p>
                         </div>
-                        <span className="iv-label">{cycles.length} ciclos</span>
+                        <div className="iv-section-tools">
+                            {usinas.length > 1 && (
+                                <label className="iv-field">
+                                    <span className="iv-label">Usina</span>
+                                    <select
+                                        value={usinaCiclo}
+                                        onChange={(e) => setUsinaCiclo(e.target.value)}
+                                    >
+                                        <option value="todas">Todas as usinas</option>
+                                        {usinas.map((u) => (
+                                            <option key={u.id} value={u.id}>{u.name}</option>
+                                        ))}
+                                    </select>
+                                </label>
+                            )}
+                            <span className="iv-label">{ciclosVisiveis.length} ciclos</span>
+                        </div>
                     </div>
 
-                    {cycles.length === 0 ? (
+                    {ciclosVisiveis.length === 0 ? (
                         <div className="iv-empty">
                             <strong>Nenhum ciclo apurado</strong>
-                            O primeiro fechamento aparece aqui no mês seguinte à entrada em operação.
+                            {usinaCiclo === 'todas'
+                                ? 'O primeiro fechamento aparece aqui no mês seguinte à entrada em operação.'
+                                : 'Esta usina ainda não teve nenhum mês fechado. Troque o seletor para ver as demais.'}
                         </div>
                     ) : (
                         <>
-                            <CycleRuler cycles={cycles} selectedId={cicloId} onSelect={setCicloId} />
-                            {ciclo && <CycleSheet cycle={ciclo} />}
+                            <CycleRuler
+                                cycles={ciclosVisiveis}
+                                selectedId={cicloId}
+                                onSelect={setCicloId}
+                            />
+                            {ciclo && <CycleSheet cycle={ciclo} usina={usinaDoCiclo} />}
                         </>
                     )}
                 </section>
