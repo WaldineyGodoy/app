@@ -85,6 +85,7 @@ export const modalidade = (v) => MODALIDADES[v] || v || '—';
 // o estado operacional da usina.
 const STATUS_USINA = {
     gerando: { rotulo: 'Gerando', tom: 'verdigris' },
+    pre_operacao: { rotulo: 'Pré-operação', tom: 'neutro' },
     em_conexao: { rotulo: 'Em conexão', tom: 'neutro' },
     manutencao: { rotulo: 'Manutenção', tom: 'sun' },
     inativa: { rotulo: 'Inativa', tom: 'neutro' },

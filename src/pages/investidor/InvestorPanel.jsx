@@ -11,6 +11,7 @@ import './investor.css';
 const FILTROS = [
     { id: 'todas', rotulo: 'Todas' },
     { id: 'gerando', rotulo: 'Gerando' },
+    { id: 'pre_operacao', rotulo: 'Pré-operação' },
     { id: 'em_conexao', rotulo: 'Em conexão' },
     { id: 'manutencao', rotulo: 'Manutenção' },
 ];

@@ -10,6 +10,16 @@ import {
 } from 'lucide-react';
 import HistoryTimeline from './HistoryTimeline';
 
+
+// Rótulos do status calculado no banco, na ordem do ciclo do fornecedor.
+const ROTULO_STATUS_FORNECEDOR = {
+    cadastrado: 'Cadastrado',
+    contrato_assinado: 'Contrato Assinado',
+    ativacao: 'Em Ativação',
+    ativo: 'Ativo',
+    inativo: 'Inativo',
+};
+
 export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
     const { profile } = useAuth();
     const { showAlert, showConfirm } = useUI();
@@ -32,7 +42,7 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
         cnpj: '',
         email: '',
         phone: '',
-        status: 'ativacao',
+        status: 'cadastrado',
         contrato_assinado_em: '',
         legal_partner_name: '',
         legal_partner_cpf: '',
@@ -55,7 +65,7 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
                 cnpj: supplier.cnpj || '',
                 email: supplier.email || '',
                 phone: supplier.phone || '',
-                status: supplier.status || 'ativacao',
+                status: supplier.status || 'cadastrado',
                 contrato_assinado_em: supplier.contrato_assinado_em
                     ? supplier.contrato_assinado_em.slice(0, 10) : '',
                 legal_partner_name: supplier.legal_partner_name || '',
@@ -319,8 +329,15 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
                 cnpj: formData.cnpj,
                 email: formData.email,
                 phone: formData.phone ? formData.phone.replace(/\D/g, '') : '',
-                status: formData.status,
-                contrato_assinado_em: formData.contrato_assinado_em || null,
+                // O status é calculado no banco (fn_recalculate_supplier_status).
+                // Só a entrada e a saída de Inativo são gravadas daqui.
+                ...(formData.status !== (supplier?.status || 'cadastrado')
+                    ? { status: formData.status }
+                    : {}),
+                // Só se mudou: a data da Autentique tem hora e o campo mostra o dia.
+                ...((formData.contrato_assinado_em || '') !== (supplier?.contrato_assinado_em?.slice(0, 10) || '')
+                    ? { contrato_assinado_em: formData.contrato_assinado_em || null }
+                    : {}),
                 legal_partner_name: formData.legal_partner_name,
                 legal_partner_cpf: formData.legal_partner_cpf,
                 pix_key: formData.pix_key,
@@ -790,19 +807,31 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
 
                                         <div style={{ gridColumn: '1 / -1' }}>
                                             <label style={labelStyle}>Status Operacional</label>
-                                            <select
-                                                style={{ ...inputStyle, fontWeight: 'bold' }}
-                                                value={formData.status}
-                                                onChange={e => setFormData({ ...formData, status: e.target.value })}
-                                            >
-                                                <option value="ativacao">🟠 Em Ativação</option>
-                                                <option value="ativo">🟢 Ativo</option>
-                                                <option value="inativo">🔴 Inativo</option>
-                                            </select>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                                                <span style={{ fontWeight: 700 }}>
+                                                    {ROTULO_STATUS_FORNECEDOR[formData.status] || formData.status}
+                                                </span>
+                                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: '#991b1b', cursor: 'pointer' }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.status === 'inativo'}
+                                                        onChange={e => setFormData({
+                                                            ...formData,
+                                                            status: e.target.checked
+                                                                ? 'inativo'
+                                                                : (supplier?.status && supplier.status !== 'inativo' ? supplier.status : 'cadastrado')
+                                                        })}
+                                                    />
+                                                    Inativo
+                                                </label>
+                                            </div>
+                                            <small style={{ color: '#64748b', display: 'block', marginTop: '4px' }}>
+                                                Calculado pelos contratos e pelas usinas. Só "Inativo" é escolhido à mão.
+                                            </small>
                                         </div>
 
                                         <div style={{ gridColumn: '1 / -1' }}>
-                                            <label style={labelStyle}>Contrato assinado em</label>
+                                            <label style={labelStyle}>Contrato de Gestão assinado em</label>
                                             <input
                                                 type="date"
                                                 style={inputStyle}
@@ -810,7 +839,7 @@ export default function SupplierModal({ supplier, onClose, onSave, onDelete }) {
                                                 onChange={e => setFormData({ ...formData, contrato_assinado_em: e.target.value })}
                                             />
                                             <small style={{ color: '#64748b', display: 'block', marginTop: '4px' }}>
-                                                Vazio significa contrato não assinado. É um dos requisitos para o fornecedor ser Ativo.
+                                                Preenchido sozinho quando a assinatura é pela Autentique. Vazio = Gestão não assinada.
                                             </small>
                                         </div>
                                     </div>
