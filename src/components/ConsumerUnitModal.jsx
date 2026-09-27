@@ -493,8 +493,11 @@ export default function ConsumerUnitModal({ consumerUnit, onClose, onSave, onDel
                                 <input
                                     value={formData.cpf_cnpj_fatura}
                                     onChange={e => setFormData({ ...formData, cpf_cnpj_fatura: e.target.value })}
+                                    // Com titular escolhido, o documento é herdado dele (o banco também garante).
+                                    readOnly={!!formData.titular_fatura_id}
+                                    title={formData.titular_fatura_id ? 'Herdado do titular da fatura' : undefined}
                                     placeholder="000.000.000-00"
-                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', background: formData.titular_fatura_id ? '#f1f5f9' : undefined }}
                                 />
                             </div>
                         </>
